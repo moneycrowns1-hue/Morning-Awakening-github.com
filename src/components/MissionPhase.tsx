@@ -346,8 +346,11 @@ export default function MissionPhase({
           <span className="animate-pulse" style={{ color: KIN }}>█</span>
         </div>
 
-        {/* Directive card */}
-        {showDirective && (
+        {/* Directive card — shown ONLY when the phase has no subSteps.
+            When subSteps exist, they ARE the content (tasks are self-explanatory
+            and the operator voice narrates context). For phases like "agua"
+            that lack subSteps, the directive IS the instruction. */}
+        {showDirective && !mission.subSteps?.length && (
           <div
             className="w-full px-6 py-5 rounded-lg hud-frame hud-frame-bottom"
             style={{
