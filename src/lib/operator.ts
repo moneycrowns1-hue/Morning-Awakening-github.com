@@ -142,16 +142,21 @@ export class Operator {
       if (duck && this.engine) this.engine.unduck(0.6);
     };
 
+    // Always cancel any in-flight speech before starting a new one.
+    // This guarantees we never hear two voices at once (mp3+synth, or
+    // overlapping mp3s if speak() is called twice quickly).
+    this.stopCurrentAudio();
+    if (this.isAvailable()) {
+      try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+    }
+
     // ─── Tier 1: pre-generated mp3 ───────────────────────
     const entry = this.manifest?.lines?.[text];
     if (entry) {
       return new Promise<void>((resolve) => {
         try {
-          this.stopCurrentAudio();
           const audio = new Audio(`${VOICES_DIR}${entry.file}`);
           audio.volume = Math.max(0, Math.min(1, volume));
-          // The neural voice already has the right rate/pitch baked in,
-          // but we still honour rate via playbackRate for subtle tuning.
           if (opts.rate) audio.playbackRate = opts.rate;
           this.currentAudio = audio;
           startDuck();
@@ -162,14 +167,13 @@ export class Operator {
           };
           audio.onended = cleanup;
           audio.onerror = () => {
+            // mp3 failed: resolve silently — do NOT fall back to synth here
+            // because that caused overlapping voices in v7.0.
             cleanup();
-            // mp3 broken: fall through to synth as last resort
-            this.speakViaSynth(text, opts).catch(() => { /* ignore */ });
           };
           audio.play().catch(() => {
-            // Autoplay blocked or other failure → try synth
+            // Autoplay blocked or other failure — same policy.
             cleanup();
-            this.speakViaSynth(text, opts).catch(() => { /* ignore */ });
           });
         } catch {
           endDuck();

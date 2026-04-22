@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate-voices": "node scripts/generate-voices.mjs"
+    "generate-voices": "node scripts/generate-voices-qwen.mjs",
+    "generate-voices:edge": "node scripts/generate-voices.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",
@@ -17,6 +18,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@gradio/client": "^2.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

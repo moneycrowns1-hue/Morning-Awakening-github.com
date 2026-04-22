@@ -1,0 +1,140 @@
+{
+  "source": "huggingface.co/spaces/Qwen/Qwen3-TTS-Demo",
+  "voice": "Alek / 俄语-阿列克",
+  "language": "Spanish / 西班牙语",
+  "generatedAt": "2026-04-22T05:06:10.684Z",
+  "lines": {
+    "Operador. Fase uno. Génesis. Confirma tu presencia.": {
+      "file": "c0f595804555a3ee.mp3"
+    },
+    "Génesis completada. Primera victoria registrada.": {
+      "file": "9c7d08d0cfb4bc7c.mp3"
+    },
+    "Fase dos. Aqua. Restaura la función celular.": {
+      "file": "0c863aba31ebab25.mp3"
+    },
+    "Hidratación completa.": {
+      "file": "94b7b3636c5cacee.mp3"
+    },
+    "Fase tres. Flex. Calibra el cuerpo.": {
+      "file": "b4c9a946f329336a.mp3"
+    },
+    "Sistemas físicos calibrados.": {
+      "file": "aa221f8937b41754.mp3"
+    },
+    "Fase cuatro. Surge. Sal al frío. Corre.": {
+      "file": "5c63d2c67bad05b9.mp3"
+    },
+    "Endorfinas liberadas. Temperatura elevada.": {
+      "file": "702d0fc670c0b88b.mp3"
+    },
+    "Fase cinco. Forge. Densidad pura. Sin excusas.": {
+      "file": "9416b6c8aa7baa6a.mp3"
+    },
+    "Estímulo muscular aplicado.": {
+      "file": "668351bbc5301951.mp3"
+    },
+    "Fase seis. Pneuma. Cierra los ojos. Respira.": {
+      "file": "4950f5b041889d41.mp3"
+    },
+    "Sistema autónomo calibrado.": {
+      "file": "dbbf9d9bf73481f4.mp3"
+    },
+    "Fase siete. Cryo. Domina el reflejo. Controla la respiración.": {
+      "file": "64714b70077d4549.mp3"
+    },
+    "Dopamina elevada. Recuperación acelerada.": {
+      "file": "5d50e2b7b03cba4c.mp3"
+    },
+    "Fase ocho. Refuel. Come con calma. Nutrición directa al músculo.": {
+      "file": "3e071c3e6a9ec39b.mp3"
+    },
+    "Combustible cargado.": {
+      "file": "49c9072d1f454a84.mp3"
+    },
+    "Fase nueve. Helio. Luz directa. Entorno limpio.": {
+      "file": "2453dee94a1d52bb.mp3"
+    },
+    "Ritmo circadiano anclado.": {
+      "file": "e88e99e913c8ecb4.mp3"
+    },
+    "Fase diez. Void. Siéntate. Visualiza los obstáculos del día.": {
+      "file": "ecd5664321b045de.mp3"
+    },
+    "Córtex prefrontal armado.": {
+      "file": "ab5bd4c95d44bed8.mp3"
+    },
+    "Fase once. Codex. Escribe a mano. Máximo tres prioridades.": {
+      "file": "6241d24036bf1960.mp3"
+    },
+    "Objetivos definidos. Mente despejada.": {
+      "file": "a58875f781e365aa.mp3"
+    },
+    "Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta.": {
+      "file": "9eaafcd7ee9a452f.mp3"
+    },
+    "Datos asimilados. El día es tuyo, Operador.": {
+      "file": "991eea7681cff01e.mp3"
+    },
+    "Bebe con calma. Sal marina.": {
+      "file": "d8053093f82c4d04.mp3"
+    },
+    "Abre lo que el escritorio cierra.": {
+      "file": "4ceb761372156bfa.mp3"
+    },
+    "Respira en cada estiramiento.": {
+      "file": "d8b3a942e7e021ac.mp3"
+    },
+    "Respira por la nariz si puedes.": {
+      "file": "7cd2304ff5b6a809.mp3"
+    },
+    "Postura alta. Cadencia constante.": {
+      "file": "88f5f96e755867a8.mp3"
+    },
+    "Mantén la intensidad del día.": {
+      "file": "0837d1a33613ed82.mp3"
+    },
+    "Descansos cortos. Sesenta segundos.": {
+      "file": "8bff3433ca98acc8.mp3"
+    },
+    "Forma antes que carga.": {
+      "file": "d68c2d292986049a.mp3"
+    },
+    "Último tercio. No bajes la guardia.": {
+      "file": "8b13417bf3e43f0f.mp3"
+    },
+    "Cierra con el core.": {
+      "file": "f51ad544dbd8608c.mp3"
+    },
+    "No fuerces en altitud. Escucha al cuerpo.": {
+      "file": "8dd2b8a3a12a9d0a.mp3"
+    },
+    "Exhala lento. Resiste el impulso.": {
+      "file": "7592c120ef32a3ae.mp3"
+    },
+    "Terminar en frío maximiza la dopamina.": {
+      "file": "041c1a791da5fdac.mp3"
+    },
+    "Sin pantallas. Mastica despacio.": {
+      "file": "fda84e1396fef98b.mp3"
+    },
+    "Cero objetos innecesarios a la vista.": {
+      "file": "fff6576377b14b32.mp3"
+    },
+    "Tres minutos. Anticipa. Resuelve en frío.": {
+      "file": "4e507212b6342966.mp3"
+    },
+    "Dos minutos. Silencio. Solo la respiración.": {
+      "file": "3e8e1b52463e1553.mp3"
+    },
+    "Una sola idea. La de mayor impacto.": {
+      "file": "43d97fd5777bda3c.mp3"
+    },
+    "Conviértela en flashcard. Active Recall.": {
+      "file": "2d603db38085ecbd.mp3"
+    },
+    "Protocolo completo. El día es tuyo, Operador.": {
+      "file": "029649c17dc92116.mp3"
+    }
+  }
+}
