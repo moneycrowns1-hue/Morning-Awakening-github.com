@@ -1,6 +1,31 @@
 {
   "lines": {
-    "Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.": { "file": "opening.wav" },
-    "Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.":      { "file": "closing.wav" }
+    "Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.": { "file": "00-opening.mp3" },
+
+    "Jugador. Fase uno. Génesis. Confirma tu presencia. Primer acto del día: cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.": { "file": "01-genesis.mp3" },
+
+    "Fase dos. Aqua. Restaura la función celular. Quinientos mililitros con una pizca de sal marina. Durante la noche perdiste casi un litro de agua; sin hidratación, el cerebro opera al setenta y cinco por ciento de su capacidad. Bebe con calma.": { "file": "02-aqua.mp3" },
+
+    "Fase tres. Flex. Calibra el cuerpo. Ocho minutos de movilidad dirigida: caderas, isquiotibiales, columna torácica. El cuerpo despierta rígido tras el sueño; esta es la rutina que reduce el riesgo de lesión hasta en un cincuenta por ciento antes del cardio. Abre lo que el escritorio cierra. Respira en cada estiramiento.": { "file": "03-flex.mp3" },
+
+    "Fase cuatro. Surge. Sal al frío. Corre. Diez minutos al frío de la mañana, alternando entre días de sprint y zona dos conversacional. Correr libera B D N F, una neurotrofina que hace crecer neuronas nuevas en el hipocampo. Postura alta, cadencia constante; respira por la nariz si puedes. Mantén esta intensidad durante todo el día.": { "file": "04-surge.mp3" },
+
+    "Fase cinco. Forge. Densidad pura. Sin excusas. Veinticinco minutos: empuje, tracción, piernas, núcleo. El entrenamiento de fuerza en ayunas libera testosterona, hormona de crecimiento y B D N F; tu cerebro funciona mejor después de levantar peso. Descansos cortos de sesenta segundos. Forma antes que carga. En el último tercio, no bajes la guardia. Cierra con el núcleo.": { "file": "05-forge.mp3" },
+
+    "Fase seis. Pneuma. Cierra los ojos. Respira. Tres rondas de hiperventilación controlada seguidas de retención apneica. En altitud, no forzar: escucha al cuerpo. El protocolo alcaliniza la sangre, dispara noradrenalina y calibra el sistema autónomo.": { "file": "06-pneuma.mp3" },
+
+    "Fase siete. Cryo. Domina el reflejo. Controla la respiración. Tres minutos de frío extremo post-ejercicio. El contraste térmico dispara dopamina sostenida hasta dos horas; dominar el reflejo de huida es dominar la respuesta emocional del día entero. Exhala lento. Resiste el impulso. Terminar en frío maximiza la dopamina.": { "file": "07-cryo.mp3" },
+
+    "Fase ocho. Refuel. Come con calma. Nutrición directa al músculo. Ventana anabólica abierta: proteína para reparar el músculo, carbohidratos complejos para reponer glucógeno, grasas saludables para la función hormonal. Sin pantallas. Mastica despacio.": { "file": "08-refuel.mp3" },
+
+    "Fase nueve. Helio. Luz directa. Entorno limpio. Diez minutos de luz solar directa al despertar: ancla el ritmo circadiano, suprime melatonina y optimiza el pulso de cortisol matutino. Mientras tanto, limpia el escritorio. Cero objetos innecesarios a la vista.": { "file": "09-helio.mp3" },
+
+    "Fase diez. Void. Siéntate. Visualiza los obstáculos del día. Premeditatio Malorum estoica. El córtex prefrontal procesa mejor antes del conflicto que durante. Tres minutos: anticipa, resuelve en frío. Dos minutos de silencio: solo la respiración.": { "file": "10-void.mp3" },
+
+    "Fase once. Codex. Escribe a mano. Máximo tres prioridades. Externalizar las tareas libera memoria de trabajo; la claridad de propósito reduce la ansiedad hasta un cuarenta y tres por ciento. Lo que no cabe en tres líneas, hoy no importa.": { "file": "11-codex.mp3" },
+
+    "Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta. Diez minutos de lectura, cinco minutos de procesamiento. Active Recall más Repetición Espaciada; es la única manera de convertir lectura pasiva en conocimiento estructural. Una sola idea, la de mayor impacto. Conviértela en flashcard.": { "file": "12-cipher.mp3" },
+
+    "Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.": { "file": "13-closing.mp3" }
   }
 }
