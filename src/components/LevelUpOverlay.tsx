@@ -21,21 +21,38 @@ export default function LevelUpOverlay({ newLevel, previousLevel, onDone }: Leve
     const overlay = overlayRef.current;
     const seal = sealRef.current;
     if (!overlay || !seal) { onDone(); return; }
-    const tl = gsap.timeline({ onComplete: onDone });
-    tl.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: 0.3 });
-    tl.fromTo(seal,
-      { scale: 2.4, opacity: 0, rotate: -14 },
-      { scale: 1, opacity: 1, rotate: -4, duration: 0.6, ease: 'back.out(1.6)' },
-      '-=0.1'
+    // force GPU compositing so iPad doesn't repaint every frame
+    gsap.set([overlay, seal], { force3D: true, willChange: 'transform, opacity' });
+    const tl = gsap.timeline({
+      onComplete: () => {
+        gsap.set([overlay, seal], { clearProps: 'willChange' });
+        onDone();
+      },
+    });
+    tl.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'power1.out' });
+    tl.fromTo(
+      seal,
+      { scale: 1.8, opacity: 0, rotate: -10 },
+      { scale: 1, opacity: 1, rotate: -4, duration: 0.55, ease: 'back.out(1.5)' },
+      '-=0.1',
     );
-    tl.to(overlay, { opacity: 0, duration: 0.5, delay: rankChanged ? 3.4 : 2.2 });
+    tl.to(overlay, { opacity: 0, duration: 0.45, delay: rankChanged ? 3.2 : 2.0 });
   }, [onDone, rankChanged]);
 
   return (
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: 'rgba(10,9,8,0.88)', backdropFilter: 'blur(6px)' }}
+      style={{
+        /* NOTE: previously used backdrop-filter: blur(6px). That is
+           extremely expensive on iPad Safari — the GPU recomputes the
+           blur every frame during the scale animation, causing heavy
+           jank. Switched to a solid opaque overlay with a subtle vignette. */
+        background:
+          'radial-gradient(ellipse at center, rgba(26,20,14,0.96) 0%, rgba(6,5,4,0.98) 70%)',
+        WebkitBackfaceVisibility: 'hidden',
+        transform: 'translateZ(0)',
+      }}
     >
       <div
         className="text-[12px] tracking-[0.6em] mb-3"

@@ -399,7 +399,16 @@ export default function MorningAwakening() {
       <div ref={containerRef} className="flex-1 flex flex-col relative z-10 min-h-0 overflow-hidden">
         {/* ═══ IDLE ═══ */}
         {appState === 'IDLE' && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div
+            className="scroll-area flex-1 flex flex-col items-center px-6 min-h-0"
+            style={{
+              paddingTop: '1.5rem',
+              paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))',
+              /* Centers content when it fits the viewport, but when it
+                 overflows the top remains reachable by scroll. */
+              justifyContent: 'safe center',
+            }}
+          >
             {/* Operator HUD (rank + xp) */}
             <div className="w-full max-w-sm mb-4">
               <OperatorHUD profile={profile} onOpenProfile={() => setShowProfile(true)} />
@@ -548,7 +557,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v6.3</span>
+          <span>MORNING:AWAKENING · v6.4</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}
