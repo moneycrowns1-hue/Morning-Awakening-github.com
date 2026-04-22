@@ -36,24 +36,18 @@ const CONSTANTS = path.join(ROOT, 'src', 'lib', 'constants.ts');
 const REQUEST_DELAY_MS = Number(process.env.DELAY_MS || 1500);
 
 // ─── Extract lines from constants.ts ───────────────────
+// v7.7+: single voiceLineBriefing per phase. The previous design that
+// generated separate mp3s per line (voiceLine / narration / coaching /
+// complete / transition) caused abrupt voice-timbre shifts between
+// lines because Qwen is stochastic across separate requests. One line
+// per phase = one Qwen generation = consistent voice.
 function extractLines(src) {
   const lines = new Set();
-  // voiceLine, voiceLineComplete, voiceLineNarration (all single-quoted
-  // string literals in constants.ts).
   for (const m of src.matchAll(
-    /voiceLine(?:Complete|Narration)?:\s*'((?:\\'|[^'])+)'/g,
+    /voiceLineBriefing:\s*'((?:\\'|[^'])+)'/g,
   )) {
     lines.add(m[1].replace(/\\'/g, "'"));
   }
-  // coachingLines arrays.
-  for (const m of src.matchAll(/coachingLines:\s*\[([\s\S]*?)\]/g)) {
-    for (const s of m[1].matchAll(/'((?:\\'|[^'])+)'/g)) {
-      lines.add(s[1].replace(/\\'/g, "'"));
-    }
-  }
-  // Exported TRANSITION_LINE constant.
-  const tl = src.match(/TRANSITION_LINE\s*=\s*'((?:\\'|[^'])+)'/);
-  if (tl) lines.add(tl[1].replace(/\\'/g, "'"));
   return [...lines];
 }
 

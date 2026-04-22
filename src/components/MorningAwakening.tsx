@@ -535,7 +535,6 @@ export default function MorningAwakening() {
             audioTransition={handleAudioTransition}
             operator={operatorRef.current}
             onStrike={() => audioRef.current?.playStrike(0.5)}
-            hasNext={missionIndex < MISSIONS.length - 1}
           />
         )}
 
@@ -558,7 +557,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.6</span>
+          <span>MORNING:AWAKENING · v7.7</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { type Mission, formatTime, MISSIONS, TRANSITION_LINE } from '@/lib/constants';
+import { type Mission, formatTime, MISSIONS } from '@/lib/constants';
 import type { Operator } from '@/lib/operator';
 import { PlayCircle, ChevronDown } from 'lucide-react';
 import BreathingGuide from './BreathingGuide';
@@ -15,11 +15,6 @@ interface MissionPhaseProps {
   audioTransition?: () => void;
   operator?: Operator | null;
   onStrike?: () => void;
-  /** True when another mission follows this one. Controls whether the
-   *  short transition line ("Avanzando.") is spoken before onComplete.
-   *  False for the final mission, where MorningAwakening speaks its own
-   *  closing line after the protocol is fully complete. */
-  hasNext?: boolean;
 }
 
 const KIN = '#c9a227';
@@ -33,7 +28,6 @@ export default function MissionPhase({
   audioTransition,
   operator,
   onStrike,
-  hasNext = true,
 }: MissionPhaseProps) {
   const [timeLeft, setTimeLeft] = useState(mission.duration);
   const [started, setStarted] = useState(mission.duration === 0);
@@ -42,6 +36,11 @@ export default function MissionPhase({
   const [showDirective, setShowDirective] = useState(false);
   const [showScience, setShowScience] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+  /** Shows the "COMPLETADO" overlay that replaces the old spoken
+   *  voiceLineComplete + transition lines. When true, a GSAP timeline
+   *  fades it in, holds for ~0.8 s, fades it out, then calls
+   *  onComplete() so the parent advances to the next phase. */
+  const [showCompletado, setShowCompletado] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -50,35 +49,23 @@ export default function MissionPhase({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const spokenOpenRef = useRef(false);
-  const coachingIndexRef = useRef(0);
+  const completadoRef = useRef<HTMLDivElement>(null);
 
   const totalDuration = mission.duration;
   const totalPhases = MISSIONS.length;
 
-  // ═══ Operator voice — opening line + commentator narration ═══
+  // ═══ Operator voice — single briefing per phase ═══
+  // The briefing is one pre-generated Qwen mp3 containing intro +
+  // narration + coaching, so voice timbre stays consistent. Plays once
+  // at phase mount (after a 600 ms breath) and nothing else is spoken
+  // during the phase. Cancelled when COMPLETADO triggers advance.
   useEffect(() => {
     if (!operator || spokenOpenRef.current) return;
     spokenOpenRef.current = true;
-    let cancelled = false;
-
-    const t = setTimeout(async () => {
-      if (cancelled) return;
-      // Short intro ("Fase dos. Aqua. ...").
-      await operator.speak(mission.voiceLine, { rate: 0.93 });
-      if (cancelled) return;
-      // Commentator-style narration describing benefit/context. Not
-      // awaited by anything outside — it just plays while the user
-      // reads the directive. If the user advances early, the next
-      // speak() preempts it (Operator.speak cancels in-flight audio).
-      if (mission.voiceLineNarration) {
-        operator.speak(mission.voiceLineNarration, { rate: 0.95 });
-      }
+    const t = setTimeout(() => {
+      operator.speak(mission.voiceLineBriefing, { rate: 0.93 });
     }, 600);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
+    return () => clearTimeout(t);
   }, [mission, operator]);
 
   // ═══ Typewriter system log ═══
@@ -184,46 +171,53 @@ export default function MissionPhase({
       setTimeLeft(prev => {
         if (prev <= 1) {
           if (intervalRef.current) clearInterval(intervalRef.current);
-          setTimeout(async () => {
+          // Auto-complete: fire the visual COMPLETADO overlay. The
+          // overlay animation useEffect will call onComplete when the
+          // fade-out finishes. No voice here.
+          setTimeout(() => {
             audioTransition?.();
-            // Wait for the completion line to finish before advancing;
-            // otherwise the next phase's opening line cancels this one
-            // mid-playback (user hears a chopped "Géne..." + next line).
-            if (mission.voiceLineComplete) {
-              await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
-            }
-            // Hand-off line ("Avanzando.") fills what used to be 350ms
-            // of dead silence between phases. Skipped on the final
-            // mission because MorningAwakening speaks its own wrap-up.
-            if (hasNext) {
-              await operator?.speak(TRANSITION_LINE, { rate: 0.92 });
-            }
-            onComplete();
-          }, 500);
+            setShowCompletado(true);
+          }, 400);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [started, mission.duration, mission.voiceLineComplete, onComplete, audioTransition, operator, hasNext]);
+  }, [started, mission.duration, audioTransition]);
 
-  // ═══ Mid-phase coaching ═══
+  // ═══ COMPLETADO overlay animation ═══
+  // Drives the visual hand-off between phases: fade-in + scale-up,
+  // ~0.8 s hold, fade-out, then onComplete(). Also silences any
+  // lingering briefing voice so the next phase starts clean.
   useEffect(() => {
-    if (!started || !mission.coachingLines || mission.coachingLines.length === 0) return;
-    if (mission.duration < 60) return; // skip very short missions
-    const interval = Math.floor(mission.duration / (mission.coachingLines.length + 1));
-    if (interval < 30) return;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    mission.coachingLines.forEach((line, idx) => {
-      const delay = interval * (idx + 1) * 1000;
-      timers.push(setTimeout(() => {
-        operator?.speak(line, { rate: 0.93 });
-        coachingIndexRef.current = idx + 1;
-      }, delay));
+    if (!showCompletado) return;
+    operator?.cancel();
+    const node = completadoRef.current;
+    if (!node) {
+      // Fallback: if the overlay node isn't mounted, still advance.
+      const t = setTimeout(onComplete, 400);
+      return () => clearTimeout(t);
+    }
+    const tl = gsap.timeline();
+    tl.fromTo(
+      node,
+      { opacity: 0, scale: 0.85 },
+      { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' },
+    );
+    tl.to(node, {
+      opacity: 0,
+      duration: 0.3,
+      delay: 0.8,
+      ease: 'power1.in',
     });
-    return () => timers.forEach(clearTimeout);
-  }, [started, mission, operator]);
+    tl.call(() => {
+      onComplete();
+    });
+    return () => {
+      tl.kill();
+    };
+  }, [showCompletado, onComplete, operator]);
 
   const handleStart = useCallback(() => {
     setStarted(true);
@@ -233,34 +227,23 @@ export default function MissionPhase({
 
   const handleManualComplete = useCallback(() => {
     onStrike?.();
-    // Fire the completion line and the button animation in parallel,
-    // then wait for BOTH before advancing. Whichever finishes last gates
-    // the phase transition so the voice never gets cut.
-    const speakP = mission.voiceLineComplete
-      ? operator?.speak(mission.voiceLineComplete, { rate: 0.9 }) ?? Promise.resolve()
-      : Promise.resolve();
-
-    const animP = new Promise<void>((resolve) => {
-      if (buttonRef.current) {
-        gsap.to(buttonRef.current, {
-          scale: 1.15, opacity: 0, duration: 0.3,
-          onComplete: () => resolve(),
-        });
-      } else {
-        resolve();
-      }
-    });
-
-    Promise.all([speakP, animP]).then(async () => {
+    // Play the button exit animation, then show the COMPLETADO overlay.
+    // No voice on completion anymore — the overlay is the hand-off.
+    const finish = () => {
       audioTransition?.();
-      // Hand-off line ("Avanzando.") instead of raw silence. Skipped
-      // on the final mission — see comment in the auto-complete path.
-      if (hasNext) {
-        await operator?.speak(TRANSITION_LINE, { rate: 0.92 });
-      }
-      onComplete();
-    });
-  }, [onComplete, audioTransition, mission.voiceLineComplete, operator, onStrike, hasNext]);
+      setShowCompletado(true);
+    };
+    if (buttonRef.current) {
+      gsap.to(buttonRef.current, {
+        scale: 1.15,
+        opacity: 0,
+        duration: 0.3,
+        onComplete: finish,
+      });
+    } else {
+      finish();
+    }
+  }, [audioTransition, onStrike]);
 
   const toggleStep = (idx: number) => {
     setCheckedSteps(prev => {
@@ -278,6 +261,46 @@ export default function MissionPhase({
 
   return (
     <div ref={containerRef} className="flex-1 flex flex-col items-center px-6 py-5 relative overflow-hidden min-h-0">
+      {/* ═══ COMPLETADO overlay — replaces the old spoken hand-off ═══ */}
+      {showCompletado && (
+        <div
+          ref={completadoRef}
+          className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(10,10,12,0.94) 0%, rgba(10,10,12,0.82) 60%, rgba(10,10,12,0.6) 100%)',
+            backdropFilter: 'blur(6px)',
+            opacity: 0,
+          }}
+        >
+          <div className="text-center select-none">
+            <div
+              className="text-4xl md:text-5xl font-bold tracking-[0.4em]"
+              style={{
+                color: KIN,
+                textShadow: `0 0 24px ${KIN}55, 0 0 48px ${KIN}22`,
+                fontFamily: 'var(--font-cinzel), Georgia, serif',
+              }}
+            >
+              COMPLETADO
+            </div>
+            <div
+              className="mt-5 text-[11px] tracking-[0.35em]"
+              style={{ color: 'rgba(232,220,196,0.55)' }}
+            >
+              {mission.completionLog}
+            </div>
+            <div
+              className="mx-auto mt-6 h-px"
+              style={{
+                width: 120,
+                background: `linear-gradient(90deg, transparent, ${KIN}, transparent)`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ═══ Giant kanji watermark ═══ */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -704,12 +727,12 @@ export default function MissionPhase({
 
         {/* Skip (testing) */}
         <button
-          onClick={async () => {
+          onClick={() => {
+            // Dev skip: go straight to the COMPLETADO overlay, same
+            // path as the normal completion flow but without the
+            // button exit animation.
             audioTransition?.();
-            if (mission.voiceLineComplete) {
-              await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
-            }
-            onComplete();
+            setShowCompletado(true);
           }}
           className="px-7 py-3 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
           style={{
