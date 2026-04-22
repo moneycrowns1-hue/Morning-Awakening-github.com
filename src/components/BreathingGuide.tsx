@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import gsap from 'gsap';
+import { Play } from 'lucide-react';
 
 type BreathPhase = 'POWER' | 'HOLD' | 'RECOVERY' | 'REST';
 
@@ -144,7 +145,7 @@ export default function BreathingGuide() {
         </div>
         <button
           onClick={handleStart}
-          className="mt-2 px-6 py-3 rounded text-sm tracking-[0.25em] transition-all animate-ember-pulse hover:brightness-125"
+          className="mt-2 px-6 py-3 rounded text-sm tracking-[0.25em] transition-all animate-ember-pulse hover:brightness-125 inline-flex items-center gap-2"
           style={{
             border: '1px solid rgba(201,162,39,0.4)',
             color: '#c9a227',
@@ -152,7 +153,8 @@ export default function BreathingGuide() {
             fontFamily: 'var(--font-cinzel), Georgia, serif',
           }}
         >
-          ▶ INICIAR RESPIRACIÓN
+          <Play size={14} strokeWidth={1.8} fill="#c9a227" />
+          INICIAR RESPIRACIÓN
         </button>
       </div>
     );

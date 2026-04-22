@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BookOpen, Type, Scroll, Flame, type LucideIcon } from 'lucide-react';
 import { getDailyContent, type DailyInsightData } from '@/lib/dailyContent';
 
 export default function DailyInsight() {
@@ -37,14 +38,15 @@ export default function DailyInsight() {
 
   if (!data) return null;
 
-  const typeLabels: Record<string, { label: string; color: string; icon: string }> = {
-    philosophy: { label: 'FILOSOFÍA', color: '#A78BFA', icon: '◇' },
-    vocabulary: { label: 'VOCABULARIO', color: '#60A5FA', icon: '◆' },
-    history: { label: 'HISTORIA', color: '#F59E0B', icon: '◈' },
-    discipline: { label: 'DISCIPLINA', color: '#FF3366', icon: '◉' },
+  const typeLabels: Record<string, { label: string; color: string; Icon: LucideIcon }> = {
+    philosophy: { label: 'FILOSOFÍA', color: '#A78BFA', Icon: BookOpen },
+    vocabulary: { label: 'VOCABULARIO', color: '#60A5FA', Icon: Type },
+    history:    { label: 'HISTORIA',   color: '#F59E0B', Icon: Scroll },
+    discipline: { label: 'DISCIPLINA', color: '#FF3366', Icon: Flame },
   };
 
   const info = typeLabels[data.type];
+  const Icon = info.Icon;
 
   const getContext = (): string => {
     if (data.type === 'philosophy' || data.type === 'discipline') return data.content.context;
@@ -57,7 +59,7 @@ export default function DailyInsight() {
       <div className="border rounded p-4" style={{ borderColor: `${info.color}30`, backgroundColor: `${info.color}05` }}>
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
-          <span style={{ color: info.color }}>{info.icon}</span>
+          <Icon size={14} strokeWidth={1.8} style={{ color: info.color }} />
           <span className="text-[13px] tracking-[0.3em] font-bold" style={{ color: info.color }}>
             DATO DEL DÍA — {info.label}
           </span>

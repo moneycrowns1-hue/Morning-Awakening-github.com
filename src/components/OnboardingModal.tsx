@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 import type { OperatorClass } from '@/lib/progression';
 
 interface OnboardingModalProps {
@@ -230,7 +231,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
         <button
           onClick={handleNext}
           disabled={!canAdvance}
-          className="mt-6 w-full py-3 rounded text-sm font-bold tracking-[0.25em] transition-all"
+          className="mt-6 w-full py-3 rounded text-sm font-bold tracking-[0.25em] transition-all inline-flex items-center justify-center gap-2"
           style={{
             border: `1px solid ${canAdvance ? 'rgba(188,0,45,0.6)' : 'rgba(201,162,39,0.15)'}`,
             background: canAdvance ? 'rgba(188,0,45,0.1)' : 'rgba(201,162,39,0.03)',
@@ -240,7 +241,17 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
             cursor: canAdvance ? 'pointer' : 'not-allowed',
           }}
         >
-          {step === 'class' ? '◉ SELLAR IDENTIDAD' : 'CONTINUAR ▶'}
+          {step === 'class' ? (
+            <>
+              <ShieldCheck size={16} strokeWidth={1.8} />
+              SELLAR IDENTIDAD
+            </>
+          ) : (
+            <>
+              CONTINUAR
+              <ArrowRight size={16} strokeWidth={2} />
+            </>
+          )}
         </button>
       </div>
     </div>

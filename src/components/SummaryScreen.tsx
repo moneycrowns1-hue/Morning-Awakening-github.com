@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { Sparkles } from 'lucide-react';
 import { getRankByLevel, type StreakData } from '@/lib/constants';
 import { levelProgress, type OperatorProfile } from '@/lib/progression';
 
@@ -138,7 +139,7 @@ export default function SummaryScreen({
 
         <button
           onClick={onProceed}
-          className="summary-button w-full max-w-sm py-3 rounded text-sm font-semibold tracking-[0.25em] uppercase transition-all duration-300 hover:brightness-125"
+          className="summary-button w-full max-w-sm py-3 rounded text-sm font-semibold tracking-[0.25em] uppercase transition-all duration-300 hover:brightness-125 inline-flex items-center justify-center gap-2"
           style={{
             border: '1px solid rgba(188,0,45,0.5)',
             background: 'rgba(188,0,45,0.08)',
@@ -147,7 +148,8 @@ export default function SummaryScreen({
             fontFamily: 'var(--font-cinzel), Georgia, serif',
           }}
         >
-          ◉ SELLAR EL DÍA
+          <Sparkles size={16} strokeWidth={1.8} />
+          SELLAR EL DÍA
         </button>
 
         <p

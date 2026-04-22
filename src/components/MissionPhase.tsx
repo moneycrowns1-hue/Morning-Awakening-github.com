@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { type Mission, formatTime, MISSIONS } from '@/lib/constants';
 import type { Operator } from '@/lib/operator';
+import { Play, ChevronDown } from 'lucide-react';
 import BreathingGuide from './BreathingGuide';
 import DailyInsight from './DailyInsight';
 import JournalingPrompt from './JournalingPrompt';
@@ -178,7 +179,7 @@ export default function MissionPhase({
   const currentTip = mission.tips?.[Math.floor(Date.now() / 10000) % (mission.tips?.length || 1)];
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col items-center px-6 py-5 relative overflow-hidden">
+    <div ref={containerRef} className="flex-1 flex flex-col items-center px-6 py-5 relative overflow-hidden min-h-0">
       {/* ═══ Giant kanji watermark ═══ */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -191,8 +192,12 @@ export default function MissionPhase({
 
       <div
         ref={scrollRef}
-        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center gap-y-10 pb-12 relative z-10"
-        style={{ scrollbarWidth: 'none' }}
+        className="flex-1 w-full max-w-md overflow-y-auto overscroll-contain flex flex-col items-center gap-y-10 relative z-10 min-h-0"
+        style={{
+          scrollbarWidth: 'none',
+          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {/* ══════════ ZONE 1: HEADER ══════════ */}
         <header className="w-full flex flex-col items-center">
@@ -286,7 +291,7 @@ export default function MissionPhase({
                   className="flex flex-col items-center gap-2 transition-colors hover:brightness-125"
                   style={{ color: KIN }}
                 >
-                  <span className="text-3xl">▶</span>
+                  <Play size={40} strokeWidth={1.5} fill={KIN} />
                   <span className="text-[13px] tracking-[0.3em]">INICIAR</span>
                 </button>
               )}
@@ -527,7 +532,12 @@ export default function MissionPhase({
               }}
             >
               <span>¿POR QUÉ FUNCIONA?</span>
-              <span className="transition-transform" style={{ transform: showScience ? 'rotate(180deg)' : 'none' }}>▾</span>
+              <ChevronDown
+                size={16}
+                strokeWidth={2}
+                className="transition-transform"
+                style={{ transform: showScience ? 'rotate(180deg)' : 'none' }}
+              />
             </button>
             {showScience && (
               <div

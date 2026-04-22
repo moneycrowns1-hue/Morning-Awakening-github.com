@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
+import { Radio } from 'lucide-react';
 import { getCurrentTimeString } from '@/lib/constants';
 
 interface StatusBarProps {
@@ -42,7 +43,10 @@ export default function StatusBar({
         className="flex items-center justify-between text-[12px] tracking-[0.25em] uppercase mb-2"
         style={{ color: 'rgba(232,220,196,0.6)' }}
       >
-        <span className="animate-breathing">◆ SYS:ONLINE</span>
+        <span className="animate-breathing inline-flex items-center gap-1.5">
+          <Radio size={12} strokeWidth={2} />
+          SYS:ONLINE
+        </span>
         <span className="animate-flicker" style={{ fontFamily: 'var(--font-cinzel), Georgia, serif' }}>
           {time}
         </span>

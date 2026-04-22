@@ -34,6 +34,7 @@ import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
 import OnboardingModal from './OnboardingModal';
+import { Crosshair } from 'lucide-react';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -541,7 +542,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v6.0</span>
+          <span>MORNING:AWAKENING · v6.1</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}
@@ -551,7 +552,10 @@ export default function MorningAwakening() {
               RESET
             </button>
           )}
-          <span style={{ color: 'rgba(188,0,45,0.6)' }}>◆ {profile.name.toUpperCase()}</span>
+          <span style={{ color: 'rgba(188,0,45,0.6)' }} className="inline-flex items-center gap-1.5">
+            <Crosshair size={12} strokeWidth={2} />
+            {profile.name.toUpperCase()}
+          </span>
         </div>
       </div>
 
