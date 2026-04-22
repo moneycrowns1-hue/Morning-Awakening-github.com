@@ -162,10 +162,13 @@ export default function MissionPhase({
       setTimeLeft(prev => {
         if (prev <= 1) {
           if (intervalRef.current) clearInterval(intervalRef.current);
-          setTimeout(() => {
+          setTimeout(async () => {
             audioTransition?.();
+            // Wait for the completion line to finish before advancing;
+            // otherwise the next phase's opening line cancels this one
+            // mid-playback (user hears a chopped "Géne..." + next line).
             if (mission.voiceLineComplete) {
-              operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
+              await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             }
             onComplete();
           }, 500);
@@ -202,15 +205,28 @@ export default function MissionPhase({
 
   const handleManualComplete = useCallback(() => {
     onStrike?.();
-    if (mission.voiceLineComplete) {
-      operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
-    }
-    if (buttonRef.current) {
-      gsap.to(buttonRef.current, {
-        scale: 1.15, opacity: 0, duration: 0.3,
-        onComplete: () => { audioTransition?.(); onComplete(); }
-      });
-    } else { audioTransition?.(); onComplete(); }
+    // Fire the completion line and the button animation in parallel,
+    // then wait for BOTH before advancing. Whichever finishes last gates
+    // the phase transition so the voice never gets cut.
+    const speakP = mission.voiceLineComplete
+      ? operator?.speak(mission.voiceLineComplete, { rate: 0.9 }) ?? Promise.resolve()
+      : Promise.resolve();
+
+    const animP = new Promise<void>((resolve) => {
+      if (buttonRef.current) {
+        gsap.to(buttonRef.current, {
+          scale: 1.15, opacity: 0, duration: 0.3,
+          onComplete: () => resolve(),
+        });
+      } else {
+        resolve();
+      }
+    });
+
+    Promise.all([speakP, animP]).then(() => {
+      audioTransition?.();
+      onComplete();
+    });
   }, [onComplete, audioTransition, mission.voiceLineComplete, operator, onStrike]);
 
   const toggleStep = (idx: number) => {
@@ -655,9 +671,11 @@ export default function MissionPhase({
 
         {/* Skip (testing) */}
         <button
-          onClick={() => {
+          onClick={async () => {
             audioTransition?.();
-            if (mission.voiceLineComplete) operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
+            if (mission.voiceLineComplete) {
+              await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
+            }
             onComplete();
           }}
           className="px-7 py-3 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
