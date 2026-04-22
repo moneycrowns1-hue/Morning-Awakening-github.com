@@ -191,67 +191,71 @@ export default function MissionPhase({
 
       <div
         ref={scrollRef}
-        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center pb-8 relative z-10"
+        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center pb-10 relative z-10"
         style={{ scrollbarWidth: 'none' }}
       >
-        {/* Block label */}
-        {mission.blockLabel && (
-          <div className="w-full text-center mb-5 pb-3" style={{ borderBottom: '1px solid rgba(201,162,39,0.15)' }}>
-            <span
-              className="text-[10px] tracking-[0.45em] font-bold"
-              style={{ color: 'rgba(201,162,39,0.55)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
-            >
-              {mission.blockLabel}
-            </span>
-          </div>
-        )}
-
-        {/* Phase indicator + schedule */}
-        <div className="w-full flex items-center justify-between mb-3">
-          <span
-            className="text-[11px] tracking-[0.35em] font-bold"
-            style={{ color: 'rgba(201,162,39,0.6)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
-          >
-            FASE {mission.phase} / {totalPhases}
-          </span>
-          {mission.scheduledTime && (
-            <span
-              className="text-[11px] tracking-[0.25em] px-2 py-1 rounded"
-              style={{
-                color: 'rgba(201,162,39,0.55)',
-                background: 'rgba(201,162,39,0.06)',
-                border: '1px solid rgba(201,162,39,0.12)',
-              }}
-            >
-              {mission.scheduledTime}
-            </span>
+        {/* ══════════ ZONE 1: HEADER ══════════ */}
+        <header className="w-full flex flex-col items-center">
+          {/* Block label */}
+          {mission.blockLabel && (
+            <div className="w-full text-center mb-6 pb-4" style={{ borderBottom: '1px solid rgba(201,162,39,0.15)' }}>
+              <span
+                className="text-[10px] tracking-[0.45em] font-bold"
+                style={{ color: 'rgba(201,162,39,0.55)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+              >
+                {mission.blockLabel}
+              </span>
+            </div>
           )}
-        </div>
 
-        {/* Codename + kanji reading (NO ascii icon — cleaner) */}
-        <div
-          className="w-full text-center text-[12px] tracking-[0.5em] mb-2"
-          style={{ color: 'rgba(201,162,39,0.45)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
-        >
-          {mission.codename} · {mission.kanjiReading}
-        </div>
+          {/* Phase indicator + schedule */}
+          <div className="w-full flex items-center justify-between mb-5">
+            <span
+              className="text-[11px] tracking-[0.35em] font-bold"
+              style={{ color: 'rgba(201,162,39,0.6)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+            >
+              FASE {mission.phase} / {totalPhases}
+            </span>
+            {mission.scheduledTime && (
+              <span
+                className="text-[11px] tracking-[0.25em] px-2.5 py-1 rounded"
+                style={{
+                  color: 'rgba(201,162,39,0.55)',
+                  background: 'rgba(201,162,39,0.06)',
+                  border: '1px solid rgba(201,162,39,0.12)',
+                }}
+              >
+                {mission.scheduledTime}
+              </span>
+            )}
+          </div>
 
-        {/* Title */}
-        <div
-          ref={titleRef}
-          className="text-2xl md:text-3xl font-bold ember-text mb-6 text-center"
-          style={{
-            color: WASHI,
-            fontFamily: 'var(--font-cinzel), Georgia, serif',
-            letterSpacing: '0.18em',
-          }}
-        >
-          {mission.title}
-        </div>
+          {/* Codename + kanji reading */}
+          <div
+            className="w-full text-center text-[12px] tracking-[0.5em] mb-3"
+            style={{ color: 'rgba(201,162,39,0.45)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+          >
+            {mission.codename} · {mission.kanjiReading}
+          </div>
 
+          {/* Title */}
+          <div
+            ref={titleRef}
+            className="text-2xl md:text-3xl font-bold ember-text mb-10 text-center"
+            style={{
+              color: WASHI,
+              fontFamily: 'var(--font-cinzel), Georgia, serif',
+              letterSpacing: '0.18em',
+            }}
+          >
+            {mission.title}
+          </div>
+        </header>
+
+        {/* ══════════ ZONE 2: ACTION ALTAR ══════════ */}
         {/* Timer ring / action button / breathing */}
         {mission.duration > 0 && !mission.breathingPattern ? (
-          <div ref={timerRef} className="relative w-48 h-48 mb-7 shrink-0">
+          <div ref={timerRef} className="relative w-48 h-48 mb-12 shrink-0">
             <svg className="w-full h-full timer-ring" viewBox="0 0 200 200">
               <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(201,162,39,0.08)" strokeWidth="2.5" />
               <circle
@@ -292,7 +296,7 @@ export default function MissionPhase({
           <button
             ref={buttonRef}
             onClick={handleManualComplete}
-            className="relative w-40 h-40 mb-7 group shrink-0"
+            className="relative w-40 h-40 mb-12 group shrink-0"
           >
             <div
               className="absolute inset-0 rounded-full animate-ember-pulse"
@@ -331,27 +335,29 @@ export default function MissionPhase({
 
         {/* Breathing guide */}
         {mission.breathingPattern && (
-          <div ref={timerRef} className="mb-6 w-full flex flex-col items-center">
+          <div ref={timerRef} className="mb-10 w-full flex flex-col items-center">
             <BreathingGuide />
           </div>
         )}
 
-        {/* System log */}
-        <div className="w-full space-y-3 mb-5">
-          <div className="text-[13px] tracking-wider px-1" style={{ color: 'rgba(201,162,39,0.7)' }}>
+        {/* ══════════ ZONE 3: PROTOCOL BODY ══════════ */}
+        <section className="w-full">
+          {/* System log */}
+          <div className="text-[13px] tracking-wider px-1 mb-4" style={{ color: 'rgba(201,162,39,0.7)' }}>
             <span style={{ color: 'rgba(201,162,39,0.4)' }}>{'>'} </span>{systemText}
             <span className="animate-pulse" style={{ color: KIN }}>█</span>
           </div>
 
+          {/* Directive card */}
           {showDirective && (
             <div
-              className="px-5 py-4 rounded-lg hud-frame hud-frame-bottom"
+              className="px-6 py-5 rounded-lg hud-frame hud-frame-bottom mb-8"
               style={{
                 border: '1px solid rgba(201,162,39,0.15)',
                 background: 'rgba(201,162,39,0.035)',
               }}
             >
-              <p className="text-[15px] leading-[1.7] tracking-wide" style={{ color: 'rgba(232,220,196,0.85)' }}>
+              <p className="text-[15px] leading-[1.75] tracking-wide" style={{ color: 'rgba(232,220,196,0.88)' }}>
                 {typewriterText}
                 {typewriterText.length < mission.directive.length && (
                   <span className="animate-pulse" style={{ color: KIN }}>█</span>
@@ -359,25 +365,25 @@ export default function MissionPhase({
               </p>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Sub-steps checklist — modern card style */}
         {mission.subSteps && mission.subSteps.length > 0 && (
-          <div className="w-full mb-5">
+          <section className="w-full mb-10">
             <div
-              className="text-[11px] tracking-[0.35em] mb-3 font-bold"
+              className="text-[11px] tracking-[0.35em] mb-5 font-bold pl-1"
               style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
             >
               PASOS A SEGUIR
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-4">
               {mission.subSteps.map((step, idx) => {
                 const checked = checkedSteps.has(idx);
                 return (
                   <button
                     key={idx}
                     onClick={() => toggleStep(idx)}
-                    className="w-full flex items-start gap-4 p-4 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
+                    className="w-full flex items-start gap-4 px-5 py-5 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
                     style={{
                       borderWidth: '1px',
                       borderStyle: 'solid',
@@ -438,7 +444,7 @@ export default function MissionPhase({
                         )}
                       </div>
                       <p
-                        className="text-[13px] mt-1.5 leading-relaxed"
+                        className="text-[13px] mt-2 leading-[1.65]"
                         style={{
                           color: checked ? 'rgba(232,220,196,0.28)' : 'rgba(232,220,196,0.5)',
                         }}
@@ -450,7 +456,7 @@ export default function MissionPhase({
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Journaling */}
@@ -459,9 +465,17 @@ export default function MissionPhase({
         {/* Daily Insight */}
         {mission.hasDailyInsight && <DailyInsight />}
 
+        {/* ══════════ ZONE 4: FOOTER / META ══════════ */}
+        {/* Divider between body and footer */}
+        <div
+          className="w-full my-6"
+          style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.18), transparent)' }}
+          aria-hidden
+        />
+
         {/* Science Note — collapsible card */}
         {mission.scienceNote && (
-          <div className="w-full mt-4">
+          <div className="w-full">
             <button
               onClick={() => setShowScience(!showScience)}
               className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-colors hover:brightness-125"
@@ -493,7 +507,7 @@ export default function MissionPhase({
         {/* Tip */}
         {currentTip && (
           <div
-            className="w-full mt-4 px-4 py-3 rounded-lg text-[13px] leading-relaxed"
+            className="w-full mt-5 px-5 py-4 rounded-lg text-[13px] leading-[1.65]"
             style={{
               borderLeft: '2px solid rgba(201,162,39,0.4)',
               background: 'rgba(201,162,39,0.025)',
@@ -512,7 +526,7 @@ export default function MissionPhase({
 
         {/* Progress bar */}
         {mission.duration > 0 && started && !mission.breathingPattern && (
-          <div className="w-full mt-5">
+          <div className="w-full mt-8">
             <div
               className="flex justify-between text-[10px] tracking-[0.3em] mb-1.5 font-bold"
               style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
@@ -540,7 +554,7 @@ export default function MissionPhase({
             if (mission.voiceLineComplete) operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             onComplete();
           }}
-          className="mt-8 mb-4 px-6 py-2.5 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
+          className="mt-10 mb-6 px-7 py-3 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
           style={{
             border: '1px solid rgba(188,0,45,0.35)',
             color: 'rgba(188,0,45,0.8)',
