@@ -255,7 +255,7 @@ export default function MissionPhase({
         {/* ══════════ ZONE 2: ACTION ALTAR ══════════ */}
         {/* Timer ring / action button / breathing */}
         {mission.duration > 0 && !mission.breathingPattern ? (
-          <div ref={timerRef} className="relative w-48 h-48 mb-12 shrink-0">
+          <div ref={timerRef} className="relative w-48 h-48 mb-16 shrink-0">
             <svg className="w-full h-full timer-ring" viewBox="0 0 200 200">
               <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(201,162,39,0.08)" strokeWidth="2.5" />
               <circle
@@ -296,7 +296,7 @@ export default function MissionPhase({
           <button
             ref={buttonRef}
             onClick={handleManualComplete}
-            className="relative w-40 h-40 mb-12 group shrink-0"
+            className="relative w-40 h-40 mb-16 group shrink-0"
           >
             <div
               className="absolute inset-0 rounded-full animate-ember-pulse"
@@ -357,7 +357,7 @@ export default function MissionPhase({
                 background: 'rgba(201,162,39,0.035)',
               }}
             >
-              <p className="text-[15px] leading-[1.75] tracking-wide" style={{ color: 'rgba(232,220,196,0.88)' }}>
+              <p className="text-[15px] leading-[2] tracking-wide" style={{ color: 'rgba(232,220,196,0.88)' }}>
                 {typewriterText}
                 {typewriterText.length < mission.directive.length && (
                   <span className="animate-pulse" style={{ color: KIN }}>█</span>
@@ -368,22 +368,23 @@ export default function MissionPhase({
         </section>
 
         {/* Sub-steps checklist — modern card style */}
+        {/* Rule of thirds: generous TOP margin (new section), moderate BOTTOM after label */}
         {mission.subSteps && mission.subSteps.length > 0 && (
-          <section className="w-full mb-10">
+          <section className="w-full mt-4 mb-12">
             <div
-              className="text-[11px] tracking-[0.35em] mb-5 font-bold pl-1"
+              className="text-[11px] tracking-[0.35em] mb-6 font-bold pl-1"
               style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
             >
               PASOS A SEGUIR
             </div>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {mission.subSteps.map((step, idx) => {
                 const checked = checkedSteps.has(idx);
                 return (
                   <button
                     key={idx}
                     onClick={() => toggleStep(idx)}
-                    className="w-full flex items-start gap-4 px-5 py-5 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
+                    className="w-full flex items-start gap-5 px-6 py-6 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
                     style={{
                       borderWidth: '1px',
                       borderStyle: 'solid',
@@ -444,7 +445,7 @@ export default function MissionPhase({
                         )}
                       </div>
                       <p
-                        className="text-[13px] mt-2 leading-[1.65]"
+                        className="text-[13px] mt-2.5 leading-[1.9]"
                         style={{
                           color: checked ? 'rgba(232,220,196,0.28)' : 'rgba(232,220,196,0.5)',
                         }}
@@ -466,9 +467,9 @@ export default function MissionPhase({
         {mission.hasDailyInsight && <DailyInsight />}
 
         {/* ══════════ ZONE 4: FOOTER / META ══════════ */}
-        {/* Divider between body and footer */}
+        {/* Divider between body and footer — 2x top margin vs bottom (rule of thirds) */}
         <div
-          className="w-full my-6"
+          className="w-full mt-6 mb-10"
           style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.18), transparent)' }}
           aria-hidden
         />
