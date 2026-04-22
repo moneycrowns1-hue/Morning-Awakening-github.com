@@ -45,7 +45,7 @@ export default function SettingsModal({
         {/* Voice toggle */}
         <label className="flex items-center justify-between gap-3 mb-5 cursor-pointer">
           <div>
-            <div className="text-[13px] tracking-[0.2em] text-washi/80">VOZ DEL OPERADOR</div>
+            <div className="text-[13px] tracking-[0.2em] text-washi/80">VOZ DEL JUGADOR</div>
             <div className="text-[11px] text-washi/35">Narración de fases</div>
           </div>
           <div

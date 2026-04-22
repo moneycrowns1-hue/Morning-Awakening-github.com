@@ -89,7 +89,7 @@ export default function LevelUpOverlay({ newLevel, previousLevel, onDone }: Leve
       )}
 
       <div className="mt-6 text-[13px] tracking-widest text-washi/50 text-center max-w-xs">
-        {rankChanged ? 'El sello ha sido actualizado, Operador.' : 'El camino continúa.'}
+        {rankChanged ? 'El sello ha sido actualizado, Jugador.' : 'El camino continúa.'}
       </div>
     </div>
   );

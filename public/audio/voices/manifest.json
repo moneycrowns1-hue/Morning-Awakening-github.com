@@ -2,10 +2,10 @@
   "source": "huggingface.co/spaces/Qwen/Qwen3-TTS-Demo",
   "voice": "Alek / 俄语-阿列克",
   "language": "Spanish / 西班牙语",
-  "generatedAt": "2026-04-22T18:21:44.489Z",
+  "generatedAt": "2026-04-22T22:07:27.104Z",
   "lines": {
-    "Operador. Fase uno. Génesis. Confirma tu presencia. Primer acto del día: cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.": {
-      "file": "1d53986d822b4e9f.mp3"
+    "Jugador. Fase uno. Génesis. Confirma tu presencia. Primer acto del día: cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.": {
+      "file": "c42d8f648a7b891a.mp3"
     },
     "Fase dos. Aqua. Restaura la función celular. Quinientos mililitros con una pizca de sal marina. Durante la noche perdiste casi un litro de agua; sin hidratación, el cerebro opera al setenta y cinco por ciento de su capacidad. Bebe con calma.": {
       "file": "a5b427e1fa0b3150.mp3"
@@ -40,8 +40,11 @@
     "Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta. Diez minutos de lectura, cinco minutos de procesamiento. Active Recall más Repetición Espaciada; es la única manera de convertir lectura pasiva en conocimiento estructural. Una sola idea, la de mayor impacto. Conviértela en flashcard.": {
       "file": "bcfcc248ed8f684b.mp3"
     },
-    "Protocolo completo. El día es tuyo, Operador.": {
-      "file": "029649c17dc92116.mp3"
+    "Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.": {
+      "file": "03528efe7eb1b291.mp3"
+    },
+    "Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.": {
+      "file": "e60697f9c06cebb0.mp3"
     }
   }
 }

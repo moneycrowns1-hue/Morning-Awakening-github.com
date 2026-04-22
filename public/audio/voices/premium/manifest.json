@@ -1,6 +1,6 @@
 {
   "lines": {
-    "Sistema en línea. Operador detectado. Bienvenido.": { "file": "opening.mp3" },
-    "Protocolo completo. El día es tuyo, Operador.":     { "file": "closing.mp3" }
+    "Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.": { "file": "opening.wav" },
+    "Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.":      { "file": "closing.wav" }
   }
 }

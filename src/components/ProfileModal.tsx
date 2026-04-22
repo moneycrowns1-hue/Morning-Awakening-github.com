@@ -61,7 +61,7 @@ export default function ProfileModal({ profile, streak, onClose }: ProfileModalP
             {rank.kanji}
           </div>
           <div className="flex-1">
-            <div className="text-[11px] tracking-[0.3em] text-washi/40">OPERADOR</div>
+            <div className="text-[11px] tracking-[0.3em] text-washi/40">JUGADOR</div>
             <div
               className="text-xl font-bold tracking-wider truncate"
               style={{ fontFamily: 'var(--font-cinzel), Georgia, serif' }}

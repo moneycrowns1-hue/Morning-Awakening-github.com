@@ -51,8 +51,13 @@ function extractLines(src) {
   return [...lines];
 }
 
+// Extra hand-written lines spoken outside of MissionPhase. Intro and
+// outro will normally be served by /voices/premium/*.wav (voice-cloned
+// OmniVoice), but we also pre-generate a Qwen fallback so the app still
+// has audio if the premium files are missing.
 const EXTRA_LINES = [
-  'Protocolo completo. El día es tuyo, Operador.',
+  'Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.',
+  'Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.',
 ];
 
 function hashLine(text) {

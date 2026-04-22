@@ -123,7 +123,7 @@ export default function MorningAwakening() {
   // ═══════════════ Idle typewriter ═══════════════
   useEffect(() => {
     if (appState !== 'IDLE') return;
-    const text = 'PROTOCOLO v5.0 · 12 FASES · 3 BLOQUES · 5:00–6:45 AM · ESPERANDO AL OPERADOR…';
+    const text = 'PROTOCOLO v5.0 · 12 FASES · 3 BLOQUES · 5:00–6:45 AM · ESPERANDO AL JUGADOR…';
     let i = 0;
     setIdleText('');
     setShowIdleButton(false);
@@ -189,7 +189,7 @@ export default function MorningAwakening() {
     // user records manually). Personalization (rank, name, streak) stays
     // visible in the HUD, not spoken.
     operatorRef.current.speak(
-      'Sistema en línea. Operador detectado. Bienvenido.',
+      'Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.',
       { rate: 0.94 }
     );
 
@@ -242,7 +242,7 @@ export default function MorningAwakening() {
 
     if (nextIndex >= MISSIONS.length) {
       audioRef.current?.playGong();
-      operatorRef.current?.speak('Protocolo completo. El día es tuyo, Operador.', { rate: 0.9 });
+      operatorRef.current?.speak('Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.', { rate: 0.9 });
 
       const today = getToday();
       const newData: StreakData = {
@@ -555,7 +555,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.8</span>
+          <span>MORNING:AWAKENING · v7.9</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

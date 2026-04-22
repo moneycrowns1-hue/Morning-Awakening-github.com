@@ -38,7 +38,7 @@ export const DEFAULT_STATS: OperatorStats = {
 };
 
 export const DEFAULT_PROFILE: OperatorProfile = {
-  name: 'Operador',
+  name: 'Jugador',
   operatorClass: 'WARRIOR',
   xp: 0,
   level: 1,

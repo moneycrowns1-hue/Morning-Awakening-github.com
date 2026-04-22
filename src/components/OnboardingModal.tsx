@@ -122,7 +122,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
               Un protocolo matutino de 12 fases diseñado para forjar disciplina, enfoque y energía.
             </p>
             <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(232,220,196,0.5)' }}>
-              Antes de empezar, el sistema necesita registrar tu identidad de operador.
+              Antes de empezar, el sistema necesita registrar tu identidad de jugador.
             </p>
           </div>
         )}
@@ -133,7 +133,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
               className="text-[11px] tracking-[0.3em] mb-2 text-center"
               style={{ color: 'rgba(201,162,39,0.6)' }}
             >
-              IDENTIFICACIÓN DEL OPERADOR
+              IDENTIFICACIÓN DEL JUGADOR
             </div>
             <h2
               className="text-xl font-bold tracking-[0.2em] mb-5 text-center"
@@ -147,7 +147,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, 20))}
               onKeyDown={(e) => { if (e.key === 'Enter' && canAdvance) handleNext(); }}
-              placeholder="Operador..."
+              placeholder="Jugador..."
               maxLength={20}
               className="w-full px-4 py-3 rounded text-lg text-center tracking-[0.15em] focus:outline-none"
               style={{
@@ -158,7 +158,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
               }}
             />
             <p className="text-[11px] mt-3 text-center" style={{ color: 'rgba(232,220,196,0.35)' }}>
-              El Operador te llamará por este nombre.
+              El sistema te llamará por este nombre.
             </p>
           </div>
         )}

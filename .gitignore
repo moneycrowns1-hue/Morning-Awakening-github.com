@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only voice reference audio used by scripts/generate-voices-omnivoice.mjs
+# (not needed at runtime, not worth bloating the repo)
+/copiaaudio.mp3
+/musica principal.mp3
+

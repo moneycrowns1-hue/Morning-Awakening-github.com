@@ -13,7 +13,7 @@ const cinzelDecorative = Cinzel_Decorative({
 
 export const metadata: Metadata = {
   title: "MORNING AWAKENING — 道場",
-  description: "Protocolo matutino del operador. Disciplina. Enfoque. Energía.",
+  description: "Protocolo matutino del jugador. Disciplina. Enfoque. Energía.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

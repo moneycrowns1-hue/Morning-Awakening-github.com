@@ -59,7 +59,7 @@ export const MISSIONS: Mission[] = [
     layer: 'ignition',
     kanji: '起',
     kanjiReading: 'Kī · Alzarse',
-    voiceLineBriefing: 'Operador. Fase uno. Génesis. Confirma tu presencia. Primer acto del día: cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.',
+    voiceLineBriefing: 'Jugador. Fase uno. Génesis. Confirma tu presencia. Primer acto del día: cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.',
     directive: 'Levántate al primer timbre. Haz tu cama. Es tu primera victoria del día. Confirma tu presencia.',
     duration: 0,
     systemLog: 'INITIALIZING MORNING PROTOCOL v4.0...',
@@ -383,7 +383,7 @@ export interface Rank {
 export const RANKS: Rank[] = [
   { class: 'I',   title: 'INITIATE',  titleEs: 'INICIADO',   minLevel: 1,  minStreak: 0,  kanji: '初', color: '#7a6f63' },
   { class: 'II',  title: 'DISCIPLE',  titleEs: 'DISCÍPULO',  minLevel: 5,  minStreak: 3,  kanji: '徒', color: '#a48a3b' },
-  { class: 'III', title: 'OPERATOR',  titleEs: 'OPERADOR',   minLevel: 10, minStreak: 7,  kanji: '士', color: '#c9a227' },
+  { class: 'III', title: 'OPERATOR',  titleEs: 'JUGADOR' ,   minLevel: 10, minStreak: 7,  kanji: '士', color: '#c9a227' },
   { class: 'IV',  title: 'VETERAN',   titleEs: 'VETERANO',   minLevel: 20, minStreak: 14, kanji: '兵', color: '#d4af37' },
   { class: 'V',   title: 'RONIN',     titleEs: 'RONIN',      minLevel: 35, minStreak: 21, kanji: '浪', color: '#bc002d' },
   { class: 'VI',  title: 'SENSEI',    titleEs: 'SENSEI',     minLevel: 55, minStreak: 40, kanji: '師', color: '#e8dcc4' },
