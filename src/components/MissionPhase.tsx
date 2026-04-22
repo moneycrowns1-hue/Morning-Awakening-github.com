@@ -191,7 +191,7 @@ export default function MissionPhase({
 
       <div
         ref={scrollRef}
-        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center pb-10 relative z-10"
+        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center gap-y-10 pb-12 relative z-10"
         style={{ scrollbarWidth: 'none' }}
       >
         {/* ══════════ ZONE 1: HEADER ══════════ */}
@@ -241,7 +241,7 @@ export default function MissionPhase({
           {/* Title */}
           <div
             ref={titleRef}
-            className="text-2xl md:text-3xl font-bold ember-text mb-10 text-center"
+            className="text-2xl md:text-3xl font-bold ember-text text-center"
             style={{
               color: WASHI,
               fontFamily: 'var(--font-cinzel), Georgia, serif',
@@ -253,9 +253,9 @@ export default function MissionPhase({
         </header>
 
         {/* ══════════ ZONE 2: ACTION ALTAR ══════════ */}
-        {/* Timer ring / action button / breathing */}
+        {/* Altar: extra breathing room (my-6) on top of the parent gap, since this is the primary action */}
         {mission.duration > 0 && !mission.breathingPattern ? (
-          <div ref={timerRef} className="relative w-48 h-48 mb-16 shrink-0">
+          <div ref={timerRef} className="relative w-48 h-48 shrink-0 my-6">
             <svg className="w-full h-full timer-ring" viewBox="0 0 200 200">
               <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(201,162,39,0.08)" strokeWidth="2.5" />
               <circle
@@ -296,7 +296,7 @@ export default function MissionPhase({
           <button
             ref={buttonRef}
             onClick={handleManualComplete}
-            className="relative w-40 h-40 mb-16 group shrink-0"
+            className="relative w-40 h-40 group shrink-0 my-6"
           >
             <div
               className="absolute inset-0 rounded-full animate-ember-pulse"
@@ -335,42 +335,38 @@ export default function MissionPhase({
 
         {/* Breathing guide */}
         {mission.breathingPattern && (
-          <div ref={timerRef} className="mb-10 w-full flex flex-col items-center">
+          <div ref={timerRef} className="w-full flex flex-col items-center">
             <BreathingGuide />
           </div>
         )}
 
-        {/* ══════════ ZONE 3: PROTOCOL BODY ══════════ */}
-        <section className="w-full">
-          {/* System log */}
-          <div className="text-[13px] tracking-wider px-1 mb-4" style={{ color: 'rgba(201,162,39,0.7)' }}>
-            <span style={{ color: 'rgba(201,162,39,0.4)' }}>{'>'} </span>{systemText}
-            <span className="animate-pulse" style={{ color: KIN }}>█</span>
-          </div>
+        {/* ══════════ ZONE 3: SYSTEM LOG ══════════ */}
+        <div className="w-full text-[13px] tracking-wider px-1" style={{ color: 'rgba(201,162,39,0.7)' }}>
+          <span style={{ color: 'rgba(201,162,39,0.4)' }}>{'>'} </span>{systemText}
+          <span className="animate-pulse" style={{ color: KIN }}>█</span>
+        </div>
 
-          {/* Directive card */}
-          {showDirective && (
-            <div
-              className="px-6 py-5 rounded-lg hud-frame hud-frame-bottom mb-8"
-              style={{
-                border: '1px solid rgba(201,162,39,0.15)',
-                background: 'rgba(201,162,39,0.035)',
-              }}
-            >
-              <p className="text-[15px] leading-[2] tracking-wide" style={{ color: 'rgba(232,220,196,0.88)' }}>
-                {typewriterText}
-                {typewriterText.length < mission.directive.length && (
-                  <span className="animate-pulse" style={{ color: KIN }}>█</span>
-                )}
-              </p>
-            </div>
-          )}
-        </section>
+        {/* Directive card */}
+        {showDirective && (
+          <div
+            className="w-full px-6 py-5 rounded-lg hud-frame hud-frame-bottom"
+            style={{
+              border: '1px solid rgba(201,162,39,0.15)',
+              background: 'rgba(201,162,39,0.035)',
+            }}
+          >
+            <p className="text-[15px] leading-[2] tracking-wide" style={{ color: 'rgba(232,220,196,0.88)' }}>
+              {typewriterText}
+              {typewriterText.length < mission.directive.length && (
+                <span className="animate-pulse" style={{ color: KIN }}>█</span>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Sub-steps checklist — modern card style */}
-        {/* Rule of thirds: generous TOP margin (new section), moderate BOTTOM after label */}
         {mission.subSteps && mission.subSteps.length > 0 && (
-          <section className="w-full mt-4 mb-12">
+          <section className="w-full">
             <div
               className="text-[11px] tracking-[0.35em] mb-6 font-bold pl-1"
               style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
@@ -467,10 +463,10 @@ export default function MissionPhase({
         {mission.hasDailyInsight && <DailyInsight />}
 
         {/* ══════════ ZONE 4: FOOTER / META ══════════ */}
-        {/* Divider between body and footer — 2x top margin vs bottom (rule of thirds) */}
+        {/* Divider between body and footer (thin gradient hairline) */}
         <div
-          className="w-full mt-6 mb-10"
-          style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.18), transparent)' }}
+          className="w-full"
+          style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)' }}
           aria-hidden
         />
 
@@ -508,7 +504,7 @@ export default function MissionPhase({
         {/* Tip */}
         {currentTip && (
           <div
-            className="w-full mt-5 px-5 py-4 rounded-lg text-[13px] leading-[1.65]"
+            className="w-full px-5 py-4 rounded-lg text-[13px] leading-[1.65]"
             style={{
               borderLeft: '2px solid rgba(201,162,39,0.4)',
               background: 'rgba(201,162,39,0.025)',
@@ -527,7 +523,7 @@ export default function MissionPhase({
 
         {/* Progress bar */}
         {mission.duration > 0 && started && !mission.breathingPattern && (
-          <div className="w-full mt-8">
+          <div className="w-full">
             <div
               className="flex justify-between text-[10px] tracking-[0.3em] mb-1.5 font-bold"
               style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
@@ -555,7 +551,7 @@ export default function MissionPhase({
             if (mission.voiceLineComplete) operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             onComplete();
           }}
-          className="mt-10 mb-6 px-7 py-3 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
+          className="px-7 py-3 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
           style={{
             border: '1px solid rgba(188,0,45,0.35)',
             color: 'rgba(188,0,45,0.8)',
