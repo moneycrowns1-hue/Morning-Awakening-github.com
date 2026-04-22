@@ -26,17 +26,23 @@
   --font-mono: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* NOTE: this reset MUST live inside @layer base so Tailwind utility
+   classes (px-*, py-*, m-*, gap-*, space-y-*) can override it.
+   Declaring it outside a layer makes it beat every utility regardless
+   of specificity under Tailwind v4's layer cascade. */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }
 
 html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background: #0a0908;
+  background: #000;
   color: #e8dcc4;
   font-family: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
   font-size: 16px;
@@ -53,7 +59,7 @@ html, body {
 
 /* ═══ WASHI PAPER TEXTURE (SVG noise, layered) ═══ */
 .washi-bg {
-  background-color: #0a0908;
+  background-color: #000;
   background-image:
     radial-gradient(ellipse at 20% 10%, rgba(201, 162, 39, 0.04) 0%, transparent 55%),
     radial-gradient(ellipse at 80% 90%, rgba(188, 0, 45, 0.03) 0%, transparent 60%),
@@ -232,6 +238,11 @@ html, body {
 @keyframes ink-rise {
   0% { opacity: 0; transform: translateY(10px); filter: blur(2px); }
   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @keyframes check-in {

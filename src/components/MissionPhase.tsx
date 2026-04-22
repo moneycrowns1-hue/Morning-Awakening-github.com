@@ -296,36 +296,84 @@ export default function MissionPhase({
           <button
             ref={buttonRef}
             onClick={handleManualComplete}
-            className="relative w-40 h-40 group shrink-0 my-6"
+            className="relative group shrink-0 my-6"
+            style={{ width: '180px', height: '180px' }}
           >
+            {/* Outer rotating halo */}
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox="0 0 200 200"
+              style={{ animation: 'spin-slow 22s linear infinite' }}
+              aria-hidden
+            >
+              <defs>
+                <linearGradient id="haloGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="rgba(201,162,39,0.0)" />
+                  <stop offset="50%" stopColor="rgba(201,162,39,0.65)" />
+                  <stop offset="100%" stopColor="rgba(201,162,39,0.0)" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="96" fill="none" stroke="url(#haloGrad)" strokeWidth="1.5" />
+              {/* Tick marks like a wax seal */}
+              {Array.from({ length: 12 }).map((_, i) => {
+                const angle = (i * 30 * Math.PI) / 180;
+                const x1 = 100 + Math.cos(angle) * 92;
+                const y1 = 100 + Math.sin(angle) * 92;
+                const x2 = 100 + Math.cos(angle) * 86;
+                const y2 = 100 + Math.sin(angle) * 86;
+                return (
+                  <line
+                    key={i}
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke="rgba(201,162,39,0.35)"
+                    strokeWidth="1"
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Middle ember pulse ring */}
             <div
-              className="absolute inset-0 rounded-full animate-ember-pulse"
-              style={{ border: '1px solid rgba(201,162,39,0.3)' }}
-            />
-            <div
-              className="absolute inset-2 rounded-full"
-              style={{ border: '1px solid rgba(201,162,39,0.2)' }}
-            />
-            <div
-              className="absolute inset-5 rounded-full flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ember-border group-hover:brightness-125 group-active:brightness-90"
+              className="absolute rounded-full animate-ember-pulse"
               style={{
-                background: 'rgba(201,162,39,0.08)',
-                border: '1px solid rgba(201,162,39,0.45)',
+                inset: '18px',
+                border: '1px solid rgba(201,162,39,0.25)',
+              }}
+            />
+
+            {/* Inner coin core */}
+            <div
+              className="absolute rounded-full flex flex-col items-center justify-center transition-all duration-300 group-hover:brightness-125 group-active:scale-[0.96]"
+              style={{
+                inset: '30px',
+                background:
+                  'radial-gradient(circle at 35% 30%, rgba(30,26,19,0.95) 0%, rgba(10,9,8,1) 70%)',
+                border: '1.5px solid rgba(201,162,39,0.55)',
+                boxShadow:
+                  '0 0 25px rgba(201,162,39,0.25), inset 0 0 20px rgba(201,162,39,0.12), inset 0 2px 6px rgba(0,0,0,0.7)',
+                gap: '6px',
               }}
             >
               <span
-                className="text-3xl"
                 style={{
-                  color: HINOMARU,
+                  fontSize: '42px',
+                  lineHeight: 1,
+                  color: KIN,
                   fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
-                  textShadow: '0 0 10px rgba(188,0,45,0.4)',
+                  textShadow: '0 0 14px rgba(201,162,39,0.55), 0 0 3px rgba(188,0,45,0.6)',
                 }}
               >
                 決
               </span>
               <span
-                className="text-[12px] tracking-[0.3em] font-bold"
-                style={{ color: KIN, fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+                style={{
+                  fontSize: '11px',
+                  letterSpacing: '0.4em',
+                  fontWeight: 700,
+                  color: 'rgba(201,162,39,0.85)',
+                  fontFamily: 'var(--font-cinzel), Georgia, serif',
+                  paddingLeft: '0.4em',
+                }}
               >
                 CONFIRMAR
               </span>
