@@ -39,9 +39,12 @@ const LINES = [
   },
 ];
 
-// Instruct prompt — steers the cloned voice toward a ceremonial narrator
-// cadence for the opener / closer.
-const INSTRUCT = 'Ceremonial narrator, slow and deliberate, with subtle pauses between sentences.';
+// Instruct prompt — OmniVoice only accepts a fixed vocabulary of tokens
+// (age, gender, pitch, whisper, accent). Free-form prompts are rejected
+// with a ValueError. Comma+space separated. Empty = rely purely on the
+// reference audio's natural prosody, which is what we want for a clean
+// voice clone.
+const INSTRUCT = 'male, low pitch';
 
 console.log('[omnivoice] loading reference audio:', REF_AUDIO);
 const refBuf = await fs.readFile(REF_AUDIO);
@@ -56,12 +59,21 @@ if (!HF_TOKEN) {
   console.warn('[omnivoice] Get a token at https://huggingface.co/settings/tokens');
 }
 console.log('[omnivoice] connecting to Space k2-fsa/OmniVoice...');
-const app = await Client.connect('k2-fsa/OmniVoice', HF_TOKEN ? { hf_token: HF_TOKEN } : {});
+const app = await Client.connect('k2-fsa/OmniVoice', HF_TOKEN ? { token: HF_TOKEN } : {});
 console.log('[omnivoice] connected.');
 
 await fs.mkdir(OUTPUT_DIR, { recursive: true });
 
 for (const line of LINES) {
+  const outPathPre = path.join(OUTPUT_DIR, line.file);
+  try {
+    const existing = await fs.stat(outPathPre);
+    if (existing.size > 0) {
+      console.log(`[omnivoice] skip "${line.file}" (already exists, ${(existing.size / 1024).toFixed(1)} KB)`);
+      continue;
+    }
+  } catch { /* not found, proceed */ }
+
   console.log(`[omnivoice] generating "${line.file}"`);
   console.log(`           text: "${line.text.slice(0, 72)}${line.text.length > 72 ? '…' : ''}"`);
   const t0 = Date.now();
