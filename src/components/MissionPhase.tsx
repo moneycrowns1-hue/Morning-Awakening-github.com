@@ -380,7 +380,7 @@ export default function MissionPhase({
                   <button
                     key={idx}
                     onClick={() => toggleStep(idx)}
-                    className="w-full flex items-start gap-5 px-6 py-6 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
+                    className="w-full flex items-center gap-5 px-6 py-5 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
                     style={{
                       borderWidth: '1px',
                       borderStyle: 'solid',
@@ -391,7 +391,7 @@ export default function MissionPhase({
                   >
                     {/* Modern checkbox */}
                     <div
-                      className="relative w-6 h-6 rounded-md shrink-0 mt-0.5 flex items-center justify-center transition-all duration-300"
+                      className="relative w-6 h-6 rounded-md shrink-0 flex items-center justify-center transition-all duration-300"
                       style={{
                         border: `1.5px solid ${checked ? MOSS : 'rgba(201,162,39,0.4)'}`,
                         background: checked ? MOSS : 'transparent',
@@ -415,39 +415,31 @@ export default function MissionPhase({
                         </svg>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span
-                          className="text-[15px] font-semibold leading-tight"
-                          style={{
-                            color: checked ? 'rgba(122,140,90,0.85)' : 'rgba(232,220,196,0.95)',
-                            opacity: checked ? 0.6 : 1,
-                            letterSpacing: '0.02em',
-                          }}
-                        >
-                          {step.label}
-                        </span>
-                        {step.optional && (
-                          <span
-                            className="text-[9px] tracking-[0.2em] px-1.5 py-0.5 rounded font-bold"
-                            style={{
-                              color: 'rgba(201,162,39,0.85)',
-                              background: 'rgba(201,162,39,0.12)',
-                              border: '1px solid rgba(201,162,39,0.25)',
-                            }}
-                          >
-                            OPCIONAL
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className="text-[13px] mt-2.5 leading-[1.9]"
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                      <span
+                        className="text-[15px] font-semibold leading-snug"
                         style={{
-                          color: checked ? 'rgba(232,220,196,0.28)' : 'rgba(232,220,196,0.5)',
+                          color: checked ? 'rgba(122,140,90,0.85)' : 'rgba(232,220,196,0.95)',
+                          opacity: checked ? 0.6 : 1,
+                          letterSpacing: '0.02em',
+                          textDecoration: checked ? 'line-through' : 'none',
+                          textDecorationColor: 'rgba(122,140,90,0.5)',
                         }}
                       >
-                        {step.description}
-                      </p>
+                        {step.label}
+                      </span>
+                      {step.optional && (
+                        <span
+                          className="text-[9px] tracking-[0.2em] px-1.5 py-0.5 rounded font-bold"
+                          style={{
+                            color: 'rgba(201,162,39,0.85)',
+                            background: 'rgba(201,162,39,0.12)',
+                            border: '1px solid rgba(201,162,39,0.25)',
+                          }}
+                        >
+                          OPCIONAL
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
