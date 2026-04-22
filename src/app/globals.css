@@ -21,8 +21,9 @@
   --color-hinomaru: #bc002d;
   --color-kin: #c9a227;
   --color-moss: #3a4a3f;
-  --font-mono: var(--font-jetbrains), 'Courier New', monospace;
-  --font-serif: var(--font-cinzel), Georgia, serif;
+  --font-sans: var(--font-jetbrains), "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
+  --font-mono: var(--font-jetbrains), "Outfit", ui-sans-serif, sans-serif;
 }
 
 * {
@@ -37,8 +38,11 @@ html, body {
   overflow: hidden;
   background: #0a0908;
   color: #e8dcc4;
-  font-family: var(--font-jetbrains), 'Courier New', monospace;
-  font-size: 18px;
+  font-family: var(--font-jetbrains), "Outfit", ui-sans-serif, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;

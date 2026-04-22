@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Cinzel } from "next/font/google";
+import { Outfit, Cinzel_Decorative } from "next/font/google";
 import "./globals.css";
 
-const jetbrainsMono = JetBrains_Mono({
+// Outfit — body / descriptions (reuses the legacy --font-jetbrains variable
+// name so existing component references keep working without churn).
+const outfit = Outfit({
   variable: "--font-jetbrains",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
-const cinzel = Cinzel({
+// Cinzel Decorative — titles / ceremonial headings.
+const cinzelDecorative = Cinzel_Decorative({
   variable: "--font-cinzel",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "700", "900"],
 });
 
 export const metadata: Metadata = {
@@ -40,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${jetbrainsMono.variable} ${cinzel.variable} h-full`}>
+    <html lang="es" className={`${outfit.variable} ${cinzelDecorative.variable} h-full`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
