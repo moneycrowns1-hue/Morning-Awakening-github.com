@@ -170,6 +170,8 @@ export default function MissionPhase({
             if (mission.voiceLineComplete) {
               await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             }
+            // Small breath so phases don't chain back-to-back.
+            await new Promise((r) => setTimeout(r, 350));
             onComplete();
           }, 500);
           return 0;
@@ -223,8 +225,10 @@ export default function MissionPhase({
       }
     });
 
-    Promise.all([speakP, animP]).then(() => {
+    Promise.all([speakP, animP]).then(async () => {
       audioTransition?.();
+      // Small breath so phases don't chain back-to-back.
+      await new Promise((r) => setTimeout(r, 350));
       onComplete();
     });
   }, [onComplete, audioTransition, mission.voiceLineComplete, operator, onStrike]);
