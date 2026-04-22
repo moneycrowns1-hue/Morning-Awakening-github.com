@@ -9,7 +9,6 @@ import {
   getToday,
   isYesterday,
   isToday,
-  getRankByLevel,
 } from '@/lib/constants';
 import { AudioEngine } from '@/lib/audioEngine';
 import { Operator } from '@/lib/operator';
@@ -185,13 +184,12 @@ export default function MorningAwakening() {
     audioRef.current.startAmbient(firstMission.layer);
     audioRef.current.playStrike(0.9);
 
-    // Boot line
-    const rank = getRankByLevel(profile.level);
-    const streakPart = streakData.streak > 0
-      ? ` Racha de ${streakData.streak} días.`
-      : '';
+    // Boot line — ceremonial opener, FIXED text so it can be overridden
+    // by /public/audio/voices/premium/opening.mp3 (the "slow" voice the
+    // user records manually). Personalization (rank, name, streak) stays
+    // visible in the HUD, not spoken.
     operatorRef.current.speak(
-      `Sistema en línea. ${rank.titleEs} ${profile.name} detectado.${streakPart}`,
+      'Sistema en línea. Operador detectado. Bienvenido.',
       { rate: 0.94 }
     );
 
@@ -557,7 +555,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.7</span>
+          <span>MORNING:AWAKENING · v7.8</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

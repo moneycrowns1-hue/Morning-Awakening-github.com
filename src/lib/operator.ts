@@ -1,35 +1,54 @@
 // ═══════════════════════════════════════════════════════
 // Operator — narrator for Morning Awakening.
 //
-// Two-tier strategy:
-//  1) PRIMARY: pre-generated mp3s in /public/audio/voices/ (neural
-//     Microsoft Edge TTS quality, JARVIS-ish es-ES-AlvaroNeural).
-//     Loaded from a manifest keyed by the exact spoken text. Played
-//     through a single HTMLAudioElement so volume/ducking keeps working.
-//  2) FALLBACK: native SpeechSynthesis, used when the manifest is not
-//     loaded yet, or the line was added after the last generation run.
+// Three-tier playback strategy:
 //
-// Integrates with AudioEngine.duckForVoice() / unduck() for automatic
-// ambient ducking while speaking, same as before.
+//   0) PREMIUM OVERRIDE: /public/audio/voices/premium/ holds hand-dropped
+//      mp3s (e.g. opening.mp3 / closing.mp3) recorded with the "slow"
+//      voice the user prefers for the ceremonial opener and close.
+//      premium/manifest.json maps exact spoken text → file. Loaded with
+//      cache:'no-cache' because the user replaces these files manually.
+//
+//   1) HASH MANIFEST: /public/audio/voices/manifest.json with Qwen3-TTS
+//      Alek pre-generated mp3s, keyed by sha hash of the text. These are
+//      the per-phase briefings. Manifest is cache:'force-cache' because
+//      content-addressed.
+//
+//   2) FALLBACK: native SpeechSynthesis, only if neither manifest has a
+//      match (first deploy before generation, or an unseen line).
+//
+// All mp3 playback is routed through the shared AudioEngine AudioContext
+// (decodeAudioData → AudioBufferSourceNode → voiceBus → master →
+// destination). This is critical: HTMLAudioElement respects the iPhone
+// physical silent-ringer switch while WebAudio does not, so the previous
+// HTMLAudio path made the voice silently disappear on iPhones held in
+// mute. Using WebAudio for voice too means the user hears both ambient
+// and voice regardless of the ringer switch.
 // ═══════════════════════════════════════════════════════
 
 import type { AudioEngine } from './audioEngine';
 
 export interface OperatorOptions {
-  rate?: number;    // 0.1 - 10 (default 0.92)
-  pitch?: number;   // 0 - 2  (default 0.85)
-  volume?: number;  // 0 - 1  (default 1)
-  duck?: boolean;   // duck AudioEngine (default true)
+  rate?: number;    // playbackRate for mp3 / rate for synth (default 1 / 0.92)
+  pitch?: number;   // synth-only, 0 - 2 (default 0.85)
+  volume?: number;  // 0 - 1 (default 1)
+  duck?: boolean;   // duck AudioEngine ambient (default true)
 }
 
-interface VoiceManifest {
-  voice: string;
+interface HashManifest {
+  voice?: string;
+  lines: Record<string, { file: string }>;
+}
+
+interface PremiumManifest {
   lines: Record<string, { file: string }>;
 }
 
 const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH as string | undefined) ?? '';
-const MANIFEST_URL = `${BASE_PATH}/audio/voices/manifest.json`;
-const VOICES_DIR = `${BASE_PATH}/audio/voices/`;
+const HASH_MANIFEST_URL = `${BASE_PATH}/audio/voices/manifest.json`;
+const HASH_VOICES_DIR = `${BASE_PATH}/audio/voices/`;
+const PREMIUM_MANIFEST_URL = `${BASE_PATH}/audio/voices/premium/manifest.json`;
+const PREMIUM_VOICES_DIR = `${BASE_PATH}/audio/voices/premium/`;
 
 export class Operator {
   private voice: SpeechSynthesisVoice | null = null;
@@ -38,14 +57,19 @@ export class Operator {
   private ready = false;
   private queuedReady?: () => void;
 
-  // mp3 playback
-  private manifest: VoiceManifest | null = null;
-  // ONE reusable HTMLAudioElement, primed during unlockForIOS() so that
-  // iOS Safari allows later programmatic .play() calls (outside of the
-  // original user gesture). A freshly-constructed `new Audio()` would
-  // be rejected by iOS autoplay policy. We swap `.src` for each line.
-  private audioSlot: HTMLAudioElement | null = null;
-  private audioUnlocked = false;
+  // Manifests
+  private hashManifest: HashManifest | null = null;
+  private premiumManifest: PremiumManifest | null = null;
+
+  // Decoded AudioBuffer cache, keyed by file URL.
+  private bufferCache = new Map<string, AudioBuffer>();
+  // In-flight decode promises keyed by URL, to dedupe concurrent loads.
+  private bufferInFlight = new Map<string, Promise<AudioBuffer | null>>();
+
+  // Current playing source, for cancellation.
+  private currentSource: AudioBufferSourceNode | null = null;
+  private currentGain: GainNode | null = null;
+  private currentResolve: (() => void) | null = null;
 
   constructor(engine?: AudioEngine) {
     this.engine = engine ?? null;
@@ -54,28 +78,37 @@ export class Operator {
       this.loadVoice();
       window.speechSynthesis.addEventListener('voiceschanged', () => this.loadVoice());
     }
-    // Kick off manifest fetch in parallel (non-blocking).
-    this.loadManifest();
+    this.loadManifests();
   }
 
-  private async loadManifest() {
+  private async loadManifests() {
+    // Hash manifest — immutable by content, can be cached hard.
     try {
-      const res = await fetch(MANIFEST_URL, { cache: 'force-cache' });
-      if (!res.ok) return;
-      this.manifest = (await res.json()) as VoiceManifest;
+      const res = await fetch(HASH_MANIFEST_URL, { cache: 'force-cache' });
+      if (res.ok) this.hashManifest = (await res.json()) as HashManifest;
     } catch {
-      /* manifest not deployed — fallback to SpeechSynthesis */
+      /* no hash manifest — fallback to synth */
+    }
+    // Premium manifest — hand-maintained, freshness matters.
+    try {
+      const res = await fetch(PREMIUM_MANIFEST_URL, { cache: 'no-cache' });
+      if (res.ok) this.premiumManifest = (await res.json()) as PremiumManifest;
+    } catch {
+      /* no premium manifest — fine, optional */
     }
   }
 
   /**
-   * iOS Safari requires the first SpeechSynthesis call to be inside a user
-   * gesture. Speaking an empty utterance "unlocks" synthesis and also
-   * forces the voices list to populate on iOS.
+   * iOS Safari requires the first audio activity to happen inside a user
+   * gesture. Called from the INICIAR click. Resumes the shared AudioContext
+   * and primes SpeechSynthesis for the tier-2 fallback.
    */
   unlockForIOS() {
-    // ── SpeechSynthesis unlock ──
-    if (this.isAvailable()) {
+    // Resume the shared AudioContext (used for voice too now).
+    void this.engine?.resume();
+
+    // Prime SpeechSynthesis in case we need the fallback later.
+    if (this.isSynthAvailable()) {
       try {
         const u = new SpeechSynthesisUtterance('');
         u.volume = 0;
@@ -85,42 +118,12 @@ export class Operator {
         /* ignore */
       }
     }
-
-    // ── HTMLAudioElement unlock (iOS Safari) ──
-    // iOS rejects `audio.play()` called outside a user gesture. We create
-    // ONE reusable element here (we're inside a click handler) and prime
-    // it with a 1-frame silent payload so iOS whitelists it. Afterwards
-    // we can change its `.src` and call `.play()` programmatically from
-    // timers / promises / anywhere — iOS remembers that this element was
-    // "approved". Tier-1 speak() reuses this same element.
-    if (typeof window !== 'undefined' && !this.audioSlot) {
-      try {
-        const a = new Audio();
-        a.preload = 'auto';
-        // 0.1s of silence (valid tiny mp3).
-        a.src =
-          'data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA//////////////////////////////////////////////////8AAAA5TEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQABzAAAASDs90hvAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAATEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
-        const p = a.play();
-        if (p && typeof p.then === 'function') {
-          p.then(() => {
-            a.pause();
-            a.currentTime = 0;
-            this.audioUnlocked = true;
-          }).catch(() => {
-            /* iOS blocked — will keep trying on next gesture */
-          });
-        }
-        this.audioSlot = a;
-      } catch {
-        /* ignore */
-      }
-    }
   }
 
   private loadVoice() {
+    if (!this.isSynthAvailable()) return;
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return;
-    // Priority: es-MX → es-US → es-* → any
     const prefs = [
       (v: SpeechSynthesisVoice) => v.lang === 'es-MX',
       (v: SpeechSynthesisVoice) => v.lang === 'es-US',
@@ -137,13 +140,12 @@ export class Operator {
         return;
       }
     }
-    // Fallback: any voice
     this.voice = voices[0];
     this.ready = true;
     this.queuedReady?.();
   }
 
-  isAvailable(): boolean {
+  private isSynthAvailable(): boolean {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
   }
 
@@ -161,94 +163,150 @@ export class Operator {
   }
 
   /**
-   * Queue a line. Returns a promise resolved when speech ends (or skipped).
-   * Tries pre-generated mp3 first; falls back to SpeechSynthesis.
+   * Queue a line. Returns a promise resolved when playback ends or is
+   * cancelled. Resolution order:
+   *   1. premium manifest match → premium mp3 via WebAudio
+   *   2. hash manifest match → hash mp3 via WebAudio
+   *   3. SpeechSynthesis fallback
    */
   speak(text: string, opts: OperatorOptions = {}): Promise<void> {
     if (!this.enabled || !text) return Promise.resolve();
     if (typeof window === 'undefined') return Promise.resolve();
 
-    const duck = opts.duck ?? true;
-    const volume = opts.volume ?? 1;
+    // Always cancel in-flight speech so we never overlap voices.
+    this.cancel();
 
-    const startDuck = () => {
-      if (duck && this.engine) this.engine.duckForVoice(0.32, 0.2);
-    };
-    const endDuck = () => {
-      if (duck && this.engine) this.engine.unduck(0.6);
-    };
-
-    // Always cancel any in-flight speech before starting a new one.
-    // This guarantees we never hear two voices at once (mp3+synth, or
-    // overlapping mp3s if speak() is called twice quickly).
-    this.stopCurrentAudio();
-    if (this.isAvailable()) {
-      try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+    // Tier 0: premium override
+    const premium = this.premiumManifest?.lines?.[text];
+    if (premium) {
+      return this.playMp3(`${PREMIUM_VOICES_DIR}${premium.file}`, opts, text);
     }
-
-    // ─── Tier 1: pre-generated mp3 ───────────────────────
-    const entry = this.manifest?.lines?.[text];
-    if (entry) {
-      // Reuse the unlocked HTMLAudioElement created during unlockForIOS().
-      // If it's not there (e.g. unlockForIOS was never called because the
-      // user never clicked INICIAR) we still attempt a fresh Audio() —
-      // that works fine on desktop and non-iOS mobile.
-      const audio = this.audioSlot ?? (this.audioSlot = new Audio());
-      return new Promise<void>((resolve) => {
-        try {
-          // Detach any previous handlers from the reused element.
-          audio.onended = null;
-          audio.onerror = null;
-
-          audio.src = `${VOICES_DIR}${entry.file}`;
-          audio.volume = Math.max(0, Math.min(1, volume));
-          audio.playbackRate = opts.rate ?? 1;
-          audio.currentTime = 0;
-
-          startDuck();
-          const cleanup = () => {
-            endDuck();
-            resolve();
-          };
-          audio.onended = cleanup;
-          audio.onerror = () => {
-            // mp3 failed: resolve silently — do NOT fall back to synth
-            // here because that caused overlapping voices in v7.0.
-            cleanup();
-          };
-
-          const playPromise = audio.play();
-          if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.catch(() => {
-              // Autoplay blocked or other failure — same policy.
-              cleanup();
-            });
-          }
-        } catch {
-          endDuck();
-          resolve();
-        }
-      });
+    // Tier 1: hash manifest
+    const hash = this.hashManifest?.lines?.[text];
+    if (hash) {
+      return this.playMp3(`${HASH_VOICES_DIR}${hash.file}`, opts, text);
     }
-
-    // ─── Tier 2: native SpeechSynthesis ──────────────────
+    // Tier 2: speechSynthesis fallback
     return this.speakViaSynth(text, opts);
   }
 
-  private stopCurrentAudio() {
-    if (this.audioSlot) {
+  // ─── WebAudio mp3 playback ────────────────────────────
+
+  private async loadBuffer(url: string): Promise<AudioBuffer | null> {
+    const cached = this.bufferCache.get(url);
+    if (cached) return cached;
+    const inFlight = this.bufferInFlight.get(url);
+    if (inFlight) return inFlight;
+    const ctx = this.engine?.getContext();
+    if (!ctx) return null;
+
+    const p = (async () => {
       try {
-        this.audioSlot.onended = null;
-        this.audioSlot.onerror = null;
-        this.audioSlot.pause();
-        // Don't clear src or null the element — we want to reuse it so
-        // iOS keeps honouring the original unlock gesture.
-      } catch { /* ignore */ }
-    }
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (!res.ok) return null;
+        const arr = await res.arrayBuffer();
+        const buf = await ctx.decodeAudioData(arr);
+        this.bufferCache.set(url, buf);
+        return buf;
+      } catch {
+        return null;
+      } finally {
+        this.bufferInFlight.delete(url);
+      }
+    })();
+    this.bufferInFlight.set(url, p);
+    return p;
   }
 
+  private async playMp3(
+    url: string,
+    opts: OperatorOptions,
+    textForFallback: string,
+  ): Promise<void> {
+    const ctx = this.engine?.getContext();
+    const bus = this.engine?.getVoiceBus();
+    if (!ctx || !bus) {
+      // AudioEngine not initialised yet (e.g. speak before INICIAR).
+      // Fall back to synth so the user still hears something.
+      return this.speakViaSynth(textForFallback, opts);
+    }
+
+    // iOS: ensure context is running before scheduling playback.
+    if (ctx.state !== 'running') {
+      try { await ctx.resume(); } catch { /* ignore */ }
+    }
+
+    const buf = await this.loadBuffer(url);
+    if (!buf) {
+      // Network / decode failure. Fall through to synth so the user still
+      // gets some audio feedback.
+      return this.speakViaSynth(textForFallback, opts);
+    }
+
+    const duck = opts.duck ?? true;
+    const volume = Math.max(0, Math.min(1, opts.volume ?? 1));
+
+    if (duck) this.engine?.duckForVoice(0.32, 0.2);
+
+    return new Promise<void>((resolve) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = opts.rate ?? 1;
+
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+
+      src.connect(gain).connect(bus);
+
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        try { src.disconnect(); } catch { /* ignore */ }
+        try { gain.disconnect(); } catch { /* ignore */ }
+        if (this.currentSource === src) {
+          this.currentSource = null;
+          this.currentGain = null;
+          this.currentResolve = null;
+        }
+        if (duck) this.engine?.unduck(0.6);
+        resolve();
+      };
+      src.onended = finish;
+
+      this.currentSource = src;
+      this.currentGain = gain;
+      this.currentResolve = finish;
+
+      try {
+        src.start();
+      } catch {
+        finish();
+      }
+    });
+  }
+
+  private stopCurrentAudio() {
+    if (this.currentSource) {
+      try { this.currentSource.onended = null; } catch { /* ignore */ }
+      try { this.currentSource.stop(); } catch { /* ignore */ }
+      try { this.currentSource.disconnect(); } catch { /* ignore */ }
+    }
+    if (this.currentGain) {
+      try { this.currentGain.disconnect(); } catch { /* ignore */ }
+    }
+    const resolver = this.currentResolve;
+    this.currentSource = null;
+    this.currentGain = null;
+    this.currentResolve = null;
+    // Resolve the outstanding speak() promise so awaiters don't hang.
+    resolver?.();
+  }
+
+  // ─── Tier 2: SpeechSynthesis ──────────────────────────
+
   private speakViaSynth(text: string, opts: OperatorOptions): Promise<void> {
-    if (!this.isAvailable()) return Promise.resolve();
+    if (!this.isSynthAvailable()) return Promise.resolve();
     const duck = opts.duck ?? true;
     return new Promise<void>((resolve) => {
       const speakNow = () => {
@@ -288,7 +346,7 @@ export class Operator {
 
   cancel() {
     this.stopCurrentAudio();
-    if (this.isAvailable()) {
+    if (this.isSynthAvailable()) {
       try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
     }
     if (this.engine) this.engine.unduck(0.3);

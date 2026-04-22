@@ -26,6 +26,13 @@ export class AudioEngine {
   private layers = new Map<AudioLayer, LayerBus>();
   private currentLayer: Nullable<AudioLayer> = null;
   private voiceDuckGain: Nullable<GainNode> = null;
+  // Dedicated input node for Operator voice (pre-generated mp3s decoded via
+  // decodeAudioData and played as AudioBufferSourceNodes). Connected
+  // directly to master, bypassing voiceDuckGain so the voice itself is
+  // never ducked. Routing through WebAudio instead of HTMLAudioElement
+  // bypasses the iPhone physical silent-ringer switch (which only mutes
+  // HTMLAudio), so the voice is audible regardless of the switch.
+  private voiceBus: Nullable<GainNode> = null;
 
   // Volumes (0-1)
   private masterVolume = 0.6;
@@ -45,6 +52,13 @@ export class AudioEngine {
     this.voiceDuckGain.gain.value = 1;
     this.voiceDuckGain.connect(this.master);
 
+    // Voice bus: voice sources connect here, routed straight to master so
+    // they are NOT ducked. duckForVoice() only attenuates voiceDuckGain
+    // (ambient path), leaving the voice at full level.
+    this.voiceBus = this.ctx.createGain();
+    this.voiceBus.gain.value = 1;
+    this.voiceBus.connect(this.master);
+
     // Reverb bus
     this.convolver = this.ctx.createConvolver();
     this.convolver.buffer = this.generateImpulseResponse(3.4, 2.2);
@@ -55,6 +69,27 @@ export class AudioEngine {
 
     this.convolver.connect(this.wetGain).connect(this.voiceDuckGain);
     this.dryGain.connect(this.voiceDuckGain);
+  }
+
+  /** Exposed so Operator can decode mp3 buffers against the same context. */
+  getContext(): Nullable<AudioContext> {
+    return this.ctx;
+  }
+
+  /** Exposed so Operator can connect voice AudioBufferSourceNodes into
+   *  the shared master → destination chain (WebAudio bypasses the iOS
+   *  silent switch, HTMLAudioElement doesn't). */
+  getVoiceBus(): Nullable<GainNode> {
+    return this.voiceBus;
+  }
+
+  /** Force a resume of the AudioContext. Safari iOS requires this inside
+   *  a user gesture; we call it from the INICIAR click together with
+   *  startAmbient(). Idempotent. */
+  resume(): Promise<void> {
+    if (!this.ctx) return Promise.resolve();
+    if (this.ctx.state === 'running') return Promise.resolve();
+    return this.ctx.resume().catch(() => undefined);
   }
 
   // ════════════ Impulse Response (decaying noise) ════════════
