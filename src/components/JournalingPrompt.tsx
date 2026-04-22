@@ -28,23 +28,35 @@ export default function JournalingPrompt() {
 
   return (
     <div className="w-full max-w-md mt-4">
-      <div className="border border-accent/15 rounded p-5 bg-accent/[0.02]">
-        {/* Header */}
+      <div
+        className="rounded p-5"
+        style={{ border: '1px solid rgba(201,162,39,0.2)', background: 'rgba(201,162,39,0.03)' }}
+      >
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-accent/60">✎</span>
-          <span className="text-[13px] tracking-[0.3em] text-accent/50 font-bold">
+          <span style={{ color: 'rgba(201,162,39,0.7)' }}>✎</span>
+          <span
+            className="text-[12px] tracking-[0.3em] font-bold"
+            style={{ color: 'rgba(201,162,39,0.6)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+          >
             PROMPT DEL DÍA
           </span>
         </div>
 
-        {/* Prompt */}
-        <p className="text-sm leading-relaxed text-accent/90 tracking-wide font-medium italic">
-          &ldquo;{revealed}{revealed.length < prompt.length && <span className="animate-pulse text-accent">█</span>}&rdquo;
+        <p
+          className="text-sm leading-relaxed tracking-wide font-medium italic"
+          style={{ color: 'rgba(232,220,196,0.9)' }}
+        >
+          &ldquo;{revealed}
+          {revealed.length < prompt.length && (
+            <span className="animate-pulse" style={{ color: '#c9a227' }}>█</span>
+          )}&rdquo;
         </p>
 
-        {/* Instruction */}
-        <div className="mt-4 pt-3 border-t border-accent/10">
-          <p className="text-[13px] text-foreground/30 tracking-wider leading-relaxed">
+        <div
+          className="mt-4 pt-3"
+          style={{ borderTop: '1px solid rgba(201,162,39,0.12)' }}
+        >
+          <p className="text-[13px] tracking-wider leading-relaxed" style={{ color: 'rgba(232,220,196,0.4)' }}>
             Escribe en tu cuaderno a mano. Sin censurar, sin juzgar.
             Deja que las ideas fluyan durante los 5 minutos completos.
           </p>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Cinzel } from "next/font/google";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -8,9 +8,15 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
-  title: "SYSTEM: MORNING AWAKENING",
-  description: "Tactical Morning Protocol System — Despierta. Ejecuta. Evoluciona.",
+  title: "MORNING AWAKENING — 道場",
+  description: "Protocolo matutino del operador. Disciplina. Enfoque. Energía.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -25,7 +31,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#000000",
+  themeColor: "#0a0908",
 };
 
 export default function RootLayout({
@@ -34,14 +40,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${jetbrainsMono.variable} h-full`}>
+    <html lang="es" className={`${jetbrainsMono.variable} ${cinzel.variable} h-full`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="h-full overflow-hidden bg-black font-[family-name:var(--font-jetbrains)]">
+      <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-jetbrains)]">
         {children}
       </body>
     </html>

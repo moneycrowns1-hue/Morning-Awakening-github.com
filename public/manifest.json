@@ -1,11 +1,11 @@
 {
-  "name": "System: Morning Awakening",
+  "name": "Morning Awakening — Dōjō Operator",
   "short_name": "AWAKENING",
-  "description": "Tactical Morning Protocol System",
+  "description": "Protocolo matutino del operador. Disciplina. Enfoque. Energía.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#0a0908",
+  "theme_color": "#c9a227",
   "orientation": "portrait",
   "icons": [
     {

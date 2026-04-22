@@ -136,13 +136,22 @@ export default function BreathingGuide() {
   if (!active) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="text-[14px] tracking-[0.3em] text-accent/40">MÉTODO WIM HOF — 3 RONDAS</div>
-        <div className="text-[13px] text-foreground/40 max-w-xs text-center leading-relaxed">
+        <div className="text-[13px] tracking-[0.3em]" style={{ color: 'rgba(201,162,39,0.55)' }}>
+          MÉTODO WIM HOF · 3 RONDAS
+        </div>
+        <div className="text-[13px] max-w-xs text-center leading-relaxed" style={{ color: 'rgba(232,220,196,0.45)' }}>
           30 respiraciones profundas rápidas → Retención tras exhalar → Respiración de recuperación
         </div>
-        <button onClick={handleStart}
-          className="mt-2 px-6 py-3 border border-accent/30 rounded text-accent text-sm tracking-[0.2em]
-            hover:bg-accent/10 active:bg-accent/20 transition-all animate-pulse-glow">
+        <button
+          onClick={handleStart}
+          className="mt-2 px-6 py-3 rounded text-sm tracking-[0.25em] transition-all animate-ember-pulse hover:brightness-125"
+          style={{
+            border: '1px solid rgba(201,162,39,0.4)',
+            color: '#c9a227',
+            background: 'rgba(201,162,39,0.06)',
+            fontFamily: 'var(--font-cinzel), Georgia, serif',
+          }}
+        >
           ▶ INICIAR RESPIRACIÓN
         </button>
       </div>
@@ -155,37 +164,53 @@ export default function BreathingGuide() {
       <div className="flex gap-2 mb-4">
         {[1, 2, 3].map(r => (
           <div key={r} className="flex flex-col items-center gap-1">
-            <div className={`w-3 h-3 rounded-full border ${
-              r < state.round ? 'bg-accent border-accent' :
-              r === state.round ? 'border-accent animate-pulse' : 'border-white/20'
-            }`} />
-            <span className="text-[15px] tracking-wider text-accent/30">R{r}</span>
+            <div
+              className={`w-3 h-3 rounded-full border ${r === state.round ? 'animate-pulse' : ''}`}
+              style={{
+                borderColor: r <= state.round ? '#c9a227' : 'rgba(232,220,196,0.18)',
+                background: r < state.round ? '#c9a227' : 'transparent',
+              }}
+            />
+            <span className="text-[12px] tracking-wider" style={{ color: 'rgba(201,162,39,0.4)' }}>R{r}</span>
           </div>
         ))}
       </div>
 
       {/* Breathing circle */}
       <div className="relative w-40 h-40 flex items-center justify-center mb-4">
-        <div ref={circleRef}
-          className="w-24 h-24 rounded-full border-2 border-accent/60 flex items-center justify-center"
+        <div
+          ref={circleRef}
+          className="w-24 h-24 rounded-full border-2 flex items-center justify-center"
           style={{
-            boxShadow: state.phase === 'HOLD' ? '0 0 30px rgba(255,180,0,0.3)' : '0 0 30px rgba(0,240,255,0.3)',
-            borderColor: state.phase === 'HOLD' ? '#FFB400' : '#00F0FF',
-          }}>
-          <span className={`text-[14px] tracking-[0.2em] font-bold ${state.phase === 'HOLD' ? 'text-warning' : 'text-accent'}`}>
+            boxShadow: state.phase === 'HOLD'
+              ? '0 0 30px rgba(188,0,45,0.4)'
+              : '0 0 30px rgba(201,162,39,0.35)',
+            borderColor: state.phase === 'HOLD' ? '#bc002d' : '#c9a227',
+          }}
+        >
+          <span
+            className="text-[14px] tracking-[0.2em] font-bold"
+            style={{ color: state.phase === 'HOLD' ? '#bc002d' : '#c9a227' }}
+          >
             {state.phase === 'POWER' ? state.breathCount : state.holdTimer + 's'}
           </span>
         </div>
       </div>
 
       {/* Phase label */}
-      <div className={`text-lg font-bold tracking-wider mb-1 ${state.phase === 'HOLD' ? 'text-warning' : 'text-accent'} glow-text`}>
+      <div
+        className="text-lg font-bold tracking-wider mb-1 ember-text"
+        style={{
+          color: state.phase === 'HOLD' ? '#bc002d' : '#c9a227',
+          fontFamily: 'var(--font-cinzel), Georgia, serif',
+        }}
+      >
         {getPhaseLabel()}
       </div>
-      <div className="text-[14px] text-foreground/40 tracking-wider">
+      <div className="text-[14px] tracking-wider" style={{ color: 'rgba(232,220,196,0.5)' }}>
         {getPhaseDescription()}
       </div>
-      <div className="text-[13px] text-accent/30 mt-2 tracking-[0.2em]">
+      <div className="text-[12px] mt-2 tracking-[0.25em]" style={{ color: 'rgba(201,162,39,0.4)' }}>
         RONDA {state.round}/{totalRounds}
       </div>
     </div>

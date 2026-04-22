@@ -10,6 +10,8 @@ export interface SubStep {
   optional?: boolean;
 }
 
+export type AudioLayer = 'ignition' | 'bridge' | 'cognitive';
+
 export interface Mission {
   id: string;
   phase: number;
@@ -28,6 +30,18 @@ export interface Mission {
   tips?: string[];
   blockLabel?: string;
   scheduledTime?: string;
+  /** Biological layer for audio engine crossfade. */
+  layer: AudioLayer;
+  /** Decorative kanji displayed as watermark. */
+  kanji: string;
+  /** Romanized reading / meaning short label. */
+  kanjiReading: string;
+  /** Opening line spoken by the Operator at phase start. */
+  voiceLine: string;
+  /** Closing line spoken by the Operator at phase complete. */
+  voiceLineComplete?: string;
+  /** Optional mid-phase coaching lines, spoken at even intervals. */
+  coachingLines?: string[];
 }
 
 export const MISSIONS: Mission[] = [
@@ -38,8 +52,13 @@ export const MISSIONS: Mission[] = [
     codename: 'GENESIS',
     title: 'DESPERTAR',
     icon: '◈',
-    blockLabel: 'BLOQUE 1: LA FRAGUA OSCURA',
+    blockLabel: 'BLOQUE 1 · LA FRAGUA OSCURA',
     scheduledTime: '05:00',
+    layer: 'ignition',
+    kanji: '起',
+    kanjiReading: 'Kī · Alzarse',
+    voiceLine: 'Operador. Fase uno. Génesis. Confirma tu presencia.',
+    voiceLineComplete: 'Génesis completada. Primera victoria registrada.',
     directive: 'Levántate al primer timbre. Haz tu cama. Es tu primera victoria del día. Confirma tu presencia.',
     duration: 0,
     systemLog: 'INITIALIZING MORNING PROTOCOL v4.0...',
@@ -61,6 +80,12 @@ export const MISSIONS: Mission[] = [
     title: 'HIDRATACIÓN',
     icon: '◇',
     scheduledTime: '05:01',
+    layer: 'ignition',
+    kanji: '水',
+    kanjiReading: 'Mizu · Agua',
+    voiceLine: 'Fase dos. Aqua. Restaura la función celular.',
+    voiceLineComplete: 'Hidratación completa.',
+    coachingLines: ['Bebe con calma. Sal marina.'],
     directive: 'Bebe 500ml de agua con una pizca de sal marina. Tu cuerpo perdió ~1 litro durante el sueño.',
     duration: 60,
     systemLog: 'HYDRATION PROTOCOL ENGAGED.',
@@ -78,6 +103,15 @@ export const MISSIONS: Mission[] = [
     title: 'MOVILIDAD',
     icon: '◈',
     scheduledTime: '05:02',
+    layer: 'ignition',
+    kanji: '柔',
+    kanjiReading: 'Jū · Flexible',
+    voiceLine: 'Fase tres. Flex. Calibra el cuerpo.',
+    voiceLineComplete: 'Sistemas físicos calibrados.',
+    coachingLines: [
+      'Abre lo que el escritorio cierra.',
+      'Respira en cada estiramiento.',
+    ],
     directive: 'Movilidad funcional anti-sedentarismo. Abre caderas, estira isquiotibiales, extensiones torácicas. 8 minutos.',
     duration: 480,
     systemLog: 'MOBILITY CALIBRATION — ANTI-SEDENTARY PROTOCOL.',
@@ -102,6 +136,16 @@ export const MISSIONS: Mission[] = [
     title: 'CARDIO',
     icon: '▶',
     scheduledTime: '05:10',
+    layer: 'ignition',
+    kanji: '走',
+    kanjiReading: 'Sō · Correr',
+    voiceLine: 'Fase cuatro. Surge. Sal al frío. Corre.',
+    voiceLineComplete: 'Endorfinas liberadas. Temperatura elevada.',
+    coachingLines: [
+      'Respira por la nariz si puedes.',
+      'Postura alta. Cadencia constante.',
+      'Mantén la intensidad del día.',
+    ],
     directive: 'Sal a correr 10 minutos. Alterna entre días de sprint y días de trote suave (Zona 2). Periodiza la intensidad.',
     duration: 600,
     systemLog: 'CARDIO TRAINING — OUTDOOR RUN INITIATED.',
@@ -126,6 +170,17 @@ export const MISSIONS: Mission[] = [
     title: 'FUERZA',
     icon: '⬡',
     scheduledTime: '05:20',
+    layer: 'ignition',
+    kanji: '鍛',
+    kanjiReading: 'Tan · Forjar',
+    voiceLine: 'Fase cinco. Forge. Densidad pura. Sin excusas.',
+    voiceLineComplete: 'Estímulo muscular aplicado.',
+    coachingLines: [
+      'Descansos cortos. Sesenta segundos.',
+      'Forma antes que carga.',
+      'Último tercio. No bajes la guardia.',
+      'Cierra con el core.',
+    ],
     directive: 'Entrenamiento de fuerza pesado. 25 minutos de densidad pura con descansos cortos. Sin excusas.',
     duration: 1500,
     systemLog: 'STRENGTH TRAINING SEQUENCE — FORGE MODE ACTIVE.',
@@ -150,6 +205,12 @@ export const MISSIONS: Mission[] = [
     title: 'RESPIRACIÓN WIM HOF',
     icon: '◎',
     scheduledTime: '05:45',
+    layer: 'bridge',
+    kanji: '息',
+    kanjiReading: 'Iki · Aliento',
+    voiceLine: 'Fase seis. Pneuma. Cierra los ojos. Respira.',
+    voiceLineComplete: 'Sistema autónomo calibrado.',
+    coachingLines: ['No fuerces en altitud. Escucha al cuerpo.'],
     directive: '3 rondas profundas e implacables. En altitud: NO fuerces la retención. El estímulo se logra en menos tiempo.',
     duration: 600,
     systemLog: 'WIM HOF PROTOCOL — ALTITUDE-CALIBRATED.',
@@ -169,6 +230,15 @@ export const MISSIONS: Mission[] = [
     title: 'DUCHA FRÍA',
     icon: '❄',
     scheduledTime: '05:55',
+    layer: 'bridge',
+    kanji: '氷',
+    kanjiReading: 'Kōri · Hielo',
+    voiceLine: 'Fase siete. Cryo. Domina el reflejo. Controla la respiración.',
+    voiceLineComplete: 'Dopamina elevada. Recuperación acelerada.',
+    coachingLines: [
+      'Exhala lento. Resiste el impulso.',
+      'Terminar en frío maximiza la dopamina.',
+    ],
     directive: '3 minutos de frío extremo post-ejercicio. 2 minutos para secarte y vestirte. Controla la respiración.',
     duration: 300,
     systemLog: 'COLD EXPOSURE — HORMETIC STRESS MAXIMUM.',
@@ -192,8 +262,14 @@ export const MISSIONS: Mission[] = [
     codename: 'REFUEL',
     title: 'DESAYUNO',
     icon: '◆',
-    blockLabel: 'BLOQUE 2: VENTANA ANABÓLICA',
+    blockLabel: 'BLOQUE 2 · VENTANA ANABÓLICA',
     scheduledTime: '06:00',
+    layer: 'cognitive',
+    kanji: '糧',
+    kanjiReading: 'Ryō · Sustento',
+    voiceLine: 'Fase ocho. Refuel. Come con calma. Nutrición directa al músculo.',
+    voiceLineComplete: 'Combustible cargado.',
+    coachingLines: ['Sin pantallas. Mastica despacio.'],
     directive: 'Come con calma. Nutrición directa al músculo roto. Proteína + carbohidratos complejos + grasas saludables.',
     duration: 900,
     systemLog: 'ANABOLIC WINDOW — NUTRIENT DELIVERY ACTIVE.',
@@ -218,8 +294,14 @@ export const MISSIONS: Mission[] = [
     codename: 'HELIO',
     title: 'LUZ SOLAR + ENTORNO',
     icon: '☀',
-    blockLabel: 'BLOQUE 3: EL FILO COGNITIVO',
+    blockLabel: 'BLOQUE 3 · EL FILO COGNITIVO',
     scheduledTime: '06:15',
+    layer: 'cognitive',
+    kanji: '陽',
+    kanjiReading: 'Yō · Sol',
+    voiceLine: 'Fase nueve. Helio. Luz directa. Entorno limpio.',
+    voiceLineComplete: 'Ritmo circadiano anclado.',
+    coachingLines: ['Cero objetos innecesarios a la vista.'],
     directive: 'Luz natural del amanecer entrando por la ventana. Mientras tanto: configura tu entorno de trabajo. Cero fricción visual.',
     duration: 300,
     systemLog: 'CIRCADIAN SYNC + ENVIRONMENT RESET — LOCUS PROTOCOL.',
@@ -243,6 +325,15 @@ export const MISSIONS: Mission[] = [
     title: 'MEDITACIÓN',
     icon: '◌',
     scheduledTime: '06:20',
+    layer: 'bridge',
+    kanji: '空',
+    kanjiReading: 'Kū · Vacío',
+    voiceLine: 'Fase diez. Void. Siéntate. Visualiza los obstáculos del día.',
+    voiceLineComplete: 'Córtex prefrontal armado.',
+    coachingLines: [
+      'Tres minutos. Anticipa. Resuelve en frío.',
+      'Dos minutos. Silencio. Solo la respiración.',
+    ],
     directive: 'Premeditatio Malorum: 3 minutos visualizando obstáculos del día y resolviéndolos con frialdad. 2 minutos de silencio total.',
     duration: 300,
     systemLog: 'PREMEDITATIO MALORUM — STOIC COMBAT MEDITATION.',
@@ -265,6 +356,11 @@ export const MISSIONS: Mission[] = [
     title: 'JOURNALING',
     icon: '✎',
     scheduledTime: '06:25',
+    layer: 'cognitive',
+    kanji: '書',
+    kanjiReading: 'Sho · Escribir',
+    voiceLine: 'Fase once. Codex. Escribe a mano. Máximo tres prioridades.',
+    voiceLineComplete: 'Objetivos definidos. Mente despejada.',
     directive: 'Anota tus tareas del día. Responde al prompt. Escribe a mano. 5 minutos de claridad absoluta.',
     duration: 300,
     systemLog: 'COGNITIVE CLARITY MODULE — TASK MAPPING.',
@@ -284,6 +380,15 @@ export const MISSIONS: Mission[] = [
     title: 'LECTURA + ACTIVE RECALL',
     icon: '▣',
     scheduledTime: '06:30',
+    layer: 'cognitive',
+    kanji: '知',
+    kanjiReading: 'Chi · Conocimiento',
+    voiceLine: 'Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta.',
+    voiceLineComplete: 'Datos asimilados. El día es tuyo, Operador.',
+    coachingLines: [
+      'Una sola idea. La de mayor impacto.',
+      'Conviértela en flashcard. Active Recall.',
+    ],
     directive: '10 minutos leyendo filosofía, historia o biografías. 5 minutos procesando: extrae UNA idea y conviértela en flashcard de Active Recall.',
     duration: 900,
     systemLog: 'KNOWLEDGE ACQUISITION — ACTIVE RECALL MODE.',
@@ -304,30 +409,39 @@ export const MISSIONS: Mission[] = [
   },
 ];
 
-// ── RANKS ──
+// ── RANKS (dōjō: 7 niveles) ──
 export interface Rank {
   class: string;
   title: string;
   titleEs: string;
+  /** @deprecated Legacy field kept for backwards-compat with StatusBar. Use minLevel. */
   minStreak: number;
+  minLevel: number;
+  kanji: string;
   color: string;
 }
 
 export const RANKS: Rank[] = [
-  { class: 'E', title: 'RECRUIT', titleEs: 'RECLUTA', minStreak: 0, color: '#666666' },
-  { class: 'D', title: 'SOLDIER', titleEs: 'SOLDADO', minStreak: 3, color: '#4ADE80' },
-  { class: 'C', title: 'KNIGHT', titleEs: 'CABALLERO', minStreak: 7, color: '#60A5FA' },
-  { class: 'B', title: 'COMMANDER', titleEs: 'COMANDANTE', minStreak: 14, color: '#A78BFA' },
-  { class: 'A', title: 'CAPTAIN', titleEs: 'CAPITÁN', minStreak: 21, color: '#F59E0B' },
-  { class: 'S', title: 'SOVEREIGN', titleEs: 'SOBERANO', minStreak: 30, color: '#FF3366' },
+  { class: 'I',   title: 'INITIATE',  titleEs: 'INICIADO',   minLevel: 1,  minStreak: 0,  kanji: '初', color: '#7a6f63' },
+  { class: 'II',  title: 'DISCIPLE',  titleEs: 'DISCÍPULO',  minLevel: 5,  minStreak: 3,  kanji: '徒', color: '#a48a3b' },
+  { class: 'III', title: 'OPERATOR',  titleEs: 'OPERADOR',   minLevel: 10, minStreak: 7,  kanji: '士', color: '#c9a227' },
+  { class: 'IV',  title: 'VETERAN',   titleEs: 'VETERANO',   minLevel: 20, minStreak: 14, kanji: '兵', color: '#d4af37' },
+  { class: 'V',   title: 'RONIN',     titleEs: 'RONIN',      minLevel: 35, minStreak: 21, kanji: '浪', color: '#bc002d' },
+  { class: 'VI',  title: 'SENSEI',    titleEs: 'SENSEI',     minLevel: 55, minStreak: 40, kanji: '師', color: '#e8dcc4' },
+  { class: 'VII', title: 'SHOGUN',    titleEs: 'SHOGUN',     minLevel: 80, minStreak: 75, kanji: '将', color: '#f5e4a3' },
 ];
 
+export function getRankByLevel(level: number): Rank {
+  let current = RANKS[0];
+  for (const r of RANKS) if (level >= r.minLevel) current = r;
+  return current;
+}
+
+/** @deprecated Legacy — use getRankByLevel with OperatorProfile.level. */
 export function getRank(streak: number): Rank {
-  let currentRank = RANKS[0];
-  for (const rank of RANKS) {
-    if (streak >= rank.minStreak) currentRank = rank;
-  }
-  return currentRank;
+  let current = RANKS[0];
+  for (const r of RANKS) if (streak >= r.minStreak) current = r;
+  return current;
 }
 
 // ── STREAK DATA ──

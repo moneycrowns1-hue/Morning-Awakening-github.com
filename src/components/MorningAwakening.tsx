@@ -9,56 +9,95 @@ import {
   getToday,
   isYesterday,
   isToday,
+  getRankByLevel,
 } from '@/lib/constants';
 import { AudioEngine } from '@/lib/audioEngine';
+import { Operator } from '@/lib/operator';
+import {
+  loadProfile,
+  saveProfile,
+  computeReward,
+  applyAward,
+  type OperatorProfile,
+  PROFILE_KEY,
+  DEFAULT_PROFILE,
+  type OperatorStats,
+} from '@/lib/progression';
 import StatusBar from './StatusBar';
 import MissionPhase from './MissionPhase';
 import SummaryScreen from './SummaryScreen';
+import OperatorHUD from './OperatorHUD';
+import XpGainToast from './XpGainToast';
+import LevelUpOverlay from './LevelUpOverlay';
+import ProfileModal from './ProfileModal';
+import SettingsModal from './SettingsModal';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
+const SETTINGS_KEY = 'morning-awakening-settings';
+
+interface Settings {
+  voiceEnabled: boolean;
+  masterVolume: number;
+}
+const DEFAULT_SETTINGS: Settings = { voiceEnabled: true, masterVolume: 0.6 };
+
+interface XpToastData {
+  id: number;
+  xp: number;
+  statName: keyof OperatorStats;
+  statDelta: number;
+}
 
 export default function MorningAwakening() {
   const [appState, setAppState] = useState<AppState>('IDLE');
   const [missionIndex, setMissionIndex] = useState(0);
   const [streakData, setStreakData] = useState<StreakData>(DEFAULT_STREAK_DATA);
+  const [profile, setProfile] = useState<OperatorProfile>(DEFAULT_PROFILE);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [startTime, setStartTime] = useState<number>(0);
   const [idleText, setIdleText] = useState('');
   const [showIdleButton, setShowIdleButton] = useState(false);
+  const [xpToasts, setXpToasts] = useState<XpToastData[]>([]);
+  const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [sessionXp, setSessionXp] = useState(0);
+
   const audioRef = useRef<AudioEngine | null>(null);
+  const operatorRef = useRef<Operator | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const idleButtonRef = useRef<HTMLButtonElement>(null);
-  const dataStreamRef = useRef<HTMLDivElement>(null);
 
-  // Load streak data from localStorage
+  // ═══════════════ Load persisted data ═══════════════
   useEffect(() => {
+    // Streak
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const data: StreakData = JSON.parse(saved);
-        // Check if streak is still valid
         if (data.lastCompletedDate) {
           if (isToday(data.lastCompletedDate)) {
-            // Already completed today - show summary
             setStreakData(data);
             setAppState('COMPLETE');
+            setProfile(loadProfile());
+            setSettings(loadSettings());
             return;
           } else if (!isYesterday(data.lastCompletedDate)) {
-            // Streak broken
             data.streak = 0;
           }
         }
         setStreakData(data);
       }
-    } catch {
-      // Fresh start
-    }
+    } catch { /* fresh */ }
+    setProfile(loadProfile());
+    setSettings(loadSettings());
   }, []);
 
-  // Idle screen typewriter animation
+  // ═══════════════ Idle typewriter ═══════════════
   useEffect(() => {
     if (appState !== 'IDLE') return;
-    const text = 'PROTOCOLO v4.0 — 12 FASES. 3 BLOQUES. 5:00-6:45 AM. ESPERANDO ACTIVACIÓN DEL OPERADOR...';
+    const text = 'PROTOCOLO v5.0 · 12 FASES · 3 BLOQUES · 5:00–6:45 AM · ESPERANDO AL OPERADOR…';
     let i = 0;
     setIdleText('');
     setShowIdleButton(false);
@@ -74,68 +113,65 @@ export default function MorningAwakening() {
     return () => clearInterval(interval);
   }, [appState]);
 
-  // Idle button GSAP entrance
+  // ═══════════════ Idle button entrance ═══════════════
   useEffect(() => {
     if (showIdleButton && idleButtonRef.current) {
       gsap.fromTo(idleButtonRef.current,
-        { scale: 0.7, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }
-      );
+        { scale: 0.72, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.4)' });
     }
   }, [showIdleButton]);
 
-  // Data stream background effect
-  useEffect(() => {
-    if (!dataStreamRef.current) return;
-    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ';
-    const columns = 12;
-    const el = dataStreamRef.current;
-    el.innerHTML = '';
+  // ═══════════════ Persistence helpers ═══════════════
+  function loadSettings(): Settings {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    } catch { /* ignore */ }
+    return DEFAULT_SETTINGS;
+  }
 
-    for (let c = 0; c < columns; c++) {
-      const col = document.createElement('div');
-      col.className = 'absolute top-0 text-[13px] leading-[14px] text-accent/[0.04] font-light';
-      col.style.left = `${(c / columns) * 100}%`;
-
-      let content = '';
-      for (let r = 0; r < 80; r++) {
-        content += chars[Math.floor(Math.random() * chars.length)] + '\n';
-      }
-      col.textContent = content;
-      col.style.whiteSpace = 'pre';
-
-      const duration = 15 + Math.random() * 20;
-      col.style.animation = `data-scroll ${duration}s linear infinite`;
-      col.style.animationDelay = `${-Math.random() * duration}s`;
-
-      el.appendChild(col);
-    }
+  const persistSettings = useCallback((s: Settings) => {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
   }, []);
 
   const saveStreak = useCallback((data: StreakData) => {
     setStreakData(data);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // Storage full or unavailable
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
   }, []);
 
+  // ═══════════════ Initialize audio + operator ═══════════════
   const handleInitialize = useCallback(() => {
-    // Init audio
     if (!audioRef.current) {
       audioRef.current = new AudioEngine();
+      audioRef.current.init();
+      audioRef.current.setMasterVolume(settings.masterVolume);
     }
-    audioRef.current.init();
-    audioRef.current.startAmbient();
+    if (!operatorRef.current) {
+      operatorRef.current = new Operator(audioRef.current);
+      operatorRef.current.setEnabled(settings.voiceEnabled);
+    }
+    const firstMission = MISSIONS[0];
+    audioRef.current.startAmbient(firstMission.layer);
+    audioRef.current.playStrike(0.9);
 
-    // Transition
+    // Boot line
+    const rank = getRankByLevel(profile.level);
+    const streakPart = streakData.streak > 0
+      ? ` Racha de ${streakData.streak} días.`
+      : '';
+    operatorRef.current.speak(
+      `Sistema en línea. ${rank.titleEs} ${profile.name} detectado.${streakPart}`,
+      { rate: 0.94 }
+    );
+
     if (containerRef.current) {
       gsap.to(containerRef.current, {
         opacity: 0, duration: 0.4, onComplete: () => {
           setAppState('MISSION');
           setMissionIndex(0);
           setStartTime(Date.now());
+          setSessionXp(0);
           gsap.to(containerRef.current, { opacity: 1, duration: 0.4 });
         }
       });
@@ -144,14 +180,41 @@ export default function MorningAwakening() {
       setMissionIndex(0);
       setStartTime(Date.now());
     }
-  }, []);
+  }, [profile, streakData.streak, settings]);
 
+  // ═══════════════ Award XP ═══════════════
+  const grantReward = useCallback((missionIdx: number) => {
+    const mission = MISSIONS[missionIdx];
+    const award = computeReward(mission, streakData.streak);
+    const prevLevel = profile.level;
+    const updated = applyAward(profile, award, mission);
+    setProfile(updated);
+    saveProfile(updated);
+    setSessionXp(x => x + award.xp);
+
+    // Toast
+    setXpToasts(ts => [...ts, {
+      id: Date.now() + Math.random(),
+      xp: award.xp,
+      statName: award.statName,
+      statDelta: award.statsDelta[award.statName],
+    }]);
+
+    if (updated.level > prevLevel) {
+      setLevelUp({ from: prevLevel, to: updated.level });
+      audioRef.current?.playGong();
+    }
+  }, [profile, streakData.streak]);
+
+  // ═══════════════ Mission complete ═══════════════
   const handleMissionComplete = useCallback(() => {
+    grantReward(missionIndex);
+
     const nextIndex = missionIndex + 1;
 
     if (nextIndex >= MISSIONS.length) {
-      // All missions done
-      audioRef.current?.playComplete();
+      audioRef.current?.playGong();
+      operatorRef.current?.speak('Protocolo completo. El día es tuyo, Operador.', { rate: 0.9 });
 
       const today = getToday();
       const newData: StreakData = {
@@ -173,8 +236,13 @@ export default function MorningAwakening() {
         setAppState('COMPLETE');
       }
     } else {
-      // Next mission
-      audioRef.current?.playSuccess();
+      // Transition to next layer if changes
+      const next = MISSIONS[nextIndex];
+      const current = MISSIONS[missionIndex];
+      audioRef.current?.playChime();
+      if (next.layer !== current.layer) {
+        audioRef.current?.switchLayer(next.layer, 4);
+      }
 
       if (containerRef.current) {
         gsap.to(containerRef.current, {
@@ -182,15 +250,14 @@ export default function MorningAwakening() {
             setMissionIndex(nextIndex);
             gsap.fromTo(containerRef.current,
               { opacity: 0, x: 20 },
-              { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' }
-            );
+              { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' });
           }
         });
       } else {
         setMissionIndex(nextIndex);
       }
     }
-  }, [missionIndex, streakData, saveStreak]);
+  }, [missionIndex, streakData, saveStreak, grantReward]);
 
   const handleAudioTransition = useCallback(() => {
     audioRef.current?.playTransition();
@@ -198,143 +265,302 @@ export default function MorningAwakening() {
 
   const handleProceedToStudy = useCallback(() => {
     audioRef.current?.stopAll();
-    // No redirect configured yet — user decides later
+    operatorRef.current?.cancel();
     setAppState('IDLE');
   }, []);
 
   const handleReset = useCallback(() => {
     audioRef.current?.stopAll();
+    operatorRef.current?.cancel();
     setAppState('IDLE');
     setMissionIndex(0);
   }, []);
 
+  // ═══════════════ Settings handlers ═══════════════
+  const handleToggleVoice = useCallback((on: boolean) => {
+    const next = { ...settings, voiceEnabled: on };
+    setSettings(next);
+    persistSettings(next);
+    operatorRef.current?.setEnabled(on);
+  }, [settings, persistSettings]);
+
+  const handleVolumeChange = useCallback((v: number) => {
+    const next = { ...settings, masterVolume: v };
+    setSettings(next);
+    persistSettings(next);
+    audioRef.current?.setMasterVolume(v);
+  }, [settings, persistSettings]);
+
+  const handleResetProgress = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PROFILE_KEY);
+    } catch { /* ignore */ }
+    setStreakData(DEFAULT_STREAK_DATA);
+    setProfile(DEFAULT_PROFILE);
+    setShowSettings(false);
+    setAppState('IDLE');
+    setMissionIndex(0);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setXpToasts(ts => ts.filter(t => t.id !== id));
+  }, []);
+
   const totalElapsed = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
-  const currentPhase = appState === 'COMPLETE' ? MISSIONS.length : appState === 'MISSION' ? missionIndex + 1 : 0;
+  const currentPhase =
+    appState === 'COMPLETE' ? MISSIONS.length :
+    appState === 'MISSION'  ? missionIndex + 1 : 0;
 
   return (
-    <div className="h-full w-full bg-black flex flex-col relative overflow-hidden scan-lines">
-      {/* Data stream background */}
-      <div ref={dataStreamRef} className="absolute inset-0 overflow-hidden pointer-events-none" />
+    <div className="h-full w-full flex flex-col relative overflow-hidden washi-bg">
+      {/* Decorative sumi-e brushstrokes */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 400 800"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path
+          d="M -20 120 Q 80 60, 180 140 T 440 180"
+          stroke="#c9a227"
+          strokeWidth="1.5"
+          fill="none"
+          className="sumi-stroke"
+          style={{ opacity: 0.12 }}
+        />
+        <path
+          d="M 420 620 Q 300 560, 200 640 T -20 680"
+          stroke="#bc002d"
+          strokeWidth="1.2"
+          fill="none"
+          className="sumi-stroke"
+          style={{ opacity: 0.1, animationDelay: '0.6s' }}
+        />
+      </svg>
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 grid-bg pointer-events-none" />
+      {/* Giant kanji watermark during IDLE */}
+      {appState === 'IDLE' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="kanji-watermark" style={{ fontSize: 'min(62vw, 62vh)' }}>道</span>
+        </div>
+      )}
 
-      {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%)' }} />
+      {/* Warm vignette */}
+      <div className="absolute inset-0 pointer-events-none vignette-warm" />
 
       {/* Status Bar */}
       <StatusBar
         streak={streakData.streak}
         currentPhase={currentPhase}
         totalPhases={MISSIONS.length}
+        onOpenSettings={() => setShowSettings(true)}
+        voiceEnabled={settings.voiceEnabled}
       />
 
       {/* Main Content */}
       <div ref={containerRef} className="flex-1 flex flex-col relative z-10">
-        {/* IDLE STATE */}
+        {/* ═══ IDLE ═══ */}
         {appState === 'IDLE' && (
           <div className="flex-1 flex flex-col items-center justify-center px-6">
-            {/* System title */}
-            <div className="text-[14px] tracking-[0.6em] text-accent/30 mb-6">
-              ◇ SYSTEM: MORNING AWAKENING ◇
+            {/* Operator HUD (rank + xp) */}
+            <div className="w-full max-w-sm mb-4">
+              <OperatorHUD profile={profile} onOpenProfile={() => setShowProfile(true)} />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-accent/80 tracking-wider mb-2 text-center animate-flicker">
-              PROTOCOLO MATUTINO
+            <div
+              className="text-[12px] tracking-[0.6em] mb-4 opacity-50"
+              style={{ color: '#c9a227' }}
+            >
+              ◇ 道場 · PROTOCOLO MATUTINO ◇
+            </div>
+
+            <h1
+              className="text-3xl md:text-4xl font-bold mb-2 text-center animate-flicker"
+              style={{
+                color: '#e8dcc4',
+                fontFamily: 'var(--font-cinzel), Georgia, serif',
+                letterSpacing: '0.15em',
+                textShadow: '0 0 18px rgba(201,162,39,0.25)',
+              }}
+            >
+              MORNING AWAKENING
             </h1>
 
-            <div className="text-[13px] tracking-[0.3em] text-foreground/20 mb-6">
-              v4.0 — 5:00 AM PROTOCOL
+            <div className="text-[12px] tracking-[0.4em] mb-6" style={{ color: 'rgba(232,220,196,0.35)' }}>
+              v5.0 · DŌJŌ OPERATOR
             </div>
 
-            {/* Mission preview labels */}
-            <div className="w-full max-w-sm mb-4 px-2">
-              <div className="grid grid-cols-3 gap-1 text-[11px] tracking-wider text-accent/20 text-center">
+            {/* Mission preview kanji strip */}
+            <div className="w-full max-w-sm mb-5">
+              <div className="grid grid-cols-6 gap-1 text-center">
                 {MISSIONS.map(m => (
-                  <span key={m.id}>{m.icon} {m.codename}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Boot sequence text */}
-            <div className="w-full max-w-md mb-10">
-              <div className="p-4 border border-accent/10 rounded bg-accent/[0.02] hud-frame hud-frame-bottom">
-                <div className="text-[15px] leading-relaxed text-accent/60 tracking-wide">
-                  <span className="text-accent/30">{'>'} </span>
-                  {idleText}
-                  {idleText.length < 90 && <span className="animate-pulse text-accent">█</span>}
-                </div>
-              </div>
-            </div>
-
-            {/* Initialize Button */}
-            {showIdleButton && (
-              <button ref={idleButtonRef} onClick={handleInitialize}
-                className="relative w-48 h-48 group" id="init-button">
-                {/* Outer rotating border */}
-                <div className="absolute inset-0 rounded-full border border-accent/20 animate-ring-pulse" />
-                <div className="absolute inset-2 rounded-full border border-accent/10" />
-
-                {/* Core */}
-                <div className="absolute inset-5 rounded-full bg-accent/[0.03] border border-accent/30
-                  flex flex-col items-center justify-center
-                  group-hover:bg-accent/[0.08] group-active:bg-accent/[0.15]
-                  transition-all duration-300 animate-pulse-glow">
-                  <div className="text-4xl text-accent mb-2">⬡</div>
-                  <span className="text-[15px] tracking-[0.25em] text-accent font-bold">INITIALIZE</span>
-                  <span className="text-[12px] tracking-[0.2em] text-accent/40 mt-1">05:00 AM PROTOCOL</span>
-                </div>
-              </button>
-            )}
-
-            {/* Mission preview */}
-            {showIdleButton && (
-              <div className="mt-8 flex gap-2">
-                {MISSIONS.map((m, i) => (
-                  <div key={m.id} className="flex flex-col items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-accent/20" />
-                    <span className="text-[15px] tracking-wider text-accent/20">{i + 1}</span>
+                  <div key={m.id} className="flex flex-col items-center">
+                    <span
+                      className="text-lg"
+                      style={{
+                        color: 'rgba(201,162,39,0.35)',
+                        fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
+                      }}
+                    >
+                      {m.kanji}
+                    </span>
+                    <span className="text-[9px] tracking-widest mt-0.5" style={{ color: 'rgba(232,220,196,0.28)' }}>
+                      {m.codename.slice(0, 4)}
+                    </span>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Boot sequence */}
+            <div className="w-full max-w-md mb-8">
+              <div
+                className="p-4 rounded hud-frame hud-frame-bottom"
+                style={{
+                  border: '1px solid rgba(201,162,39,0.15)',
+                  background: 'rgba(201,162,39,0.03)',
+                }}
+              >
+                <div className="text-[14px] leading-relaxed tracking-wide" style={{ color: 'rgba(232,220,196,0.75)' }}>
+                  <span style={{ color: 'rgba(201,162,39,0.5)' }}>{'>'} </span>
+                  {idleText}
+                  {idleText.length < 75 && (
+                    <span className="animate-pulse" style={{ color: '#c9a227' }}>█</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Initialize button */}
+            {showIdleButton && (
+              <button
+                ref={idleButtonRef}
+                onClick={handleInitialize}
+                className="relative w-48 h-48 group"
+                id="init-button"
+              >
+                <div
+                  className="absolute inset-0 rounded-full animate-ring-pulse"
+                  style={{ border: '1px solid rgba(201,162,39,0.25)' }}
+                />
+                <div
+                  className="absolute inset-2 rounded-full"
+                  style={{ border: '1px solid rgba(201,162,39,0.15)' }}
+                />
+                <div
+                  className="absolute inset-5 rounded-full flex flex-col items-center justify-center transition-all duration-300 animate-ember-pulse group-hover:brightness-125"
+                  style={{
+                    background: 'rgba(201,162,39,0.06)',
+                    border: '1px solid rgba(201,162,39,0.4)',
+                  }}
+                >
+                  <div
+                    className="text-5xl mb-1"
+                    style={{
+                      color: '#bc002d',
+                      fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
+                      textShadow: '0 0 12px rgba(188,0,45,0.4)',
+                    }}
+                  >
+                    始
+                  </div>
+                  <span
+                    className="text-[13px] tracking-[0.25em] font-bold"
+                    style={{ color: '#c9a227', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+                  >
+                    INICIAR
+                  </span>
+                  <span className="text-[10px] tracking-[0.2em] mt-1" style={{ color: 'rgba(201,162,39,0.5)' }}>
+                    05:00 PROTOCOL
+                  </span>
+                </div>
+              </button>
             )}
           </div>
         )}
 
-        {/* MISSION STATE */}
+        {/* ═══ MISSION ═══ */}
         {appState === 'MISSION' && (
           <MissionPhase
             key={MISSIONS[missionIndex].id}
             mission={MISSIONS[missionIndex]}
             onComplete={handleMissionComplete}
             audioTransition={handleAudioTransition}
+            operator={operatorRef.current}
+            onStrike={() => audioRef.current?.playStrike(0.5)}
           />
         )}
 
-        {/* COMPLETE STATE */}
+        {/* ═══ COMPLETE ═══ */}
         {appState === 'COMPLETE' && (
           <SummaryScreen
             streakData={streakData}
             totalTime={totalElapsed}
+            profile={profile}
+            sessionXp={sessionXp}
             onProceed={handleProceedToStudy}
           />
         )}
       </div>
 
       {/* Bottom system bar */}
-      <div className="px-4 py-3 pb-[env(safe-area-inset-bottom,12px)]">
-        <div className="h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent mb-2" />
-        <div className="flex justify-between text-[12px] tracking-[0.2em] text-foreground/15">
-          <span>MORNING:AWAKENING:v4.0</span>
+      <div className="px-4 py-3 pb-[env(safe-area-inset-bottom,12px)] relative z-10">
+        <div
+          className="h-px mb-2"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
+        />
+        <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
+          <span>MORNING:AWAKENING · v5</span>
           {appState === 'COMPLETE' && (
-            <button onClick={handleReset} className="text-accent/30 hover:text-accent/60 transition-colors">
+            <button
+              onClick={handleReset}
+              className="hover:brightness-150 transition"
+              style={{ color: 'rgba(201,162,39,0.55)' }}
+            >
               RESET
             </button>
           )}
-          <span>◆ MAURO.SYS</span>
+          <span style={{ color: 'rgba(188,0,45,0.6)' }}>◆ {profile.name.toUpperCase()}</span>
         </div>
       </div>
+
+      {/* XP toasts */}
+      {xpToasts.map(t => (
+        <XpGainToast
+          key={t.id}
+          xp={t.xp}
+          statName={t.statName}
+          statDelta={t.statDelta}
+          onDone={() => removeToast(t.id)}
+        />
+      ))}
+
+      {/* Level up overlay */}
+      {levelUp && (
+        <LevelUpOverlay
+          previousLevel={levelUp.from}
+          newLevel={levelUp.to}
+          onDone={() => setLevelUp(null)}
+        />
+      )}
+
+      {/* Profile modal */}
+      {showProfile && (
+        <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <SettingsModal
+          voiceEnabled={settings.voiceEnabled}
+          masterVolume={settings.masterVolume}
+          onToggleVoice={handleToggleVoice}
+          onVolumeChange={handleVolumeChange}
+          onClose={() => setShowSettings(false)}
+          onResetProgress={handleResetProgress}
+        />
+      )}
     </div>
   );
 }

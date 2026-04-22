@@ -2,18 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { getCurrentTimeString, getRank, type Rank } from '@/lib/constants';
+import { getCurrentTimeString } from '@/lib/constants';
 
 interface StatusBarProps {
   streak: number;
   currentPhase: number;
   totalPhases: number;
+  onOpenSettings?: () => void;
+  voiceEnabled?: boolean;
 }
 
-export default function StatusBar({ streak, currentPhase, totalPhases }: StatusBarProps) {
+export default function StatusBar({
+  streak,
+  currentPhase,
+  totalPhases,
+  onOpenSettings,
+  voiceEnabled = true,
+}: StatusBarProps) {
   const [time, setTime] = useState('--:--:--');
   const barRef = useRef<HTMLDivElement>(null);
-  const rank: Rank = getRank(streak);
 
   useEffect(() => {
     setTime(getCurrentTimeString());
@@ -23,55 +30,76 @@ export default function StatusBar({ streak, currentPhase, totalPhases }: StatusB
 
   useEffect(() => {
     if (barRef.current) {
-      gsap.fromTo(barRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' });
+      gsap.fromTo(barRef.current, { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' });
     }
   }, []);
 
+  const progress = totalPhases > 0 ? (currentPhase / totalPhases) * 100 : 0;
+
   return (
-    <div ref={barRef} className="w-full px-4 pt-[env(safe-area-inset-top,12px)] pb-2">
-      <div className="flex items-center justify-between text-[14px] tracking-[0.2em] uppercase opacity-70 mb-2">
+    <div ref={barRef} className="w-full px-4 pt-[env(safe-area-inset-top,12px)] pb-2 relative z-20">
+      <div
+        className="flex items-center justify-between text-[12px] tracking-[0.25em] uppercase mb-2"
+        style={{ color: 'rgba(232,220,196,0.6)' }}
+      >
         <span className="animate-breathing">◆ SYS:ONLINE</span>
-        <span className="animate-flicker">{time}</span>
+        <span className="animate-flicker" style={{ fontFamily: 'var(--font-cinzel), Georgia, serif' }}>
+          {time}
+        </span>
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        {/* Rank Badge */}
-        <div className="flex items-center gap-2">
+        {/* Phase progress */}
+        <div className="flex-1">
           <div
-            className="w-8 h-8 rounded border flex items-center justify-center text-sm font-bold"
-            style={{ borderColor: rank.color, color: rank.color, boxShadow: `0 0 12px ${rank.color}40` }}
+            className="flex justify-between text-[11px] tracking-widest mb-1"
+            style={{ color: 'rgba(232,220,196,0.5)' }}
           >
-            {rank.class}
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[14px] tracking-[0.15em] opacity-50">RANK</span>
-            <span className="text-sm font-semibold" style={{ color: rank.color }}>{rank.title}</span>
-          </div>
-        </div>
-
-        {/* Phase Progress */}
-        <div className="flex-1 max-w-[180px]">
-          <div className="flex justify-between text-[13px] tracking-widest opacity-50 mb-1">
-            <span>PHASE</span>
+            <span>FASE</span>
             <span>{currentPhase}/{totalPhases}</span>
           </div>
-          <div className="h-[3px] bg-white/10 rounded-full overflow-hidden">
+          <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(232,220,196,0.1)' }}>
             <div
-              className="h-full bg-accent rounded-full transition-all duration-1000 ease-out progress-bar-glow"
-              style={{ width: `${(currentPhase / totalPhases) * 100}%` }}
+              className="h-full rounded-full transition-all duration-1000 ease-out progress-bar-glow"
+              style={{ width: `${progress}%`, background: '#c9a227' }}
             />
           </div>
         </div>
 
         {/* Streak */}
         <div className="flex flex-col items-end shrink-0">
-          <span className="text-[14px] tracking-[0.15em] opacity-50">STREAK</span>
-          <span className="text-sm font-bold text-accent glow-text whitespace-nowrap">{streak}<span className="text-[13px] opacity-60 ml-1">DAYS</span></span>
+          <span className="text-[11px] tracking-[0.15em] opacity-50">RACHA</span>
+          <span
+            className="text-base font-bold whitespace-nowrap"
+            style={{ color: '#bc002d', textShadow: '0 0 8px rgba(188,0,45,0.4)' }}
+          >
+            {streak}
+            <span className="text-[11px] opacity-60 ml-1">d</span>
+          </span>
         </div>
+
+        {/* Settings button */}
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded border text-[14px] transition-colors hover:brightness-125"
+            style={{
+              borderColor: 'rgba(201,162,39,0.25)',
+              color: 'rgba(201,162,39,0.7)',
+              background: 'rgba(201,162,39,0.04)',
+            }}
+            aria-label="Ajustes"
+            title={voiceEnabled ? 'Ajustes (voz ON)' : 'Ajustes (voz OFF)'}
+          >
+            {voiceEnabled ? '⚙' : '🔇'}
+          </button>
+        )}
       </div>
 
-      {/* Separator line */}
-      <div className="mt-3 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+      <div
+        className="mt-3 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.35), transparent)' }}
+      />
     </div>
   );
 }
