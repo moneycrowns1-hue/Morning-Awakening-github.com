@@ -557,7 +557,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.2</span>
+          <span>MORNING:AWAKENING · v7.3</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

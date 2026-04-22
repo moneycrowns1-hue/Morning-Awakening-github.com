@@ -40,7 +40,12 @@ export class Operator {
 
   // mp3 playback
   private manifest: VoiceManifest | null = null;
-  private currentAudio: HTMLAudioElement | null = null;
+  // ONE reusable HTMLAudioElement, primed during unlockForIOS() so that
+  // iOS Safari allows later programmatic .play() calls (outside of the
+  // original user gesture). A freshly-constructed `new Audio()` would
+  // be rejected by iOS autoplay policy. We swap `.src` for each line.
+  private audioSlot: HTMLAudioElement | null = null;
+  private audioUnlocked = false;
 
   constructor(engine?: AudioEngine) {
     this.engine = engine ?? null;
@@ -69,15 +74,46 @@ export class Operator {
    * forces the voices list to populate on iOS.
    */
   unlockForIOS() {
-    if (!this.isAvailable()) return;
-    try {
-      const u = new SpeechSynthesisUtterance('');
-      u.volume = 0;
-      window.speechSynthesis.speak(u);
-      // Re-query voices after the unlock
-      this.loadVoice();
-    } catch {
-      /* ignore */
+    // ── SpeechSynthesis unlock ──
+    if (this.isAvailable()) {
+      try {
+        const u = new SpeechSynthesisUtterance('');
+        u.volume = 0;
+        window.speechSynthesis.speak(u);
+        this.loadVoice();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // ── HTMLAudioElement unlock (iOS Safari) ──
+    // iOS rejects `audio.play()` called outside a user gesture. We create
+    // ONE reusable element here (we're inside a click handler) and prime
+    // it with a 1-frame silent payload so iOS whitelists it. Afterwards
+    // we can change its `.src` and call `.play()` programmatically from
+    // timers / promises / anywhere — iOS remembers that this element was
+    // "approved". Tier-1 speak() reuses this same element.
+    if (typeof window !== 'undefined' && !this.audioSlot) {
+      try {
+        const a = new Audio();
+        a.preload = 'auto';
+        // 0.1s of silence (valid tiny mp3).
+        a.src =
+          'data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA//////////////////////////////////////////////////8AAAA5TEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQABzAAAASDs90hvAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAATEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+        const p = a.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            a.pause();
+            a.currentTime = 0;
+            this.audioUnlocked = true;
+          }).catch(() => {
+            /* iOS blocked — will keep trying on next gesture */
+          });
+        }
+        this.audioSlot = a;
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -153,28 +189,41 @@ export class Operator {
     // ─── Tier 1: pre-generated mp3 ───────────────────────
     const entry = this.manifest?.lines?.[text];
     if (entry) {
+      // Reuse the unlocked HTMLAudioElement created during unlockForIOS().
+      // If it's not there (e.g. unlockForIOS was never called because the
+      // user never clicked INICIAR) we still attempt a fresh Audio() —
+      // that works fine on desktop and non-iOS mobile.
+      const audio = this.audioSlot ?? (this.audioSlot = new Audio());
       return new Promise<void>((resolve) => {
         try {
-          const audio = new Audio(`${VOICES_DIR}${entry.file}`);
+          // Detach any previous handlers from the reused element.
+          audio.onended = null;
+          audio.onerror = null;
+
+          audio.src = `${VOICES_DIR}${entry.file}`;
           audio.volume = Math.max(0, Math.min(1, volume));
-          if (opts.rate) audio.playbackRate = opts.rate;
-          this.currentAudio = audio;
+          audio.playbackRate = opts.rate ?? 1;
+          audio.currentTime = 0;
+
           startDuck();
           const cleanup = () => {
             endDuck();
-            if (this.currentAudio === audio) this.currentAudio = null;
             resolve();
           };
           audio.onended = cleanup;
           audio.onerror = () => {
-            // mp3 failed: resolve silently — do NOT fall back to synth here
-            // because that caused overlapping voices in v7.0.
+            // mp3 failed: resolve silently — do NOT fall back to synth
+            // here because that caused overlapping voices in v7.0.
             cleanup();
           };
-          audio.play().catch(() => {
-            // Autoplay blocked or other failure — same policy.
-            cleanup();
-          });
+
+          const playPromise = audio.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.catch(() => {
+              // Autoplay blocked or other failure — same policy.
+              cleanup();
+            });
+          }
         } catch {
           endDuck();
           resolve();
@@ -187,12 +236,14 @@ export class Operator {
   }
 
   private stopCurrentAudio() {
-    if (this.currentAudio) {
+    if (this.audioSlot) {
       try {
-        this.currentAudio.pause();
-        this.currentAudio.src = '';
+        this.audioSlot.onended = null;
+        this.audioSlot.onerror = null;
+        this.audioSlot.pause();
+        // Don't clear src or null the element — we want to reuse it so
+        // iOS keeps honouring the original unlock gesture.
       } catch { /* ignore */ }
-      this.currentAudio = null;
     }
   }
 
