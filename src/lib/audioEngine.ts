@@ -248,93 +248,40 @@ export class AudioEngine {
   }
 
   // ── Layer 1: IGNITION (ignición — fuerza, cardio) ──
+  // Clean sub-drone. No rhythmic pulses, no audible beating.
   private fillIgnition(bus: LayerBus) {
-    // Sub-bass drone, D1 = 36.7Hz, plus 2nd harmonic
-    this.osc(36.7, 'sine', 0.3, bus);
-    this.osc(73.4, 'sine', 0.12, bus);
-    // Mid tension, Dm root + slight detune
-    this.osc(146.83, 'triangle', 0.06, bus, -5);
-    this.osc(146.83, 'triangle', 0.05, bus, +5);
-
-    // Rhythmic pulse via LFO on a dedicated gain
-    const pulseGain = this.ctx!.createGain();
-    pulseGain.gain.value = 0;
-    pulseGain.connect(bus.input);
-    bus.nodes.push(pulseGain);
-
-    // Kick-like: low-passed noise burst loop via LFO (~80 BPM → 1.33Hz)
-    this.noise(bus, 0.08, { type: 'lowpass', freq: 160, q: 1.2 });
-    // LFO modulating noise amplitude
-    const subPulse = this.ctx!.createOscillator();
-    subPulse.type = 'square';
-    subPulse.frequency.value = 1.33;
-    const subPulseGain = this.ctx!.createGain();
-    subPulseGain.gain.value = 0.18;
-    subPulse.connect(subPulseGain).connect(pulseGain.gain);
-    subPulse.start();
-    bus.sources.push(subPulse);
-    bus.nodes.push(subPulseGain);
+    // Sub-bass drone, D1 = 36.7Hz + 2nd harmonic
+    this.osc(36.7, 'sine', 0.28, bus);
+    this.osc(73.4, 'sine', 0.10, bus);
+    // Mid body — single triangle, no detune-beating
+    this.osc(146.83, 'triangle', 0.05, bus);
+    // Soft room-noise floor (constant, no AM pulse)
+    this.noise(bus, 0.035, { type: 'lowpass', freq: 280, q: 0.7 });
   }
 
   // ── Layer 2: BRIDGE (puente — respiración, meditación, frío) ──
+  // Pure drone. No tremolo. No rhythmic AM. Just spacious minor-chord.
   private fillBridge(bus: LayerBus) {
-    // Oscuro, expansivo, sin ritmo. Drone Dm (D, F, A) con reverb largo.
     this.osc(146.83, 'sine', 0.18, bus);      // D3
     this.osc(174.61, 'sine', 0.10, bus);      // F3 (menor)
     this.osc(220.0,  'sine', 0.07, bus);      // A3
     this.osc(293.66, 'sine', 0.04, bus);      // D4 shimmer
 
-    // Isocrónico Theta 6Hz — AM sobre portadora 174Hz
-    const carrier = this.osc(174, 'sine', 0, bus);
-    const carrierGain = this.ctx!.createGain();
-    carrierGain.gain.value = 0.05;
-    carrier.disconnect();
-    carrier.connect(carrierGain).connect(bus.input);
-    bus.nodes.push(carrierGain);
-    this.lfo(6, 0.05, carrierGain.gain, bus);
-
-    // Whisper-wind noise for space
-    this.noise(bus, 0.025, { type: 'bandpass', freq: 900, q: 0.8 });
+    // Whisper-wind noise for atmosphere (constant amplitude, no pulsing)
+    this.noise(bus, 0.022, { type: 'bandpass', freq: 900, q: 0.8 });
   }
 
   // ── Layer 3: COGNITIVE (filo cognitivo — desayuno, luz, lectura) ──
+  // Clean open voicing. Removed the 40Hz audible gamma hum.
   private fillCognitive(bus: LayerBus) {
-    // D mixolidio: D F# G A C — clear, open
+    // D mixolidio — clear, open
     this.osc(146.83, 'sine',     0.12, bus);  // D3
     this.osc(220.0,  'sine',     0.06, bus);  // A3
-    this.osc(277.18, 'triangle', 0.04, bus);  // C#4 (leading)
-    this.osc(369.99, 'sine',     0.03, bus);  // F#4
+    this.osc(277.18, 'triangle', 0.03, bus);  // C#4
+    this.osc(369.99, 'sine',     0.025, bus); // F#4
 
-    // Binaural 10Hz Alpha: 210L / 220R
-    const binL = this.ctx!.createOscillator();
-    binL.type = 'sine';
-    binL.frequency.value = 210;
-    const binR = this.ctx!.createOscillator();
-    binR.type = 'sine';
-    binR.frequency.value = 220;
-    const panL = this.ctx!.createStereoPanner();
-    panL.pan.value = -1;
-    const panR = this.ctx!.createStereoPanner();
-    panR.pan.value = 1;
-    const binGain = this.ctx!.createGain();
-    binGain.gain.value = 0.04;
-    binL.connect(panL).connect(binGain).connect(bus.input);
-    binR.connect(panR).connect(binGain).connect(bus.input);
-    binL.start();
-    binR.start();
-    bus.sources.push(binL, binR);
-    bus.nodes.push(panL, panR, binGain);
-
-    // Gamma 40Hz low-amp pulse for cognitive edge
-    const gamma = this.ctx!.createOscillator();
-    gamma.type = 'sine';
-    gamma.frequency.value = 40;
-    const gammaGain = this.ctx!.createGain();
-    gammaGain.gain.value = 0.012;
-    gamma.connect(gammaGain).connect(bus.input);
-    gamma.start();
-    bus.sources.push(gamma);
-    bus.nodes.push(gammaGain);
+    // Very subtle air
+    this.noise(bus, 0.015, { type: 'highpass', freq: 1800, q: 0.6 });
   }
 
   // ════════════ SFX (marcial palette) ════════════

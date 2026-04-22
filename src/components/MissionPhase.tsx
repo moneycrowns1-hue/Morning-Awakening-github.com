@@ -178,7 +178,7 @@ export default function MissionPhase({
   const currentTip = mission.tips?.[Math.floor(Date.now() / 10000) % (mission.tips?.length || 1)];
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col items-center px-5 py-4 relative overflow-hidden">
+    <div ref={containerRef} className="flex-1 flex flex-col items-center px-6 py-5 relative overflow-hidden">
       {/* ═══ Giant kanji watermark ═══ */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -191,55 +191,59 @@ export default function MissionPhase({
 
       <div
         ref={scrollRef}
-        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center pb-6 relative z-10"
+        className="flex-1 w-full max-w-md overflow-y-auto flex flex-col items-center pb-8 relative z-10"
         style={{ scrollbarWidth: 'none' }}
       >
         {/* Block label */}
         {mission.blockLabel && (
-          <div
-            className="w-full text-center mb-2 py-1"
-            style={{ borderBottom: '1px solid rgba(201,162,39,0.15)' }}
-          >
+          <div className="w-full text-center mb-5 pb-3" style={{ borderBottom: '1px solid rgba(201,162,39,0.15)' }}>
             <span
-              className="text-[11px] tracking-[0.4em] font-bold"
-              style={{
-                color: 'rgba(201,162,39,0.5)',
-                fontFamily: 'var(--font-cinzel), Georgia, serif',
-              }}
+              className="text-[10px] tracking-[0.45em] font-bold"
+              style={{ color: 'rgba(201,162,39,0.55)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
             >
               {mission.blockLabel}
             </span>
           </div>
         )}
 
-        {/* Phase indicator */}
-        <div className="flex items-center gap-2 mb-2 self-start">
-          <span className="text-[12px] tracking-[0.3em]" style={{ color: 'rgba(201,162,39,0.55)' }}>
-            FASE {mission.phase}/{totalPhases}
+        {/* Phase indicator + schedule */}
+        <div className="w-full flex items-center justify-between mb-3">
+          <span
+            className="text-[11px] tracking-[0.35em] font-bold"
+            style={{ color: 'rgba(201,162,39,0.6)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+          >
+            FASE {mission.phase} / {totalPhases}
           </span>
           {mission.scheduledTime && (
-            <span className="text-[11px] tracking-wider" style={{ color: 'rgba(201,162,39,0.35)' }}>
-              ⏱ {mission.scheduledTime}
+            <span
+              className="text-[11px] tracking-[0.25em] px-2 py-1 rounded"
+              style={{
+                color: 'rgba(201,162,39,0.55)',
+                background: 'rgba(201,162,39,0.06)',
+                border: '1px solid rgba(201,162,39,0.12)',
+              }}
+            >
+              {mission.scheduledTime}
             </span>
           )}
         </div>
 
-        {/* Codename + kanji reading */}
+        {/* Codename + kanji reading (NO ascii icon — cleaner) */}
         <div
-          className="text-[13px] tracking-[0.5em] mb-1"
+          className="w-full text-center text-[12px] tracking-[0.5em] mb-2"
           style={{ color: 'rgba(201,162,39,0.45)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
         >
-          {mission.icon} {mission.codename} · {mission.kanjiReading}
+          {mission.codename} · {mission.kanjiReading}
         </div>
 
         {/* Title */}
         <div
           ref={titleRef}
-          className="text-2xl md:text-3xl font-bold ember-text mb-4 text-center"
+          className="text-2xl md:text-3xl font-bold ember-text mb-6 text-center"
           style={{
             color: WASHI,
             fontFamily: 'var(--font-cinzel), Georgia, serif',
-            letterSpacing: '0.15em',
+            letterSpacing: '0.18em',
           }}
         >
           {mission.title}
@@ -247,7 +251,7 @@ export default function MissionPhase({
 
         {/* Timer ring / action button / breathing */}
         {mission.duration > 0 && !mission.breathingPattern ? (
-          <div ref={timerRef} className="relative w-44 h-44 mb-4 shrink-0">
+          <div ref={timerRef} className="relative w-48 h-48 mb-7 shrink-0">
             <svg className="w-full h-full timer-ring" viewBox="0 0 200 200">
               <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(201,162,39,0.08)" strokeWidth="2.5" />
               <circle
@@ -288,7 +292,7 @@ export default function MissionPhase({
           <button
             ref={buttonRef}
             onClick={handleManualComplete}
-            className="relative w-36 h-36 mb-4 group shrink-0"
+            className="relative w-40 h-40 mb-7 group shrink-0"
           >
             <div
               className="absolute inset-0 rounded-full animate-ember-pulse"
@@ -299,15 +303,24 @@ export default function MissionPhase({
               style={{ border: '1px solid rgba(201,162,39,0.2)' }}
             />
             <div
-              className="absolute inset-5 rounded-full flex flex-col items-center justify-center transition-all duration-300 ember-border group-hover:brightness-125 group-active:brightness-90"
+              className="absolute inset-5 rounded-full flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ember-border group-hover:brightness-125 group-active:brightness-90"
               style={{
                 background: 'rgba(201,162,39,0.08)',
                 border: '1px solid rgba(201,162,39,0.45)',
               }}
             >
-              <span className="text-3xl mb-1" style={{ color: HINOMARU }}>◉</span>
               <span
-                className="text-[13px] tracking-[0.2em] font-semibold"
+                className="text-3xl"
+                style={{
+                  color: HINOMARU,
+                  fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
+                  textShadow: '0 0 10px rgba(188,0,45,0.4)',
+                }}
+              >
+                決
+              </span>
+              <span
+                className="text-[12px] tracking-[0.3em] font-bold"
                 style={{ color: KIN, fontFamily: 'var(--font-cinzel), Georgia, serif' }}
               >
                 CONFIRMAR
@@ -318,27 +331,27 @@ export default function MissionPhase({
 
         {/* Breathing guide */}
         {mission.breathingPattern && (
-          <div ref={timerRef} className="mb-4 w-full flex flex-col items-center">
+          <div ref={timerRef} className="mb-6 w-full flex flex-col items-center">
             <BreathingGuide />
           </div>
         )}
 
         {/* System log */}
-        <div className="w-full space-y-2 mb-3">
-          <div className="text-[14px] tracking-wider" style={{ color: 'rgba(201,162,39,0.65)' }}>
-            <span style={{ color: 'rgba(201,162,39,0.35)' }}>{'>'} </span>{systemText}
+        <div className="w-full space-y-3 mb-5">
+          <div className="text-[13px] tracking-wider px-1" style={{ color: 'rgba(201,162,39,0.7)' }}>
+            <span style={{ color: 'rgba(201,162,39,0.4)' }}>{'>'} </span>{systemText}
             <span className="animate-pulse" style={{ color: KIN }}>█</span>
           </div>
 
           {showDirective && (
             <div
-              className="p-3 rounded hud-frame hud-frame-bottom"
+              className="px-5 py-4 rounded-lg hud-frame hud-frame-bottom"
               style={{
-                border: '1px solid rgba(201,162,39,0.12)',
-                background: 'rgba(201,162,39,0.03)',
+                border: '1px solid rgba(201,162,39,0.15)',
+                background: 'rgba(201,162,39,0.035)',
               }}
             >
-              <p className="text-[15px] leading-relaxed tracking-wide" style={{ color: 'rgba(232,220,196,0.78)' }}>
+              <p className="text-[15px] leading-[1.7] tracking-wide" style={{ color: 'rgba(232,220,196,0.85)' }}>
                 {typewriterText}
                 {typewriterText.length < mission.directive.length && (
                   <span className="animate-pulse" style={{ color: KIN }}>█</span>
@@ -348,53 +361,88 @@ export default function MissionPhase({
           )}
         </div>
 
-        {/* Sub-steps checklist */}
+        {/* Sub-steps checklist — modern card style */}
         {mission.subSteps && mission.subSteps.length > 0 && (
-          <div className="w-full mb-3">
-            <div className="text-[12px] tracking-[0.25em] mb-2" style={{ color: 'rgba(201,162,39,0.4)' }}>
+          <div className="w-full mb-5">
+            <div
+              className="text-[11px] tracking-[0.35em] mb-3 font-bold"
+              style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+            >
               PASOS A SEGUIR
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {mission.subSteps.map((step, idx) => {
                 const checked = checkedSteps.has(idx);
                 return (
                   <button
                     key={idx}
                     onClick={() => toggleStep(idx)}
-                    className="w-full flex items-start gap-2 p-2.5 rounded transition-all text-left"
+                    className="w-full flex items-start gap-4 p-4 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
                     style={{
                       borderWidth: '1px',
                       borderStyle: 'solid',
-                      borderColor: checked ? 'rgba(122,140,90,0.4)' : 'rgba(201,162,39,0.1)',
-                      background: checked ? 'rgba(122,140,90,0.04)' : 'transparent',
+                      borderColor: checked ? 'rgba(122,140,90,0.45)' : 'rgba(201,162,39,0.14)',
+                      background: checked ? 'rgba(122,140,90,0.06)' : 'rgba(10,9,8,0.35)',
+                      boxShadow: checked ? '0 0 12px rgba(122,140,90,0.12)' : 'none',
                     }}
                   >
+                    {/* Modern checkbox */}
                     <div
-                      className="w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 text-[12px]"
+                      className="relative w-6 h-6 rounded-md shrink-0 mt-0.5 flex items-center justify-center transition-all duration-300"
                       style={{
-                        borderColor: checked ? MOSS : 'rgba(201,162,39,0.35)',
-                        background: checked ? 'rgba(122,140,90,0.2)' : 'transparent',
-                        color: checked ? MOSS : 'transparent',
+                        border: `1.5px solid ${checked ? MOSS : 'rgba(201,162,39,0.4)'}`,
+                        background: checked ? MOSS : 'transparent',
+                        boxShadow: checked ? `0 0 10px ${MOSS}55` : 'none',
                       }}
                     >
-                      ✓
+                      {checked && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          className="w-4 h-4"
+                          style={{
+                            stroke: '#0a0908',
+                            strokeWidth: 3.5,
+                            strokeLinecap: 'round',
+                            strokeLinejoin: 'round',
+                            animation: 'check-in 0.28s ease-out',
+                          }}
+                        >
+                          <polyline points="5 12 10 17 19 7" />
+                        </svg>
+                      )}
                     </div>
-                    <div>
-                      <span
-                        className="text-[15px] font-medium tracking-wide"
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span
+                          className="text-[15px] font-semibold leading-tight"
+                          style={{
+                            color: checked ? 'rgba(122,140,90,0.85)' : 'rgba(232,220,196,0.95)',
+                            opacity: checked ? 0.6 : 1,
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          {step.label}
+                        </span>
+                        {step.optional && (
+                          <span
+                            className="text-[9px] tracking-[0.2em] px-1.5 py-0.5 rounded font-bold"
+                            style={{
+                              color: 'rgba(201,162,39,0.85)',
+                              background: 'rgba(201,162,39,0.12)',
+                              border: '1px solid rgba(201,162,39,0.25)',
+                            }}
+                          >
+                            OPCIONAL
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className="text-[13px] mt-1.5 leading-relaxed"
                         style={{
-                          color: checked ? 'rgba(122,140,90,0.75)' : 'rgba(232,220,196,0.75)',
-                          textDecoration: checked ? 'line-through' : 'none',
+                          color: checked ? 'rgba(232,220,196,0.28)' : 'rgba(232,220,196,0.5)',
                         }}
                       >
-                        {step.label}
-                      </span>
-                      {step.optional && (
-                        <span className="text-[11px] ml-2" style={{ color: 'rgba(201,162,39,0.55)' }}>
-                          OPCIONAL
-                        </span>
-                      )}
-                      <p className="text-[13px] mt-0.5" style={{ color: 'rgba(232,220,196,0.35)' }}>
                         {step.description}
                       </p>
                     </div>
@@ -411,23 +459,29 @@ export default function MissionPhase({
         {/* Daily Insight */}
         {mission.hasDailyInsight && <DailyInsight />}
 
-        {/* Science Note */}
+        {/* Science Note — collapsible card */}
         {mission.scienceNote && (
-          <div className="w-full mt-3">
+          <div className="w-full mt-4">
             <button
               onClick={() => setShowScience(!showScience)}
-              className="text-[12px] tracking-[0.2em] transition-colors hover:brightness-150"
-              style={{ color: 'rgba(201,162,39,0.4)' }}
+              className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-colors hover:brightness-125"
+              style={{
+                color: 'rgba(201,162,39,0.65)',
+                background: 'rgba(201,162,39,0.04)',
+                border: '1px solid rgba(201,162,39,0.12)',
+                fontFamily: 'var(--font-cinzel), Georgia, serif',
+              }}
             >
-              {showScience ? '▾' : '▸'} ¿POR QUÉ FUNCIONA?
+              <span>¿POR QUÉ FUNCIONA?</span>
+              <span className="transition-transform" style={{ transform: showScience ? 'rotate(180deg)' : 'none' }}>▾</span>
             </button>
             {showScience && (
               <div
-                className="mt-2 p-3 rounded text-[14px] leading-relaxed"
+                className="mt-2 px-5 py-4 rounded-lg text-[13px] leading-[1.7]"
                 style={{
                   border: '1px solid rgba(201,162,39,0.1)',
-                  background: 'rgba(201,162,39,0.015)',
-                  color: 'rgba(232,220,196,0.45)',
+                  background: 'rgba(201,162,39,0.02)',
+                  color: 'rgba(232,220,196,0.6)',
                 }}
               >
                 {mission.scienceNote}
@@ -438,25 +492,42 @@ export default function MissionPhase({
 
         {/* Tip */}
         {currentTip && (
-          <div className="w-full mt-3 text-[13px] tracking-wider" style={{ color: 'rgba(232,220,196,0.3)' }}>
-            <span style={{ color: 'rgba(201,162,39,0.45)' }}>TIP:</span> {currentTip}
+          <div
+            className="w-full mt-4 px-4 py-3 rounded-lg text-[13px] leading-relaxed"
+            style={{
+              borderLeft: '2px solid rgba(201,162,39,0.4)',
+              background: 'rgba(201,162,39,0.025)',
+              color: 'rgba(232,220,196,0.55)',
+            }}
+          >
+            <span
+              className="text-[10px] tracking-[0.3em] font-bold mr-2"
+              style={{ color: 'rgba(201,162,39,0.7)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
+            >
+              TIP
+            </span>
+            {currentTip}
           </div>
         )}
 
         {/* Progress bar */}
         {mission.duration > 0 && started && !mission.breathingPattern && (
-          <div className="w-full mt-4">
+          <div className="w-full mt-5">
             <div
-              className="flex justify-between text-[11px] tracking-widest mb-1"
-              style={{ color: 'rgba(201,162,39,0.4)' }}
+              className="flex justify-between text-[10px] tracking-[0.3em] mb-1.5 font-bold"
+              style={{ color: 'rgba(201,162,39,0.5)', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
             >
               <span>PROGRESO</span>
               <span>{Math.round(progress * 100)}%</span>
             </div>
-            <div className="h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(232,220,196,0.08)' }}>
+            <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(232,220,196,0.08)' }}>
               <div
                 className="h-full rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${progress * 100}%`, background: KIN }}
+                style={{
+                  width: `${progress * 100}%`,
+                  background: KIN,
+                  boxShadow: `0 0 8px ${KIN}80`,
+                }}
               />
             </div>
           </div>
@@ -469,14 +540,15 @@ export default function MissionPhase({
             if (mission.voiceLineComplete) operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             onComplete();
           }}
-          className="mt-6 mb-4 px-6 py-2 rounded text-[12px] tracking-[0.2em] transition-all shrink-0 hover:brightness-125"
+          className="mt-8 mb-4 px-6 py-2.5 rounded-lg text-[11px] tracking-[0.3em] font-bold transition-all shrink-0 hover:brightness-125"
           style={{
-            border: '1px solid rgba(188,0,45,0.3)',
-            color: 'rgba(188,0,45,0.7)',
-            background: 'rgba(188,0,45,0.04)',
+            border: '1px solid rgba(188,0,45,0.35)',
+            color: 'rgba(188,0,45,0.8)',
+            background: 'rgba(188,0,45,0.05)',
+            fontFamily: 'var(--font-cinzel), Georgia, serif',
           }}
         >
-          ⏭ SALTAR FASE
+          SALTAR FASE
         </button>
       </div>
     </div>
