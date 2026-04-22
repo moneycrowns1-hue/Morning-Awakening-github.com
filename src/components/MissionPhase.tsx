@@ -84,27 +84,76 @@ export default function MissionPhase({
     return () => clearInterval(interval);
   }, [showDirective, mission.directive]);
 
-  // ═══ GSAP entrance ═══
+  // ═══ GSAP entrance — fluid choreographed reveal ═══
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Stagger in the top-level sections of the scroll area.
+      if (scrollRef.current) {
+        const sections = Array.from(
+          scrollRef.current.children,
+        ) as HTMLElement[];
+        gsap.fromTo(
+          sections,
+          { opacity: 0, y: 24, filter: 'blur(6px)' },
+          {
+            opacity: 1,
+            y: 0,
+            filter: 'blur(0px)',
+            duration: 0.7,
+            ease: 'power3.out',
+            stagger: 0.08,
+          },
+        );
+      }
+
       if (titleRef.current) {
-        gsap.fromTo(titleRef.current,
-          { opacity: 0, x: -30 },
-          { opacity: 1, x: 0, duration: 0.7, ease: 'power3.out', delay: 0.2 });
+        gsap.fromTo(
+          titleRef.current,
+          { opacity: 0, x: -24 },
+          { opacity: 1, x: 0, duration: 0.8, ease: 'power3.out', delay: 0.15 },
+        );
       }
       if (timerRef.current) {
-        gsap.fromTo(timerRef.current,
+        gsap.fromTo(
+          timerRef.current,
           { scale: 0.82, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.4)', delay: 0.45 });
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.9,
+            ease: 'back.out(1.4)',
+            delay: 0.35,
+          },
+        );
       }
       if (buttonRef.current) {
-        gsap.fromTo(buttonRef.current,
-          { y: 26, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', delay: 0.75 });
+        gsap.fromTo(
+          buttonRef.current,
+          { y: 28, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7, ease: 'power2.out', delay: 0.6 },
+        );
+      }
+
+      // Stagger the checklist items.
+      const items =
+        containerRef.current?.querySelectorAll<HTMLElement>('[data-step-item]');
+      if (items && items.length > 0) {
+        gsap.fromTo(
+          items,
+          { opacity: 0, x: -18 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+            stagger: 0.06,
+            delay: 0.5,
+          },
+        );
       }
     }, containerRef);
     return () => ctx.revert();
-  }, []);
+  }, [mission.id]);
 
   // ═══ Timer countdown ═══
   useEffect(() => {
@@ -192,11 +241,9 @@ export default function MissionPhase({
 
       <div
         ref={scrollRef}
-        className="flex-1 w-full max-w-md overflow-y-auto overscroll-contain flex flex-col items-center gap-y-10 relative z-10 min-h-0"
+        className="scroll-area flex-1 w-full max-w-md flex flex-col items-center gap-y-10 relative z-10 min-h-0"
         style={{
-          scrollbarWidth: 'none',
-          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
-          WebkitOverflowScrolling: 'touch',
+          paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
         }}
       >
         {/* ══════════ ZONE 1: HEADER ══════════ */}
@@ -435,7 +482,16 @@ export default function MissionPhase({
                 return (
                   <button
                     key={idx}
-                    onClick={() => toggleStep(idx)}
+                    data-step-item
+                    onClick={(e) => {
+                      toggleStep(idx);
+                      // tactile pop when toggled
+                      gsap.fromTo(
+                        e.currentTarget,
+                        { scale: 0.97 },
+                        { scale: 1, duration: 0.35, ease: 'back.out(2.2)' },
+                      );
+                    }}
                     className="w-full flex items-center gap-5 px-6 py-5 rounded-lg transition-all duration-300 text-left hover:brightness-110 active:scale-[0.98]"
                     style={{
                       borderWidth: '1px',
