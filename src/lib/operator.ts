@@ -29,6 +29,24 @@ export class Operator {
     window.speechSynthesis.addEventListener('voiceschanged', () => this.loadVoice());
   }
 
+  /**
+   * iOS Safari requires the first SpeechSynthesis call to be inside a user
+   * gesture. Speaking an empty utterance "unlocks" synthesis and also
+   * forces the voices list to populate on iOS.
+   */
+  unlockForIOS() {
+    if (!this.isAvailable()) return;
+    try {
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      // Re-query voices after the unlock
+      this.loadVoice();
+    } catch {
+      /* ignore */
+    }
+  }
+
   private loadVoice() {
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return;
@@ -96,6 +114,8 @@ export class Operator {
         u.onerror = finish;
 
         try {
+          // iOS: if paused (happens after cancel), resume first
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
           window.speechSynthesis.speak(u);
         } catch {
           finish();

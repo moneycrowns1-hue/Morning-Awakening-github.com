@@ -18,7 +18,9 @@ import {
   saveProfile,
   computeReward,
   applyAward,
+  applyClassBonus,
   type OperatorProfile,
+  type OperatorClass,
   PROFILE_KEY,
   DEFAULT_PROFILE,
   type OperatorStats,
@@ -31,6 +33,7 @@ import XpGainToast from './XpGainToast';
 import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
+import OnboardingModal from './OnboardingModal';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -62,6 +65,7 @@ export default function MorningAwakening() {
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [sessionXp, setSessionXp] = useState(0);
 
   const audioRef = useRef<AudioEngine | null>(null);
@@ -71,6 +75,23 @@ export default function MorningAwakening() {
 
   // ═══════════════ Load persisted data ═══════════════
   useEffect(() => {
+    // Profile (triggers onboarding on first run)
+    let loadedProfile: OperatorProfile;
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (!raw) {
+        setShowOnboarding(true);
+        loadedProfile = loadProfile();
+      } else {
+        loadedProfile = loadProfile();
+      }
+    } catch {
+      setShowOnboarding(true);
+      loadedProfile = loadProfile();
+    }
+    setProfile(loadedProfile);
+    setSettings(loadSettings());
+
     // Streak
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -80,8 +101,6 @@ export default function MorningAwakening() {
           if (isToday(data.lastCompletedDate)) {
             setStreakData(data);
             setAppState('COMPLETE');
-            setProfile(loadProfile());
-            setSettings(loadSettings());
             return;
           } else if (!isYesterday(data.lastCompletedDate)) {
             data.streak = 0;
@@ -90,8 +109,15 @@ export default function MorningAwakening() {
         setStreakData(data);
       }
     } catch { /* fresh */ }
-    setProfile(loadProfile());
-    setSettings(loadSettings());
+  }, []);
+
+  // ═══════════════ Onboarding completion ═══════════════
+  const handleOnboardingComplete = useCallback((name: string, cls: OperatorClass) => {
+    let next: OperatorProfile = { ...DEFAULT_PROFILE, name, createdAt: new Date().toISOString() };
+    next = applyClassBonus(next, cls);
+    setProfile(next);
+    saveProfile(next);
+    setShowOnboarding(false);
   }, []);
 
   // ═══════════════ Idle typewriter ═══════════════
@@ -151,6 +177,9 @@ export default function MorningAwakening() {
       operatorRef.current = new Operator(audioRef.current);
       operatorRef.current.setEnabled(settings.voiceEnabled);
     }
+    // iOS Safari: unlock SpeechSynthesis inside this user-gesture click.
+    operatorRef.current.unlockForIOS();
+
     const firstMission = MISSIONS[0];
     audioRef.current.startAmbient(firstMission.layer);
     audioRef.current.playStrike(0.9);
@@ -299,6 +328,7 @@ export default function MorningAwakening() {
     setStreakData(DEFAULT_STREAK_DATA);
     setProfile(DEFAULT_PROFILE);
     setShowSettings(false);
+    setShowOnboarding(true);
     setAppState('IDLE');
     setMissionIndex(0);
   }, []);
@@ -560,6 +590,11 @@ export default function MorningAwakening() {
           onClose={() => setShowSettings(false)}
           onResetProgress={handleResetProgress}
         />
+      )}
+
+      {/* Onboarding modal (first run) */}
+      {showOnboarding && (
+        <OnboardingModal onComplete={handleOnboardingComplete} />
       )}
     </div>
   );
