@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { type Mission, formatTime, MISSIONS } from '@/lib/constants';
 import type { Operator } from '@/lib/operator';
-import { Play, ChevronDown } from 'lucide-react';
+import { PlayCircle, ChevronDown } from 'lucide-react';
 import BreathingGuide from './BreathingGuide';
 import DailyInsight from './DailyInsight';
 import JournalingPrompt from './JournalingPrompt';
@@ -291,7 +291,7 @@ export default function MissionPhase({
                   className="flex flex-col items-center gap-2 transition-colors hover:brightness-125"
                   style={{ color: KIN }}
                 >
-                  <Play size={40} strokeWidth={1.5} fill={KIN} />
+                  <PlayCircle size={44} strokeWidth={1.3} />
                   <span className="text-[13px] tracking-[0.3em]">INICIAR</span>
                 </button>
               )}

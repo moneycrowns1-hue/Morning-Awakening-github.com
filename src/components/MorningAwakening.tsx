@@ -34,7 +34,7 @@ import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
 import OnboardingModal from './OnboardingModal';
-import { Crosshair } from 'lucide-react';
+import { Target } from 'lucide-react';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -390,7 +390,10 @@ export default function MorningAwakening() {
       />
 
       {/* Main Content */}
-      <div ref={containerRef} className="flex-1 flex flex-col relative z-10">
+      {/* min-h-0 + overflow-hidden here is CRITICAL: without them, a flex-1
+          child will grow to fit its content (not shrink to parent), which
+          breaks any inner overflow-y-auto scroll container. */}
+      <div ref={containerRef} className="flex-1 flex flex-col relative z-10 min-h-0 overflow-hidden">
         {/* ═══ IDLE ═══ */}
         {appState === 'IDLE' && (
           <div className="flex-1 flex flex-col items-center justify-center px-6">
@@ -542,7 +545,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v6.1</span>
+          <span>MORNING:AWAKENING · v6.2</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}
@@ -553,7 +556,7 @@ export default function MorningAwakening() {
             </button>
           )}
           <span style={{ color: 'rgba(188,0,45,0.6)' }} className="inline-flex items-center gap-1.5">
-            <Crosshair size={12} strokeWidth={2} />
+            <Target size={12} strokeWidth={2} />
             {profile.name.toUpperCase()}
           </span>
         </div>

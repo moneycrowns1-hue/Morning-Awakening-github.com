@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { Sparkles } from 'lucide-react';
+import { BadgeCheck } from 'lucide-react';
 import { getRankByLevel, type StreakData } from '@/lib/constants';
 import { levelProgress, type OperatorProfile } from '@/lib/progression';
 
@@ -148,7 +148,7 @@ export default function SummaryScreen({
             fontFamily: 'var(--font-cinzel), Georgia, serif',
           }}
         >
-          <Sparkles size={16} strokeWidth={1.8} />
+          <BadgeCheck size={16} strokeWidth={1.8} />
           SELLAR EL DÍA
         </button>
 

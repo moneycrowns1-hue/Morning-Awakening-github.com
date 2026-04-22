@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { Radio } from 'lucide-react';
+import { Activity, Settings as SettingsIcon, VolumeX } from 'lucide-react';
 import { getCurrentTimeString } from '@/lib/constants';
 
 interface StatusBarProps {
@@ -44,7 +44,7 @@ export default function StatusBar({
         style={{ color: 'rgba(232,220,196,0.6)' }}
       >
         <span className="animate-breathing inline-flex items-center gap-1.5">
-          <Radio size={12} strokeWidth={2} />
+          <Activity size={12} strokeWidth={2} />
           SYS:ONLINE
         </span>
         <span className="animate-flicker" style={{ fontFamily: 'var(--font-cinzel), Georgia, serif' }}>
@@ -95,7 +95,11 @@ export default function StatusBar({
             aria-label="Ajustes"
             title={voiceEnabled ? 'Ajustes (voz ON)' : 'Ajustes (voz OFF)'}
           >
-            {voiceEnabled ? '⚙' : '🔇'}
+            {voiceEnabled ? (
+              <SettingsIcon size={15} strokeWidth={1.8} />
+            ) : (
+              <VolumeX size={15} strokeWidth={1.8} />
+            )}
           </button>
         )}
       </div>
