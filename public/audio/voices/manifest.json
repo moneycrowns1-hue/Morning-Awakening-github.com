@@ -2,10 +2,13 @@
   "source": "huggingface.co/spaces/Qwen/Qwen3-TTS-Demo",
   "voice": "Alek / 俄语-阿列克",
   "language": "Spanish / 西班牙语",
-  "generatedAt": "2026-04-22T16:52:28.405Z",
+  "generatedAt": "2026-04-22T17:33:00.963Z",
   "lines": {
     "Operador. Fase uno. Génesis. Confirma tu presencia.": {
       "file": "c0f595804555a3ee.mp3"
+    },
+    "Primer acto del día. Cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.": {
+      "file": "f589f0687e828d1c.mp3"
     },
     "Génesis completada. Primera victoria registrada.": {
       "file": "9c7d08d0cfb4bc7c.mp3"
@@ -13,11 +16,17 @@
     "Fase dos. Aqua. Restaura la función celular.": {
       "file": "0c863aba31ebab25.mp3"
     },
+    "Quinientos mililitros con una pizca de sal marina. Durante la noche perdiste casi un litro de agua. Sin hidratación, el cerebro opera al setenta y cinco por ciento de su capacidad. Restaura la función celular ahora.": {
+      "file": "0ccf64abea3950e1.mp3"
+    },
     "Hidratación completa.": {
       "file": "94b7b3636c5cacee.mp3"
     },
     "Fase tres. Flex. Calibra el cuerpo.": {
       "file": "b4c9a946f329336a.mp3"
+    },
+    "Ocho minutos de movilidad dirigida. Caderas, isquiotibiales, columna torácica. El cuerpo despierta rígido tras el sueño. Este es el seguro que reduce el riesgo de lesión hasta en un cincuenta por ciento antes del cardio.": {
+      "file": "28c97193d49381b4.mp3"
     },
     "Sistemas físicos calibrados.": {
       "file": "aa221f8937b41754.mp3"
@@ -25,11 +34,17 @@
     "Fase cuatro. Surge. Sal al frío. Corre.": {
       "file": "5c63d2c67bad05b9.mp3"
     },
+    "Diez minutos al frío de la mañana. Alterna entre días de sprint y zona dos conversacional. Correr libera B D N F, una neurotrofina que hace crecer neuronas nuevas en el hipocampo. Este es el disparador metabólico del día.": {
+      "file": "79e8d05cafc21e3e.mp3"
+    },
     "Endorfinas liberadas. Temperatura elevada.": {
       "file": "702d0fc670c0b88b.mp3"
     },
     "Fase cinco. Forge. Densidad pura. Sin excusas.": {
       "file": "9416b6c8aa7baa6a.mp3"
+    },
+    "Veinticinco minutos de densidad pura. Empuje, tracción, piernas, núcleo. El entrenamiento de fuerza en ayunas libera testosterona, hormona de crecimiento y B D N F. Tu cerebro funciona mejor después de levantar peso.": {
+      "file": "4b466e821c99599c.mp3"
     },
     "Estímulo muscular aplicado.": {
       "file": "668351bbc5301951.mp3"
@@ -37,11 +52,17 @@
     "Fase seis. Pneuma. Cierra los ojos. Respira.": {
       "file": "4950f5b041889d41.mp3"
     },
+    "Tres rondas de hiperventilación controlada seguidas de retención apneica. En altitud, no forzar. El protocolo alcaliniza la sangre, dispara noradrenalina y calibra el sistema autónomo. Cierra los ojos. Respira.": {
+      "file": "57ff8e9abff7560e.mp3"
+    },
     "Sistema autónomo calibrado.": {
       "file": "dbbf9d9bf73481f4.mp3"
     },
     "Fase siete. Cryo. Domina el reflejo. Controla la respiración.": {
       "file": "64714b70077d4549.mp3"
+    },
+    "Tres minutos de frío extremo post-ejercicio. El contraste térmico dispara dopamina sostenida hasta dos horas. Dominar el reflejo de huida es dominar la respuesta emocional del día entero.": {
+      "file": "acbf4de418f115ca.mp3"
     },
     "Dopamina elevada. Recuperación acelerada.": {
       "file": "5d50e2b7b03cba4c.mp3"
@@ -49,11 +70,17 @@
     "Fase ocho. Refuel. Come con calma. Nutrición directa al músculo.": {
       "file": "3e071c3e6a9ec39b.mp3"
     },
+    "Ventana anabólica abierta. Proteína para reparar el músculo, carbohidratos complejos para reponer glucógeno, grasas saludables para la función hormonal. Come sin pantallas. Mastica despacio.": {
+      "file": "57c33e5e908a66a4.mp3"
+    },
     "Combustible cargado.": {
       "file": "49c9072d1f454a84.mp3"
     },
     "Fase nueve. Helio. Luz directa. Entorno limpio.": {
       "file": "2453dee94a1d52bb.mp3"
+    },
+    "Diez minutos de luz solar directa al despertar. Ancla el ritmo circadiano, suprime melatonina y optimiza el pulso de cortisol matutino. Mientras tanto, limpia el escritorio. Cero fricción visual.": {
+      "file": "60bbc8642f5c56b8.mp3"
     },
     "Ritmo circadiano anclado.": {
       "file": "e88e99e913c8ecb4.mp3"
@@ -61,17 +88,26 @@
     "Fase diez. Void. Siéntate. Visualiza los obstáculos del día.": {
       "file": "ecd5664321b045de.mp3"
     },
+    "Premeditatio Malorum estoica. Visualiza los obstáculos del día y resuélvelos en frío. El córtex prefrontal procesa mejor antes del conflicto que durante. Tres minutos de anticipación. Dos minutos de silencio.": {
+      "file": "5afc9b25942fcdb2.mp3"
+    },
     "Córtex prefrontal armado.": {
       "file": "ab5bd4c95d44bed8.mp3"
     },
     "Fase once. Codex. Escribe a mano. Máximo tres prioridades.": {
       "file": "6241d24036bf1960.mp3"
     },
+    "Escritura a mano. Máximo tres prioridades. Externalizar las tareas libera memoria de trabajo. La claridad de propósito reduce la ansiedad hasta un cuarenta y tres por ciento. Lo que no cabe en tres líneas, hoy no importa.": {
+      "file": "cdf68249f167613d.mp3"
+    },
     "Objetivos definidos. Mente despejada.": {
       "file": "a58875f781e365aa.mp3"
     },
     "Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta.": {
       "file": "9eaafcd7ee9a452f.mp3"
+    },
+    "Diez minutos de lectura, cinco minutos de procesamiento. Extrae una idea, una sola, y conviértela en pregunta. Active Recall más Repetición Espaciada. Es la única manera de convertir lectura pasiva en conocimiento estructural.": {
+      "file": "53517d5b3b646cc3.mp3"
     },
     "Datos asimilados. El día es tuyo, Operador.": {
       "file": "991eea7681cff01e.mp3"
@@ -132,6 +168,9 @@
     },
     "Conviértela en flashcard. Active Recall.": {
       "file": "2d603db38085ecbd.mp3"
+    },
+    "Avanzando.": {
+      "file": "8626680cdb2271c5.mp3"
     },
     "Protocolo completo. El día es tuyo, Operador.": {
       "file": "029649c17dc92116.mp3"

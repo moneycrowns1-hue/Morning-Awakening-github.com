@@ -36,13 +36,21 @@ export interface Mission {
   kanji: string;
   /** Romanized reading / meaning short label. */
   kanjiReading: string;
-  /** Opening line spoken by the Operator at phase start. */
+  /** Opening line spoken by the Operator at phase start (short). */
   voiceLine: string;
+  /** Commentator-style narration spoken right after voiceLine, while the
+   *  user is still reading the directive. Describes title + benefit +
+   *  science in one or two sentences. Gets cancelled if the user clicks
+   *  INICIAR early or when the next phase's speak() preempts it. */
+  voiceLineNarration?: string;
   /** Closing line spoken by the Operator at phase complete. */
   voiceLineComplete?: string;
   /** Optional mid-phase coaching lines, spoken at even intervals. */
   coachingLines?: string[];
 }
+
+/** Short line spoken between phases to fill the hand-off silence. */
+export const TRANSITION_LINE = 'Avanzando.';
 
 export const MISSIONS: Mission[] = [
   // ═══ BLOQUE 1: LA FRAGUA OSCURA (5:00 - 6:00) ═══
@@ -58,6 +66,7 @@ export const MISSIONS: Mission[] = [
     kanji: '起',
     kanjiReading: 'Kī · Alzarse',
     voiceLine: 'Operador. Fase uno. Génesis. Confirma tu presencia.',
+    voiceLineNarration: 'Primer acto del día. Cuenta regresiva mental, pies al suelo, cama hecha en sesenta segundos. Este es el reflejo que entrena a tu cerebro a encadenar victorias durante las próximas dieciocho horas.',
     voiceLineComplete: 'Génesis completada. Primera victoria registrada.',
     directive: 'Levántate al primer timbre. Haz tu cama. Es tu primera victoria del día. Confirma tu presencia.',
     duration: 0,
@@ -84,6 +93,7 @@ export const MISSIONS: Mission[] = [
     kanji: '水',
     kanjiReading: 'Mizu · Agua',
     voiceLine: 'Fase dos. Aqua. Restaura la función celular.',
+    voiceLineNarration: 'Quinientos mililitros con una pizca de sal marina. Durante la noche perdiste casi un litro de agua. Sin hidratación, el cerebro opera al setenta y cinco por ciento de su capacidad. Restaura la función celular ahora.',
     voiceLineComplete: 'Hidratación completa.',
     coachingLines: ['Bebe con calma. Sal marina.'],
     directive: 'Bebe 500ml de agua con una pizca de sal marina. Tu cuerpo perdió ~1 litro durante el sueño.',
@@ -107,6 +117,7 @@ export const MISSIONS: Mission[] = [
     kanji: '柔',
     kanjiReading: 'Jū · Flexible',
     voiceLine: 'Fase tres. Flex. Calibra el cuerpo.',
+    voiceLineNarration: 'Ocho minutos de movilidad dirigida. Caderas, isquiotibiales, columna torácica. El cuerpo despierta rígido tras el sueño. Este es el seguro que reduce el riesgo de lesión hasta en un cincuenta por ciento antes del cardio.',
     voiceLineComplete: 'Sistemas físicos calibrados.',
     coachingLines: [
       'Abre lo que el escritorio cierra.',
@@ -140,6 +151,7 @@ export const MISSIONS: Mission[] = [
     kanji: '走',
     kanjiReading: 'Sō · Correr',
     voiceLine: 'Fase cuatro. Surge. Sal al frío. Corre.',
+    voiceLineNarration: 'Diez minutos al frío de la mañana. Alterna entre días de sprint y zona dos conversacional. Correr libera B D N F, una neurotrofina que hace crecer neuronas nuevas en el hipocampo. Este es el disparador metabólico del día.',
     voiceLineComplete: 'Endorfinas liberadas. Temperatura elevada.',
     coachingLines: [
       'Respira por la nariz si puedes.',
@@ -174,6 +186,7 @@ export const MISSIONS: Mission[] = [
     kanji: '鍛',
     kanjiReading: 'Tan · Forjar',
     voiceLine: 'Fase cinco. Forge. Densidad pura. Sin excusas.',
+    voiceLineNarration: 'Veinticinco minutos de densidad pura. Empuje, tracción, piernas, núcleo. El entrenamiento de fuerza en ayunas libera testosterona, hormona de crecimiento y B D N F. Tu cerebro funciona mejor después de levantar peso.',
     voiceLineComplete: 'Estímulo muscular aplicado.',
     coachingLines: [
       'Descansos cortos. Sesenta segundos.',
@@ -209,6 +222,7 @@ export const MISSIONS: Mission[] = [
     kanji: '息',
     kanjiReading: 'Iki · Aliento',
     voiceLine: 'Fase seis. Pneuma. Cierra los ojos. Respira.',
+    voiceLineNarration: 'Tres rondas de hiperventilación controlada seguidas de retención apneica. En altitud, no forzar. El protocolo alcaliniza la sangre, dispara noradrenalina y calibra el sistema autónomo. Cierra los ojos. Respira.',
     voiceLineComplete: 'Sistema autónomo calibrado.',
     coachingLines: ['No fuerces en altitud. Escucha al cuerpo.'],
     directive: '3 rondas profundas e implacables. En altitud: NO fuerces la retención. El estímulo se logra en menos tiempo.',
@@ -234,6 +248,7 @@ export const MISSIONS: Mission[] = [
     kanji: '氷',
     kanjiReading: 'Kōri · Hielo',
     voiceLine: 'Fase siete. Cryo. Domina el reflejo. Controla la respiración.',
+    voiceLineNarration: 'Tres minutos de frío extremo post-ejercicio. El contraste térmico dispara dopamina sostenida hasta dos horas. Dominar el reflejo de huida es dominar la respuesta emocional del día entero.',
     voiceLineComplete: 'Dopamina elevada. Recuperación acelerada.',
     coachingLines: [
       'Exhala lento. Resiste el impulso.',
@@ -268,6 +283,7 @@ export const MISSIONS: Mission[] = [
     kanji: '糧',
     kanjiReading: 'Ryō · Sustento',
     voiceLine: 'Fase ocho. Refuel. Come con calma. Nutrición directa al músculo.',
+    voiceLineNarration: 'Ventana anabólica abierta. Proteína para reparar el músculo, carbohidratos complejos para reponer glucógeno, grasas saludables para la función hormonal. Come sin pantallas. Mastica despacio.',
     voiceLineComplete: 'Combustible cargado.',
     coachingLines: ['Sin pantallas. Mastica despacio.'],
     directive: 'Come con calma. Nutrición directa al músculo roto. Proteína + carbohidratos complejos + grasas saludables.',
@@ -300,6 +316,7 @@ export const MISSIONS: Mission[] = [
     kanji: '陽',
     kanjiReading: 'Yō · Sol',
     voiceLine: 'Fase nueve. Helio. Luz directa. Entorno limpio.',
+    voiceLineNarration: 'Diez minutos de luz solar directa al despertar. Ancla el ritmo circadiano, suprime melatonina y optimiza el pulso de cortisol matutino. Mientras tanto, limpia el escritorio. Cero fricción visual.',
     voiceLineComplete: 'Ritmo circadiano anclado.',
     coachingLines: ['Cero objetos innecesarios a la vista.'],
     directive: 'Luz natural del amanecer entrando por la ventana. Mientras tanto: configura tu entorno de trabajo. Cero fricción visual.',
@@ -329,6 +346,7 @@ export const MISSIONS: Mission[] = [
     kanji: '空',
     kanjiReading: 'Kū · Vacío',
     voiceLine: 'Fase diez. Void. Siéntate. Visualiza los obstáculos del día.',
+    voiceLineNarration: 'Premeditatio Malorum estoica. Visualiza los obstáculos del día y resuélvelos en frío. El córtex prefrontal procesa mejor antes del conflicto que durante. Tres minutos de anticipación. Dos minutos de silencio.',
     voiceLineComplete: 'Córtex prefrontal armado.',
     coachingLines: [
       'Tres minutos. Anticipa. Resuelve en frío.',
@@ -360,6 +378,7 @@ export const MISSIONS: Mission[] = [
     kanji: '書',
     kanjiReading: 'Sho · Escribir',
     voiceLine: 'Fase once. Codex. Escribe a mano. Máximo tres prioridades.',
+    voiceLineNarration: 'Escritura a mano. Máximo tres prioridades. Externalizar las tareas libera memoria de trabajo. La claridad de propósito reduce la ansiedad hasta un cuarenta y tres por ciento. Lo que no cabe en tres líneas, hoy no importa.',
     voiceLineComplete: 'Objetivos definidos. Mente despejada.',
     directive: 'Anota tus tareas del día. Responde al prompt. Escribe a mano. 5 minutos de claridad absoluta.',
     duration: 300,
@@ -384,6 +403,7 @@ export const MISSIONS: Mission[] = [
     kanji: '知',
     kanjiReading: 'Chi · Conocimiento',
     voiceLine: 'Fase doce. Cipher. Lee. Extrae una idea. Convierte en pregunta.',
+    voiceLineNarration: 'Diez minutos de lectura, cinco minutos de procesamiento. Extrae una idea, una sola, y conviértela en pregunta. Active Recall más Repetición Espaciada. Es la única manera de convertir lectura pasiva en conocimiento estructural.',
     voiceLineComplete: 'Datos asimilados. El día es tuyo, Operador.',
     coachingLines: [
       'Una sola idea. La de mayor impacto.',

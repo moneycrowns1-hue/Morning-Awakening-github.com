@@ -38,14 +38,22 @@ const REQUEST_DELAY_MS = Number(process.env.DELAY_MS || 1500);
 // ─── Extract lines from constants.ts ───────────────────
 function extractLines(src) {
   const lines = new Set();
-  for (const m of src.matchAll(/voiceLine(?:Complete)?:\s*'((?:\\'|[^'])+)'/g)) {
+  // voiceLine, voiceLineComplete, voiceLineNarration (all single-quoted
+  // string literals in constants.ts).
+  for (const m of src.matchAll(
+    /voiceLine(?:Complete|Narration)?:\s*'((?:\\'|[^'])+)'/g,
+  )) {
     lines.add(m[1].replace(/\\'/g, "'"));
   }
+  // coachingLines arrays.
   for (const m of src.matchAll(/coachingLines:\s*\[([\s\S]*?)\]/g)) {
     for (const s of m[1].matchAll(/'((?:\\'|[^'])+)'/g)) {
       lines.add(s[1].replace(/\\'/g, "'"));
     }
   }
+  // Exported TRANSITION_LINE constant.
+  const tl = src.match(/TRANSITION_LINE\s*=\s*'((?:\\'|[^'])+)'/);
+  if (tl) lines.add(tl[1].replace(/\\'/g, "'"));
   return [...lines];
 }
 

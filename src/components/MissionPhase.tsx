@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { type Mission, formatTime, MISSIONS } from '@/lib/constants';
+import { type Mission, formatTime, MISSIONS, TRANSITION_LINE } from '@/lib/constants';
 import type { Operator } from '@/lib/operator';
 import { PlayCircle, ChevronDown } from 'lucide-react';
 import BreathingGuide from './BreathingGuide';
@@ -15,6 +15,11 @@ interface MissionPhaseProps {
   audioTransition?: () => void;
   operator?: Operator | null;
   onStrike?: () => void;
+  /** True when another mission follows this one. Controls whether the
+   *  short transition line ("Avanzando.") is spoken before onComplete.
+   *  False for the final mission, where MorningAwakening speaks its own
+   *  closing line after the protocol is fully complete. */
+  hasNext?: boolean;
 }
 
 const KIN = '#c9a227';
@@ -28,6 +33,7 @@ export default function MissionPhase({
   audioTransition,
   operator,
   onStrike,
+  hasNext = true,
 }: MissionPhaseProps) {
   const [timeLeft, setTimeLeft] = useState(mission.duration);
   const [started, setStarted] = useState(mission.duration === 0);
@@ -49,14 +55,30 @@ export default function MissionPhase({
   const totalDuration = mission.duration;
   const totalPhases = MISSIONS.length;
 
-  // ═══ Operator voice — opening line ═══
+  // ═══ Operator voice — opening line + commentator narration ═══
   useEffect(() => {
     if (!operator || spokenOpenRef.current) return;
     spokenOpenRef.current = true;
-    const t = setTimeout(() => {
-      operator.speak(mission.voiceLine, { rate: 0.93 });
+    let cancelled = false;
+
+    const t = setTimeout(async () => {
+      if (cancelled) return;
+      // Short intro ("Fase dos. Aqua. ...").
+      await operator.speak(mission.voiceLine, { rate: 0.93 });
+      if (cancelled) return;
+      // Commentator-style narration describing benefit/context. Not
+      // awaited by anything outside — it just plays while the user
+      // reads the directive. If the user advances early, the next
+      // speak() preempts it (Operator.speak cancels in-flight audio).
+      if (mission.voiceLineNarration) {
+        operator.speak(mission.voiceLineNarration, { rate: 0.95 });
+      }
     }, 600);
-    return () => clearTimeout(t);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [mission, operator]);
 
   // ═══ Typewriter system log ═══
@@ -170,8 +192,12 @@ export default function MissionPhase({
             if (mission.voiceLineComplete) {
               await operator?.speak(mission.voiceLineComplete, { rate: 0.9 });
             }
-            // Small breath so phases don't chain back-to-back.
-            await new Promise((r) => setTimeout(r, 350));
+            // Hand-off line ("Avanzando.") fills what used to be 350ms
+            // of dead silence between phases. Skipped on the final
+            // mission because MorningAwakening speaks its own wrap-up.
+            if (hasNext) {
+              await operator?.speak(TRANSITION_LINE, { rate: 0.92 });
+            }
             onComplete();
           }, 500);
           return 0;
@@ -180,7 +206,7 @@ export default function MissionPhase({
       });
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [started, mission.duration, mission.voiceLineComplete, onComplete, audioTransition, operator]);
+  }, [started, mission.duration, mission.voiceLineComplete, onComplete, audioTransition, operator, hasNext]);
 
   // ═══ Mid-phase coaching ═══
   useEffect(() => {
@@ -227,11 +253,14 @@ export default function MissionPhase({
 
     Promise.all([speakP, animP]).then(async () => {
       audioTransition?.();
-      // Small breath so phases don't chain back-to-back.
-      await new Promise((r) => setTimeout(r, 350));
+      // Hand-off line ("Avanzando.") instead of raw silence. Skipped
+      // on the final mission — see comment in the auto-complete path.
+      if (hasNext) {
+        await operator?.speak(TRANSITION_LINE, { rate: 0.92 });
+      }
       onComplete();
     });
-  }, [onComplete, audioTransition, mission.voiceLineComplete, operator, onStrike]);
+  }, [onComplete, audioTransition, mission.voiceLineComplete, operator, onStrike, hasNext]);
 
   const toggleStep = (idx: number) => {
     setCheckedSteps(prev => {
