@@ -24,17 +24,15 @@ import {
   DEFAULT_PROFILE,
   type OperatorStats,
 } from '@/lib/progression';
-import StatusBar from './StatusBar';
-import MissionPhase from './MissionPhase';
-import SummaryScreen from './SummaryScreen';
-import OperatorHUD from './OperatorHUD';
+import MissionPhaseV8 from './MissionPhaseV8';
+import SummaryScreenV8 from './SummaryScreenV8';
 import XpGainToast from './XpGainToast';
 import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
 import OnboardingModal from './OnboardingModal';
 import WelcomeScreen from './WelcomeScreen';
-import { Target } from 'lucide-react';
+import { appendSession, computeQualityScore } from '@/lib/sessionHistory';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -66,6 +64,7 @@ export default function MorningAwakening() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sessionXp, setSessionXp] = useState(0);
+  const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
 
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
@@ -162,7 +161,7 @@ export default function MorningAwakening() {
     // the context had settled) played fine.
     await audioRef.current.resume();
 
-    // Ambient drone disabled per user request (v8.0-α1) — sounded muddy
+    // Ambient drone disabled per user request (v8.0-α2) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
     // ducking all still work because AudioEngine.init() already built
     // master/voiceBus/voiceDuckGain, independent of the ambient layers.
@@ -184,6 +183,7 @@ export default function MorningAwakening() {
           setMissionIndex(0);
           setStartTime(Date.now());
           setSessionXp(0);
+          setSkippedPhases([]);
           gsap.to(containerRef.current, { opacity: 1, duration: 0.4 });
         }
       });
@@ -191,6 +191,8 @@ export default function MorningAwakening() {
       setAppState('MISSION');
       setMissionIndex(0);
       setStartTime(Date.now());
+      setSessionXp(0);
+      setSkippedPhases([]);
     }
   }, [profile, streakData.streak, settings]);
 
@@ -237,6 +239,26 @@ export default function MorningAwakening() {
       };
       saveStreak(newData);
 
+      // Persist the session for SummaryScreen mini-chart + HistoryScreen.
+      const durationSec = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
+      const score = computeQualityScore({
+        phasesCompleted: MISSIONS.length - skippedPhases.length,
+        totalPhases: MISSIONS.length,
+        skippedCount: skippedPhases.length,
+        durationSec,
+        streak: newData.streak,
+      });
+      appendSession({
+        date: today,
+        completedAt: Date.now(),
+        durationSec,
+        score,
+        skippedPhases,
+        phasesCompleted: MISSIONS.length - skippedPhases.length,
+        xp: sessionXp,
+        streak: newData.streak,
+      });
+
       if (containerRef.current) {
         gsap.to(containerRef.current, {
           opacity: 0, duration: 0.5, onComplete: () => {
@@ -263,7 +285,7 @@ export default function MorningAwakening() {
         setMissionIndex(nextIndex);
       }
     }
-  }, [missionIndex, streakData, saveStreak, grantReward]);
+  }, [missionIndex, streakData, saveStreak, grantReward, startTime, skippedPhases, sessionXp]);
 
   const handleAudioTransition = useCallback(() => {
     audioRef.current?.playTransition();
@@ -364,99 +386,38 @@ export default function MorningAwakening() {
 
   return (
     <div
-      className="w-full flex flex-col relative overflow-hidden washi-bg"
-      style={{ height: '100dvh', minHeight: '-webkit-fill-available' }}
+      className="w-full flex flex-col relative overflow-hidden"
+      style={{ height: '100dvh', minHeight: '-webkit-fill-available', background: 'var(--sunrise-night)' }}
     >
-      {/* Decorative sumi-e brushstrokes */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 400 800"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          d="M -20 120 Q 80 60, 180 140 T 440 180"
-          stroke="#c9a227"
-          strokeWidth="1.5"
-          fill="none"
-          className="sumi-stroke"
-          style={{ opacity: 0.12 }}
-        />
-        <path
-          d="M 420 620 Q 300 560, 200 640 T -20 680"
-          stroke="#bc002d"
-          strokeWidth="1.2"
-          fill="none"
-          className="sumi-stroke"
-          style={{ opacity: 0.1, animationDelay: '0.6s' }}
-        />
-      </svg>
-
-      {/* Warm vignette */}
-      <div className="absolute inset-0 pointer-events-none vignette-warm" />
-
-      {/* Status Bar */}
-      <StatusBar
-        streak={streakData.streak}
-        currentPhase={currentPhase}
-        totalPhases={MISSIONS.length}
-        onOpenSettings={() => setShowSettings(true)}
-        voiceEnabled={settings.voiceEnabled}
-      />
-
-      {/* Main Content */}
-      {/* min-h-0 + overflow-hidden here is CRITICAL: without them, a flex-1
-          child will grow to fit its content (not shrink to parent), which
-          breaks any inner overflow-y-auto scroll container. */}
+      {/* Main Content. Each screen owns its own GradientBackground canvas,
+          so no washi-bg / sumi-stroke / vignette chrome is needed here
+          anymore. */}
       <div ref={containerRef} className="flex-1 flex flex-col relative z-10 min-h-0 overflow-hidden">
-        {/* IDLE handled by the v8 WelcomeScreen early-return above. */}
-
         {/* ═══ MISSION ═══ */}
         {appState === 'MISSION' && (
-          <MissionPhase
+          <MissionPhaseV8
             key={MISSIONS[missionIndex].id}
             mission={MISSIONS[missionIndex]}
             onComplete={handleMissionComplete}
             audioTransition={handleAudioTransition}
             operator={operatorRef.current}
             onStrike={() => audioRef.current?.playStrike(0.5)}
+            onSkipPhase={() => setSkippedPhases((prev) => [...prev, missionIndex])}
           />
         )}
 
         {/* ═══ COMPLETE ═══ */}
         {appState === 'COMPLETE' && (
-          <SummaryScreen
+          <SummaryScreenV8
             streakData={streakData}
             totalTime={totalElapsed}
             profile={profile}
             sessionXp={sessionXp}
+            skippedPhases={skippedPhases}
+            totalPhases={MISSIONS.length}
             onProceed={handleProceedToStudy}
           />
         )}
-      </div>
-
-      {/* Bottom system bar */}
-      <div className="px-4 py-3 pb-[env(safe-area-inset-bottom,12px)] relative z-10">
-        <div
-          className="h-px mb-2"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
-        />
-        <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v8.0-α1</span>
-          {appState === 'COMPLETE' && (
-            <button
-              onClick={handleReset}
-              className="hover:brightness-150 transition"
-              style={{ color: 'rgba(201,162,39,0.55)' }}
-            >
-              RESET
-            </button>
-          )}
-          <span style={{ color: 'rgba(188,0,45,0.6)' }} className="inline-flex items-center gap-1.5">
-            <Target size={12} strokeWidth={2} />
-            {profile.name.toUpperCase()}
-          </span>
-        </div>
       </div>
 
       {/* XP toasts */}
