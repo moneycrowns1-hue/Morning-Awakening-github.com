@@ -162,8 +162,20 @@ export default function MorningAwakening() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
   }, []);
 
+  // Re-entry guard so a stray double-click or the alarm-dismiss chain
+  // racing with the WelcomeScreen Start button can't fire the opener
+  // speech twice (which surfaced as "voz de fase 1 duplicada").
+  const initializingRef = useRef(false);
+
   // ═══════════════ Initialize audio + operator ═══════════════
   const handleInitialize = useCallback(async () => {
+    if (initializingRef.current) return;
+    if (appState !== 'IDLE') return;
+    initializingRef.current = true;
+    // Release the lock once we've actually left IDLE; the setTimeout
+    // gives the GSAP fade-out + setAppState below a chance to run.
+    window.setTimeout(() => { initializingRef.current = false; }, 1500);
+
     if (!audioRef.current) {
       audioRef.current = new AudioEngine();
       audioRef.current.init();
@@ -223,7 +235,7 @@ export default function MorningAwakening() {
       setSessionXp(0);
       setSkippedPhases([]);
     }
-  }, [profile, streakData.streak, settings]);
+  }, [profile, streakData.streak, settings, appState]);
 
   // ═══════════════ Award XP ═══════════════
   const grantReward = useCallback((missionIdx: number) => {
