@@ -60,6 +60,11 @@ export class Operator {
   // Manifests
   private hashManifest: HashManifest | null = null;
   private premiumManifest: PremiumManifest | null = null;
+  // Promise resolved once loadManifests() has settled. Awaited inside
+  // speak() so we never fall through to tier-1 (Qwen) just because the
+  // premium manifest fetch is still in flight — which was the cause of
+  // the premium mp3 being silently skipped on first tap on iOS.
+  private manifestsReady: Promise<void> | null = null;
 
   // Decoded AudioBuffer cache, keyed by file URL.
   private bufferCache = new Map<string, AudioBuffer>();
@@ -78,24 +83,32 @@ export class Operator {
       this.loadVoice();
       window.speechSynthesis.addEventListener('voiceschanged', () => this.loadVoice());
     }
-    this.loadManifests();
+    this.manifestsReady = this.loadManifests();
   }
 
   private async loadManifests() {
-    // Hash manifest — immutable by content, can be cached hard.
-    try {
-      const res = await fetch(HASH_MANIFEST_URL, { cache: 'force-cache' });
-      if (res.ok) this.hashManifest = (await res.json()) as HashManifest;
-    } catch {
-      /* no hash manifest — fallback to synth */
-    }
-    // Premium manifest — hand-maintained, freshness matters.
-    try {
-      const res = await fetch(PREMIUM_MANIFEST_URL, { cache: 'no-cache' });
-      if (res.ok) this.premiumManifest = (await res.json()) as PremiumManifest;
-    } catch {
-      /* no premium manifest — fine, optional */
-    }
+    // Kick off both fetches in parallel so a slow premium request never
+    // blocks the hash manifest, and vice versa.
+    const hashP = (async () => {
+      try {
+        const res = await fetch(HASH_MANIFEST_URL, { cache: 'force-cache' });
+        if (res.ok) this.hashManifest = (await res.json()) as HashManifest;
+      } catch {
+        /* no hash manifest — fallback to synth */
+      }
+    })();
+    const premiumP = (async () => {
+      try {
+        // cache-bust query param so iOS Safari / GitHub Pages CDN can't
+        // serve a stale manifest that predates a new override drop.
+        const url = `${PREMIUM_MANIFEST_URL}?v=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (res.ok) this.premiumManifest = (await res.json()) as PremiumManifest;
+      } catch {
+        /* no premium manifest — fine, optional */
+      }
+    })();
+    await Promise.all([hashP, premiumP]);
   }
 
   /**
@@ -175,6 +188,21 @@ export class Operator {
 
     // Always cancel in-flight speech so we never overlap voices.
     this.cancel();
+
+    return this.resolveAndPlay(text, opts);
+  }
+
+  private async resolveAndPlay(text: string, opts: OperatorOptions): Promise<void> {
+    // Wait for manifests if they're still in flight. Without this, the
+    // first speak() on a fresh page load races the fetch and falls
+    // through to tier-1 (Qwen) before the premium mp3 is even known to
+    // exist. Capped at 1500ms so a broken network never deadlocks voice.
+    if (this.manifestsReady && (!this.premiumManifest || !this.hashManifest)) {
+      await Promise.race([
+        this.manifestsReady,
+        new Promise<void>((r) => setTimeout(r, 1500)),
+      ]);
+    }
 
     // Tier 0: premium override
     const premium = this.premiumManifest?.lines?.[text];
