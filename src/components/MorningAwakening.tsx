@@ -180,8 +180,10 @@ export default function MorningAwakening() {
     // iOS Safari: unlock SpeechSynthesis inside this user-gesture click.
     operatorRef.current.unlockForIOS();
 
-    const firstMission = MISSIONS[0];
-    audioRef.current.startAmbient(firstMission.layer);
+    // Ambient drone disabled per user request (v7.11) — sounded muddy
+    // between voice lines. Voice bus, SFX (strike/chime/gong) and
+    // ducking all still work because AudioEngine.init() already built
+    // master/voiceBus/voiceDuckGain, independent of the ambient layers.
     audioRef.current.playStrike(0.9);
 
     // Boot line — ceremonial opener, FIXED text so it can be overridden
@@ -264,13 +266,7 @@ export default function MorningAwakening() {
         setAppState('COMPLETE');
       }
     } else {
-      // Transition to next layer if changes
-      const next = MISSIONS[nextIndex];
-      const current = MISSIONS[missionIndex];
       audioRef.current?.playChime();
-      if (next.layer !== current.layer) {
-        audioRef.current?.switchLayer(next.layer, 4);
-      }
 
       if (containerRef.current) {
         gsap.to(containerRef.current, {
@@ -555,7 +551,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.10</span>
+          <span>MORNING:AWAKENING · v7.11</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}
