@@ -422,3 +422,35 @@ html, body {
 .sunrise-mark-glow {
   filter: drop-shadow(0 0 14px rgba(244, 194, 103, 0.35));
 }
+
+/* Range slider styled to match the sunrise palette. Used in
+   SettingsScreen. Thumb is gold, track is subtle cream. */
+.sunrise-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.14);
+  outline: none;
+  cursor: pointer;
+}
+.sunrise-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--sunrise-rise-2, #f4c267);
+  border: 2px solid rgba(11, 6, 24, 0.65);
+  box-shadow: 0 0 10px rgba(244, 194, 103, 0.45);
+  cursor: pointer;
+}
+.sunrise-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--sunrise-rise-2, #f4c267);
+  border: 2px solid rgba(11, 6, 24, 0.65);
+  box-shadow: 0 0 10px rgba(244, 194, 103, 0.45);
+  cursor: pointer;
+}

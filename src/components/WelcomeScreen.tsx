@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Flame, User, Settings as SettingsIcon } from 'lucide-react';
+import { Flame, User, Settings as SettingsIcon, LineChart } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
@@ -27,6 +27,7 @@ interface WelcomeScreenProps {
   onStart: () => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
 }
 
 export default function WelcomeScreen({
@@ -35,6 +36,7 @@ export default function WelcomeScreen({
   onStart,
   onOpenProfile,
   onOpenSettings,
+  onOpenHistory,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
@@ -77,6 +79,16 @@ export default function WelcomeScreen({
               días
             </span>
           </div>
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              aria-label="Abrir historial"
+              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              <LineChart size={18} strokeWidth={1.75} />
+            </button>
+          )}
           {onOpenProfile && (
             <button
               onClick={onOpenProfile}

@@ -29,7 +29,8 @@ import SummaryScreenV8 from './SummaryScreenV8';
 import XpGainToast from './XpGainToast';
 import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
-import SettingsModal from './SettingsModal';
+import SettingsScreen from './SettingsScreen';
+import HistoryScreen from './HistoryScreen';
 import OnboardingModal from './OnboardingModal';
 import WelcomeScreen from './WelcomeScreen';
 import { appendSession, computeQualityScore } from '@/lib/sessionHistory';
@@ -62,6 +63,7 @@ export default function MorningAwakening() {
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sessionXp, setSessionXp] = useState(0);
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
@@ -161,7 +163,7 @@ export default function MorningAwakening() {
     // the context had settled) played fine.
     await audioRef.current.resume();
 
-    // Ambient drone disabled per user request (v8.0-α2) — sounded muddy
+    // Ambient drone disabled per user request (v8.0-α3) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
     // ducking all still work because AudioEngine.init() already built
     // master/voiceBus/voiceDuckGain, independent of the ambient layers.
@@ -351,29 +353,34 @@ export default function MorningAwakening() {
         className="w-full relative overflow-hidden"
         style={{ height: '100dvh', minHeight: '-webkit-fill-available', background: 'var(--sunrise-night)' }}
       >
-        <WelcomeScreen
-          profile={profile}
-          streak={streakData.streak}
-          onStart={handleInitialize}
-          onOpenProfile={() => setShowProfile(true)}
-          onOpenSettings={() => setShowSettings(true)}
-        />
-
-        {/* Profile modal */}
-        {showProfile && (
-          <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
-        )}
-
-        {/* Settings modal */}
-        {showSettings && (
-          <SettingsModal
+        {/* Settings takes over the IDLE screen when active (full-page,
+            not a modal anymore). Same for History. Both slide-up via
+            sunrise-fade-up. Welcome renders otherwise. */}
+        {showSettings ? (
+          <SettingsScreen
             voiceEnabled={settings.voiceEnabled}
             masterVolume={settings.masterVolume}
             onToggleVoice={handleToggleVoice}
             onVolumeChange={handleVolumeChange}
-            onClose={() => setShowSettings(false)}
             onResetProgress={handleResetProgress}
+            onClose={() => setShowSettings(false)}
           />
+        ) : showHistory ? (
+          <HistoryScreen onClose={() => setShowHistory(false)} />
+        ) : (
+          <WelcomeScreen
+            profile={profile}
+            streak={streakData.streak}
+            onStart={handleInitialize}
+            onOpenProfile={() => setShowProfile(true)}
+            onOpenSettings={() => setShowSettings(true)}
+            onOpenHistory={() => setShowHistory(true)}
+          />
+        )}
+
+        {/* Profile modal (stays as overlay since it's quick info) */}
+        {showProfile && (
+          <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
         )}
 
         {/* Onboarding modal (first run) */}
@@ -440,21 +447,11 @@ export default function MorningAwakening() {
         />
       )}
 
-      {/* Profile modal */}
+      {/* Profile modal remains accessible during MISSION for a quick
+          glance at rank / stats without leaving focus mode. Settings
+          and History are hidden here on purpose: they live on IDLE. */}
       {showProfile && (
         <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
-      )}
-
-      {/* Settings modal */}
-      {showSettings && (
-        <SettingsModal
-          voiceEnabled={settings.voiceEnabled}
-          masterVolume={settings.masterVolume}
-          onToggleVoice={handleToggleVoice}
-          onVolumeChange={handleVolumeChange}
-          onClose={() => setShowSettings(false)}
-          onResetProgress={handleResetProgress}
-        />
       )}
 
       {/* Onboarding modal (first run) */}

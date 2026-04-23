@@ -39,6 +39,7 @@ import JournalingPrompt from './JournalingPrompt';
 import { useMissionTimer } from '@/hooks/useMissionTimer';
 import { haptics } from '@/lib/haptics';
 import { getStageColors, hexToRgba } from '@/lib/theme';
+import { clearMediaSession, setMediaSessionHandlers, setPlaybackState, updateMediaSession } from '@/lib/mediaSession';
 
 interface MissionPhaseV8Props {
   mission: Mission;
@@ -97,6 +98,37 @@ export default function MissionPhaseV8({
     // Only care about `started` edges and a fresh mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
+
+  // ── Media Session: lockscreen / bluetooth controls ────
+  // Expose the current phase as "now playing" so iOS / Android show
+  // it on the lock screen with play/pause/next buttons.
+  useEffect(() => {
+    updateMediaSession({
+      title: `${toTitleCase(mission.title)} · fase ${mission.phase}/${MISSIONS.length}`,
+      artist: 'Morning Awakening',
+      album: mission.blockLabel ?? 'Protocolo matutino',
+    });
+    setMediaSessionHandlers({
+      onPlay: () => { if (timer.isPaused) timer.resume(); else timer.start(); },
+      onPause: () => timer.pause(),
+      onNextTrack: () => { haptics.warn(); setShowCompletado(true); },
+      onSeekForward: () => timer.addMinute(),
+    });
+    setPlaybackState(timer.isRunning ? 'playing' : timer.isPaused ? 'paused' : 'none');
+    return () => {
+      // Don't clear on every mission re-render (we just overwrite
+      // metadata). Only the parent protocol end should clear it.
+    };
+    // We intentionally only re-run this when the phase or timer state
+    // actually changes, not on every keystroke of `timer`.
+  }, [mission, timer.isRunning, timer.isPaused, timer]);
+
+  // Clear media session when the component unmounts for good (last
+  // phase just completed). The parent moves to SummaryScreen and this
+  // component is unmounted; we clear there.
+  useEffect(() => {
+    return () => { clearMediaSession(); };
+  }, []);
 
   // ── Operator voice briefing (single per-phase line) ────
   useEffect(() => {
