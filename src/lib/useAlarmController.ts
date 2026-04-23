@@ -28,7 +28,12 @@ import {
   saveAlarm,
   type AlarmConfig,
 } from './alarmSchedule';
-import { AlarmEngine, type AlarmStage } from './alarmEngine';
+import {
+  AlarmEngine,
+  DEFAULT_COACH_TEXT,
+  DEFAULT_STEMS,
+  type AlarmStage,
+} from './alarmEngine';
 import { startSilentKeepalive, stopSilentKeepalive } from './silentAudioKeepalive';
 
 export interface UseAlarmController {
@@ -45,8 +50,14 @@ export interface UseAlarmController {
   preview: () => Promise<void>;
   /** Manually trigger the alarm (used from the "Empezar ahora" button). */
   fireNow: () => Promise<void>;
-  /** Stop the alarm and mark as dismissed. */
+  /** Stop the alarm and mark as dismissed (no wake-up voice). */
   dismiss: () => void;
+  /**
+   * Fade out ramp/reaseguro, play the wake-up voice (musica principal.mp3)
+   * once, then call `onComplete`. On iOS this MUST be called inside a
+   * user gesture (the "Despertar" tap) so the new audio element can play.
+   */
+  dismissWithWakeup: (onComplete: () => void) => Promise<void>;
   /** Stop and re-arm 9 minutes from now (one shot, doesn't mutate config). */
   snooze: (minutes?: number) => void;
 }
@@ -98,9 +109,11 @@ export function useAlarmController(): UseAlarmController {
       // Avoid double-fire.
       if (engineRef.current) return;
 
-      const engine = new AlarmEngine({
-        onStageChange: (s) => setStage(s),
-        onProgress: (v) => setIntensity(Math.min(1, Math.max(0, v / Math.max(0.01, config.peakVolume)))),
+      const engine = new AlarmEngine(DEFAULT_STEMS, {
+        onStageChange: (s: AlarmStage) => setStage(s),
+        // onProgress already normalizes to 0..1 against peak for ramp,
+        // and directly 0..1 for reaseguro/wakeup.
+        onProgress: (v: number) => setIntensity(Math.min(1, Math.max(0, v))),
       });
       engineRef.current = engine;
 
@@ -115,6 +128,7 @@ export function useAlarmController(): UseAlarmController {
           reaseguroDelaySec: config.reaseguroSec,
           peakVolume: config.peakVolume,
           startOffsetSec: offsetSec,
+          coachText: DEFAULT_COACH_TEXT,
         });
         setIsRinging(true);
       } catch {
@@ -182,6 +196,50 @@ export function useAlarmController(): UseAlarmController {
     try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
   }, [releaseWakeLock]);
 
+  // ── Dismiss + play wake-up voice, then run onComplete ───
+  // This is the "Despertar y empezar" path: the user tap IS the
+  // gesture that lets the new <audio> element play on iOS, so we
+  // must NOT wait on any async fetch before calling engine.playWakeup.
+  const dismissWithWakeup = useCallback(
+    async (onComplete: () => void) => {
+      // Clear any snooze marker.
+      try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
+      const engine = engineRef.current;
+      if (!engine) {
+        // No engine running (alarm was dismissed elsewhere). Just chain.
+        setIsRinging(false);
+        onComplete();
+        return;
+      }
+      // Keep isRinging=true so the overlay stays up while wake-up plays.
+      setStage('wakeup');
+      try {
+        await engine.playWakeup(() => {
+          // Tear everything down after wake-up finishes.
+          engine.stop();
+          engineRef.current = null;
+          stopSilentKeepalive();
+          releaseWakeLock();
+          setIsRinging(false);
+          setStage('idle');
+          setIntensity(0);
+          onComplete();
+        });
+      } catch {
+        // Fallback path: skip wake-up on failure.
+        engine.stop();
+        engineRef.current = null;
+        stopSilentKeepalive();
+        releaseWakeLock();
+        setIsRinging(false);
+        setStage('idle');
+        setIntensity(0);
+        onComplete();
+      }
+    },
+    [releaseWakeLock],
+  );
+
   const snooze = useCallback(
     (minutes = 9) => {
       engineRef.current?.stop();
@@ -204,7 +262,7 @@ export function useAlarmController(): UseAlarmController {
 
   // ── Manual preview (settings "Probar" button) ───────
   const preview = useCallback(async () => {
-    const engine = new AlarmEngine();
+    const engine = new AlarmEngine(DEFAULT_STEMS);
     try {
       await engine.preview(6, 0.55);
     } catch { /* ignore */ }
@@ -235,6 +293,7 @@ export function useAlarmController(): UseAlarmController {
     preview,
     fireNow,
     dismiss,
+    dismissWithWakeup,
     snooze,
   };
 }

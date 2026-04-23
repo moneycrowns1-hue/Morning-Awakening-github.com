@@ -395,13 +395,19 @@ export default function MorningAwakening() {
   // for iOS AudioContext unlock — the dismiss button IS that gesture.
   const handleAlarmDismiss = useCallback(async () => {
     const shouldChain = alarm.config.chainProtocol && appState === 'IDLE';
-    alarm.dismiss();
     if (shouldChain) {
       // Close any fullscreens that would mask the protocol start.
       setShowAlarm(false);
       setShowHistory(false);
       setShowSettings(false);
-      await handleInitialize();
+      // Play the wake-up voice stem first (musica principal.mp3 has
+      // voice+music mixed in). When it ends, start the protocol.
+      await alarm.dismissWithWakeup(() => {
+        void handleInitialize();
+      });
+    } else {
+      // No chain → just stop.
+      alarm.dismiss();
     }
   }, [alarm, appState]);  // eslint-disable-line react-hooks/exhaustive-deps
 

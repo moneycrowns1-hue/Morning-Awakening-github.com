@@ -192,21 +192,30 @@ export default function AlarmScreen({
             time={fmt(rampStart)}
             dotColor={SUNRISE.dawn1}
             label="Subida suave empieza"
-            hint={`${rampMin} min de ramp up`}
+            hint={`Tycho · Sunrise Projector • ${rampMin} min fade in`}
           />
           <TimelineRow
             time={timeValue}
             dotColor={SUNRISE.rise2}
-            label="Peak · hora objetivo"
-            hint="Aquí estás despierto"
+            label="Peak · voz con propósito"
+            hint="La música baja y entra la voz coach"
             highlight
           />
           {config.reaseguroSec > 0 && (
             <TimelineRow
               time={fmt(reaseguroAt)}
               dotColor={SUNRISE.dawn2}
-              label="Reaseguro activo"
-              hint={`Melodía extra si no despertaste`}
+              label="Reaseguro"
+              hint="Hans Zimmer · Time (si no te despertaste)"
+              last={!config.chainProtocol}
+            />
+          )}
+          {config.chainProtocol && (
+            <TimelineRow
+              time="→"
+              dotColor={SUNRISE.rise1}
+              label="Despertar · orden del día"
+              hint="musica principal.mp3 antes del protocolo"
               last
             />
           )}
@@ -243,8 +252,8 @@ export default function AlarmScreen({
             className="font-ui text-[11px] leading-relaxed mt-3"
             style={{ color: 'var(--sunrise-text-muted)' }}
           >
-            El volumen sube desde el silencio hasta el peak usando un
-            drone cálido + arpegio. Mientras más largo, más gradual el
+            Sunrise Projector de Tycho en loop, subiendo desde el
+            silencio hasta el peak. Mientras más largo, más gradual el
             despertar.
           </p>
         </SectionCard>
@@ -273,8 +282,8 @@ export default function AlarmScreen({
             style={{ color: 'var(--sunrise-text-muted)' }}
           >
             Si no descartaste la alarma pasado este tiempo después del
-            peak, entra una melodía de campanas más brillante sobre el
-            drone base.
+            peak, entra Hans Zimmer — Time (crossfade 8s) más cinématico
+            para despertarte.
           </p>
         </SectionCard>
 
@@ -335,7 +344,8 @@ export default function AlarmScreen({
               className="font-ui text-[11px] mt-0.5 leading-snug"
               style={{ color: 'var(--sunrise-text-muted)' }}
             >
-              Al descartar la alarma, abre directamente el protocolo matutino.
+              Al descartar, reproduce la voz de orden del día (musica principal.mp3)
+              y luego abre el protocolo matutino.
             </div>
           </div>
           <ToggleVisual active={config.chainProtocol} />

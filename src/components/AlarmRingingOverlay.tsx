@@ -39,11 +39,11 @@ export default function AlarmRingingOverlay({
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
 
-  const stageLabel = stage === 'reaseguro'
-    ? 'Reaseguro activo'
-    : stage === 'peak'
-      ? 'Hora del peak'
-      : 'Subiendo suavemente';
+  const stageLabel =
+    stage === 'wakeup' ? 'Orden del día'
+    : stage === 'reaseguro' ? 'Reaseguro activo'
+    : stage === 'peak' ? 'Voz con propósito'
+    : 'Subiendo suavemente';
 
   // Map intensity (0..1) to a bloom opacity for the halo.
   const halo = Math.max(0.15, Math.min(1, 0.15 + intensity * 0.85));
