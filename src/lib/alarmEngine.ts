@@ -573,19 +573,27 @@ export class AlarmEngine {
 // the combination of spaces + dots + long paths trips iOS's stricter
 // URL/MIME sniffing.
 //
-// STEM_VERSION is appended as `?v=<n>` to every path so installed PWAs
-// on iOS (which cache very aggressively through our service worker
-// AND through iOS Safari's own HTTP cache) are forced to re-fetch
-// whenever we re-encode or replace an audio file. Bump this whenever
-// the binary on disk changes.
+// BASE_PATH must prefix every static-asset URL because this app is
+// deployed to GitHub Pages under /Morning-Awakening-github.com/ —
+// an absolute `/audio/...` path would 404 there, and iPad Safari
+// reports 404 audio as MediaError code 4 (SRC_NOT_SUPPORTED), which
+// is exactly what the diagnostic panel was showing. See operator.ts
+// for the parallel prefixing on the phase-briefing voice files.
+//
+// STEM_VERSION is appended as `?v=<n>` so installed PWAs on iOS
+// (which cache very aggressively through both our service worker AND
+// iOS Safari's own HTTP cache) are forced to re-fetch whenever we
+// re-encode or replace an audio file. Bump whenever the binary on
+// disk changes.
+const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH as string | undefined) ?? '';
 const STEM_VERSION = 3;
-const v = (p: string) => `${p}?v=${STEM_VERSION}`;
+const stemUrl = (p: string) => `${BASE_PATH}${p}?v=${STEM_VERSION}`;
 
 export const DEFAULT_STEMS: StemPaths = {
-  ramp: v('/audio/voices/premium/ramp-tycho.mp3'),
-  reaseguro: v('/audio/voices/premium/reaseguro-zimmer.mp3'),
-  wakeup: v('/audio/voices/premium/wakeup-principal.mp3'),
-  coachVoice: v('/audio/voices/premium/voz-proposito.mp3'),
+  ramp: stemUrl('/audio/voices/premium/ramp-tycho.mp3'),
+  reaseguro: stemUrl('/audio/voices/premium/reaseguro-zimmer.mp3'),
+  wakeup: stemUrl('/audio/voices/premium/wakeup-principal.mp3'),
+  coachVoice: stemUrl('/audio/voices/premium/voz-proposito.mp3'),
 };
 
 export const DEFAULT_COACH_TEXT =
