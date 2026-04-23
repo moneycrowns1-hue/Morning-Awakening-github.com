@@ -33,6 +33,7 @@ import LevelUpOverlay from './LevelUpOverlay';
 import ProfileModal from './ProfileModal';
 import SettingsModal from './SettingsModal';
 import OnboardingModal from './OnboardingModal';
+import WelcomeScreen from './WelcomeScreen';
 import { Target } from 'lucide-react';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
@@ -59,8 +60,6 @@ export default function MorningAwakening() {
   const [profile, setProfile] = useState<OperatorProfile>(DEFAULT_PROFILE);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [startTime, setStartTime] = useState<number>(0);
-  const [idleText, setIdleText] = useState('');
-  const [showIdleButton, setShowIdleButton] = useState(false);
   const [xpToasts, setXpToasts] = useState<XpToastData[]>([]);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -71,7 +70,6 @@ export default function MorningAwakening() {
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const idleButtonRef = useRef<HTMLButtonElement>(null);
 
   // ═══════════════ Load persisted data ═══════════════
   useEffect(() => {
@@ -120,33 +118,10 @@ export default function MorningAwakening() {
     setShowOnboarding(false);
   }, []);
 
-  // ═══════════════ Idle typewriter ═══════════════
-  useEffect(() => {
-    if (appState !== 'IDLE') return;
-    const text = 'PROTOCOLO v5.0 · 12 FASES · 3 BLOQUES · 5:00–6:45 AM · ESPERANDO AL JUGADOR…';
-    let i = 0;
-    setIdleText('');
-    setShowIdleButton(false);
-    const interval = setInterval(() => {
-      if (i <= text.length) {
-        setIdleText(text.slice(0, i));
-        i++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => setShowIdleButton(true), 400);
-      }
-    }, 30);
-    return () => clearInterval(interval);
-  }, [appState]);
-
-  // ═══════════════ Idle button entrance ═══════════════
-  useEffect(() => {
-    if (showIdleButton && idleButtonRef.current) {
-      gsap.fromTo(idleButtonRef.current,
-        { scale: 0.72, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.4)' });
-    }
-  }, [showIdleButton]);
+  // ═══ Dōjō typewriter / legacy idle button effects removed ═══
+  // The v8 WelcomeScreen handles its own entrance animations via
+  // CSS .sunrise-fade-up on each element, so no imperative GSAP
+  // timeline is needed for the IDLE state anymore.
 
   // ═══════════════ Persistence helpers ═══════════════
   function loadSettings(): Settings {
@@ -187,7 +162,7 @@ export default function MorningAwakening() {
     // the context had settled) played fine.
     await audioRef.current.resume();
 
-    // Ambient drone disabled per user request (v7.13) — sounded muddy
+    // Ambient drone disabled per user request (v8.0-α1) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
     // ducking all still work because AudioEngine.init() already built
     // master/voiceBus/voiceDuckGain, independent of the ambient layers.
@@ -344,6 +319,49 @@ export default function MorningAwakening() {
     appState === 'COMPLETE' ? MISSIONS.length :
     appState === 'MISSION'  ? missionIndex + 1 : 0;
 
+  // ═══ v8 IDLE: sunrise welcome screen (early return) ═══
+  // The dōjō layout below is kept for MISSION / COMPLETE until they
+  // are reskinned in Sprint 2. Modals still render here so onboarding,
+  // profile and settings keep working from the welcome.
+  if (appState === 'IDLE') {
+    return (
+      <div
+        className="w-full relative overflow-hidden"
+        style={{ height: '100dvh', minHeight: '-webkit-fill-available', background: 'var(--sunrise-night)' }}
+      >
+        <WelcomeScreen
+          profile={profile}
+          streak={streakData.streak}
+          onStart={handleInitialize}
+          onOpenProfile={() => setShowProfile(true)}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+
+        {/* Profile modal */}
+        {showProfile && (
+          <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
+        )}
+
+        {/* Settings modal */}
+        {showSettings && (
+          <SettingsModal
+            voiceEnabled={settings.voiceEnabled}
+            masterVolume={settings.masterVolume}
+            onToggleVoice={handleToggleVoice}
+            onVolumeChange={handleVolumeChange}
+            onClose={() => setShowSettings(false)}
+            onResetProgress={handleResetProgress}
+          />
+        )}
+
+        {/* Onboarding modal (first run) */}
+        {showOnboarding && (
+          <OnboardingModal onComplete={handleOnboardingComplete} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-full flex flex-col relative overflow-hidden washi-bg"
@@ -374,13 +392,6 @@ export default function MorningAwakening() {
         />
       </svg>
 
-      {/* Giant kanji watermark during IDLE */}
-      {appState === 'IDLE' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="kanji-watermark" style={{ fontSize: 'min(62vw, 62vh)' }}>道</span>
-        </div>
-      )}
-
       {/* Warm vignette */}
       <div className="absolute inset-0 pointer-events-none vignette-warm" />
 
@@ -398,134 +409,7 @@ export default function MorningAwakening() {
           child will grow to fit its content (not shrink to parent), which
           breaks any inner overflow-y-auto scroll container. */}
       <div ref={containerRef} className="flex-1 flex flex-col relative z-10 min-h-0 overflow-hidden">
-        {/* ═══ IDLE ═══ */}
-        {appState === 'IDLE' && (
-          <div
-            className="scroll-area flex-1 flex flex-col items-center px-6 min-h-0"
-            style={{
-              paddingTop: '1.5rem',
-              paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))',
-              /* Centers content when it fits the viewport, but when it
-                 overflows the top remains reachable by scroll. */
-              justifyContent: 'safe center',
-            }}
-          >
-            {/* Operator HUD (rank + xp) */}
-            <div className="w-full max-w-sm mb-4">
-              <OperatorHUD profile={profile} onOpenProfile={() => setShowProfile(true)} />
-            </div>
-
-            <div
-              className="text-[12px] tracking-[0.6em] mb-4 opacity-50"
-              style={{ color: '#c9a227' }}
-            >
-              ◇ 道場 · PROTOCOLO MATUTINO ◇
-            </div>
-
-            <h1
-              className="text-3xl md:text-4xl font-bold mb-2 text-center animate-flicker"
-              style={{
-                color: '#e8dcc4',
-                fontFamily: 'var(--font-cinzel), Georgia, serif',
-                letterSpacing: '0.15em',
-                textShadow: '0 0 18px rgba(201,162,39,0.25)',
-              }}
-            >
-              MORNING AWAKENING
-            </h1>
-
-            <div className="text-[12px] tracking-[0.4em] mb-6" style={{ color: 'rgba(232,220,196,0.35)' }}>
-              v5.0 · DŌJŌ OPERATOR
-            </div>
-
-            {/* Mission preview kanji strip */}
-            <div className="w-full max-w-sm mb-5">
-              <div className="grid grid-cols-6 gap-1 text-center">
-                {MISSIONS.map(m => (
-                  <div key={m.id} className="flex flex-col items-center">
-                    <span
-                      className="text-lg"
-                      style={{
-                        color: 'rgba(201,162,39,0.35)',
-                        fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
-                      }}
-                    >
-                      {m.kanji}
-                    </span>
-                    <span className="text-[9px] tracking-widest mt-0.5" style={{ color: 'rgba(232,220,196,0.28)' }}>
-                      {m.codename.slice(0, 4)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Boot sequence */}
-            <div className="w-full max-w-md mb-8">
-              <div
-                className="p-4 rounded hud-frame hud-frame-bottom"
-                style={{
-                  border: '1px solid rgba(201,162,39,0.15)',
-                  background: 'rgba(201,162,39,0.03)',
-                }}
-              >
-                <div className="text-[14px] leading-relaxed tracking-wide" style={{ color: 'rgba(232,220,196,0.75)' }}>
-                  <span style={{ color: 'rgba(201,162,39,0.5)' }}>{'>'} </span>
-                  {idleText}
-                  {idleText.length < 75 && (
-                    <span className="animate-pulse" style={{ color: '#c9a227' }}>█</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Initialize button */}
-            {showIdleButton && (
-              <button
-                ref={idleButtonRef}
-                onClick={handleInitialize}
-                className="relative w-48 h-48 group"
-                id="init-button"
-              >
-                <div
-                  className="absolute inset-0 rounded-full animate-ring-pulse"
-                  style={{ border: '1px solid rgba(201,162,39,0.25)' }}
-                />
-                <div
-                  className="absolute inset-2 rounded-full"
-                  style={{ border: '1px solid rgba(201,162,39,0.15)' }}
-                />
-                <div
-                  className="absolute inset-5 rounded-full flex flex-col items-center justify-center transition-all duration-300 animate-ember-pulse group-hover:brightness-125"
-                  style={{
-                    background: 'rgba(201,162,39,0.06)',
-                    border: '1px solid rgba(201,162,39,0.4)',
-                  }}
-                >
-                  <div
-                    className="text-5xl mb-1"
-                    style={{
-                      color: '#bc002d',
-                      fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
-                      textShadow: '0 0 12px rgba(188,0,45,0.4)',
-                    }}
-                  >
-                    始
-                  </div>
-                  <span
-                    className="text-[13px] tracking-[0.25em] font-bold"
-                    style={{ color: '#c9a227', fontFamily: 'var(--font-cinzel), Georgia, serif' }}
-                  >
-                    INICIAR
-                  </span>
-                  <span className="text-[10px] tracking-[0.2em] mt-1" style={{ color: 'rgba(201,162,39,0.5)' }}>
-                    05:00 PROTOCOL
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
-        )}
+        {/* IDLE handled by the v8 WelcomeScreen early-return above. */}
 
         {/* ═══ MISSION ═══ */}
         {appState === 'MISSION' && (
@@ -558,7 +442,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.13</span>
+          <span>MORNING:AWAKENING · v8.0-α1</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

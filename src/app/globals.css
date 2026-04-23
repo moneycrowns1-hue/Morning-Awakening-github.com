@@ -21,9 +21,33 @@
   --color-hinomaru: #bc002d;
   --color-kin: #c9a227;
   --color-moss: #3a4a3f;
-  --font-sans: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
-  --font-serif: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
-  --font-mono: var(--font-cinzel), "Cinzel Decorative", Georgia, serif;
+
+  /* ═══ SUNRISE PALETTE (v8) ═══
+     These are the tokens the new WelcomeScreen / ProtocolScreen /
+     SummaryScreen read from. Named by *time of day*, not semantic
+     role, because getStageColors(missionIndex) interpolates them. */
+  --sunrise-night:     #0b0618;          /* pre-INICIAR sky */
+  --sunrise-predawn-1: #1b0f2e;          /* deep violet, mission 1-2 */
+  --sunrise-predawn-2: #3a1e3e;          /* wine/violet, mission 3-4 */
+  --sunrise-dawn-1:    #6b2c3d;          /* rose brown, mission 5-6 */
+  --sunrise-dawn-2:    #c4612d;          /* coral, mission 7-8 */
+  --sunrise-rise-1:    #e08a3c;          /* amber, mission 9-10 */
+  --sunrise-rise-2:    #f4c267;          /* gold, mission 11-12 */
+  --sunrise-fulllight: #fde9b8;          /* warm cream, outro */
+  --sunrise-cool:      #8ec5e8;          /* cool sky accent (CTAs) */
+
+  --sunrise-text:       rgba(255,250,240,0.94);
+  --sunrise-text-soft:  rgba(255,250,240,0.68);
+  --sunrise-text-muted: rgba(255,250,240,0.42);
+  --sunrise-divider:    rgba(255,250,240,0.10);
+
+  /* ═══ FONT FAMILIES ═══ */
+  --font-display: var(--font-display), "Fraunces", Georgia, serif;
+  --font-ui:      var(--font-ui),      "Inter",   system-ui, sans-serif;
+  --font-sans:    var(--font-ui),      "Inter",   system-ui, sans-serif;
+  --font-serif:   var(--font-display), "Fraunces", Georgia, serif;
+  --font-mono:    var(--font-mono),    "JetBrains Mono", ui-monospace, monospace;
+  --font-cinzel:  var(--font-cinzel),  "Cinzel Decorative", Georgia, serif;
 }
 
 /* NOTE: this reset MUST live inside @layer base so Tailwind utility
@@ -313,7 +337,88 @@ html, body {
   .animate-breathing,
   .sumi-stroke,
   .animate-ink-rise,
-  .animate-seal-stamp {
+  .animate-seal-stamp,
+  .sunrise-float,
+  .sunrise-fade-up {
     animation: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SUNRISE v8 — utilities for WelcomeScreen, ProtocolScreen,
+   SummaryScreen. Everything below is additive; the dōjō
+   utilities above keep working for the yet-to-be-reskinned
+   screens until Sprint 2.
+   ═══════════════════════════════════════════════════════ */
+
+.font-display { font-family: var(--font-display); }
+.font-ui      { font-family: var(--font-ui); }
+.font-mono    { font-family: var(--font-mono); }
+
+/* Warm radial vignette for the Welcome / Protocol hero areas. */
+.sunrise-vignette {
+  background:
+    radial-gradient(ellipse at 50% 35%, transparent 0%, rgba(0,0,0,0.35) 75%, rgba(0,0,0,0.55) 100%);
+}
+
+/* Soft horizon line used at the bottom of hero cards. */
+.sunrise-horizon {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(244, 194, 103, 0.45) 50%,
+    transparent 100%
+  );
+}
+
+/* Gentle glow halo used behind the main CTA button. */
+.sunrise-cta-halo {
+  box-shadow:
+    0 0 28px rgba(244, 194, 103, 0.35),
+    0 0 56px rgba(244, 194, 103, 0.18),
+    inset 0 0 18px rgba(253, 233, 184, 0.12);
+}
+
+/* Fade-up animation used for staggered welcome entrance. */
+@keyframes sunrise-fade-up {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.985); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+}
+.sunrise-fade-up {
+  animation: sunrise-fade-up 0.9s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+/* Slow vertical float for hero quote — mimics the feeling of
+   a sentence hanging in air at dawn. Very subtle (~3px range). */
+@keyframes sunrise-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.sunrise-float {
+  animation: sunrise-float 6s ease-in-out infinite;
+}
+
+/* Soft pulse for the CTA halo. */
+@keyframes sunrise-cta-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 24px rgba(244, 194, 103, 0.30),
+      0 0 48px rgba(244, 194, 103, 0.14),
+      inset 0 0 16px rgba(253, 233, 184, 0.10);
+  }
+  50% {
+    box-shadow:
+      0 0 38px rgba(244, 194, 103, 0.48),
+      0 0 72px rgba(244, 194, 103, 0.22),
+      inset 0 0 22px rgba(253, 233, 184, 0.16);
+  }
+}
+.sunrise-cta-pulse {
+  animation: sunrise-cta-pulse 3.2s ease-in-out infinite;
+}
+
+/* Centered container-shaped glow used behind kanji-like
+   decorative marks in the welcome header. */
+.sunrise-mark-glow {
+  filter: drop-shadow(0 0 14px rgba(244, 194, 103, 0.35));
 }
