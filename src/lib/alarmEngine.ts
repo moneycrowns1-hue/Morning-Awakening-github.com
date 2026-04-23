@@ -572,11 +572,20 @@ export class AlarmEngine {
 // iPad Safari rejected with MediaError code 4 (SRC_NOT_SUPPORTED) —
 // the combination of spaces + dots + long paths trips iOS's stricter
 // URL/MIME sniffing.
+//
+// STEM_VERSION is appended as `?v=<n>` to every path so installed PWAs
+// on iOS (which cache very aggressively through our service worker
+// AND through iOS Safari's own HTTP cache) are forced to re-fetch
+// whenever we re-encode or replace an audio file. Bump this whenever
+// the binary on disk changes.
+const STEM_VERSION = 3;
+const v = (p: string) => `${p}?v=${STEM_VERSION}`;
+
 export const DEFAULT_STEMS: StemPaths = {
-  ramp: '/audio/voices/premium/ramp-tycho.mp3',
-  reaseguro: '/audio/voices/premium/reaseguro-zimmer.mp3',
-  wakeup: '/audio/voices/premium/wakeup-principal.mp3',
-  coachVoice: '/audio/voices/premium/voz-proposito.mp3',
+  ramp: v('/audio/voices/premium/ramp-tycho.mp3'),
+  reaseguro: v('/audio/voices/premium/reaseguro-zimmer.mp3'),
+  wakeup: v('/audio/voices/premium/wakeup-principal.mp3'),
+  coachVoice: v('/audio/voices/premium/voz-proposito.mp3'),
 };
 
 export const DEFAULT_COACH_TEXT =
