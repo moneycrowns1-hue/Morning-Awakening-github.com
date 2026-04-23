@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 
 // ═══ Typeface system (v8 sunrise redesign) ═══
 // - Fraunces: serif display, warm/organic, for hero titles & daily quote.
@@ -35,13 +36,13 @@ const cinzelDecorative = Cinzel_Decorative({
 });
 
 export const metadata: Metadata = {
-  title: "MORNING AWAKENING — 道場",
-  description: "Protocolo matutino del jugador. Disciplina. Enfoque. Energía.",
+  title: "Morning Awakening",
+  description: "Protocolo matutino guiado de 12 fases. Claridad, cuerpo, enfoque.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AWAKENING",
+    title: "Awakening",
   },
 };
 
@@ -51,7 +52,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0a0908",
+  themeColor: "#0b0618",
 };
 
 export default function RootLayout({
@@ -73,6 +74,7 @@ export default function RootLayout({
       </head>
       <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-cinzel)]">
         {children}
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

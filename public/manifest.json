@@ -1,22 +1,35 @@
 {
-  "name": "Morning Awakening — Dōjō Operator",
-  "short_name": "AWAKENING",
-  "description": "Protocolo matutino del operador. Disciplina. Enfoque. Energía.",
-  "start_url": "/",
+  "name": "Morning Awakening",
+  "short_name": "Awakening",
+  "description": "Protocolo matutino guiado de 12 fases. Claridad, cuerpo, enfoque.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0908",
-  "theme_color": "#c9a227",
+  "display_override": ["fullscreen", "standalone"],
+  "background_color": "#0b0618",
+  "theme_color": "#0b0618",
   "orientation": "portrait",
+  "categories": ["health", "lifestyle", "productivity"],
+  "lang": "es",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
