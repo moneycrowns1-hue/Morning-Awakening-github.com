@@ -20,7 +20,7 @@ interface QualityGaugeProps {
   caption?: string;
 }
 
-export default function QualityGauge({ score, size = 240, caption = 'Calidad' }: QualityGaugeProps) {
+export default function QualityGauge({ score, size = 240, caption = 'Score de hoy' }: QualityGaugeProps) {
   const clampedScore = Math.max(0, Math.min(100, score));
   const [displayed, setDisplayed] = useState<number>(0);
   const rafRef = useRef<number | null>(null);

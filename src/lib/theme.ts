@@ -42,6 +42,16 @@ export interface StageColors {
   particle: string;
 }
 
+// Light-Awake principle: the light RISES from the horizon. The sky at
+// the top of the screen stays in "twilight" across every phase so the
+// text area (which always lives at the top) keeps its contrast. The
+// sense of progress is conveyed by:
+//   - a brighter HORIZON that glows further up the screen as phases
+//     advance (handled by GradientBackground gradient stops)
+//   - a warmer ACCENT (CTAs, progress rings, particles)
+//   - more particles / stronger horizon overlay
+// The SKY colour is capped at `predawn2` (a deep warm-grey). Anything
+// lighter at the top breaks legibility of the cream text.
 const STAGES: Record<'welcome' | 'complete' | number, StageColors> = {
   welcome: {
     sky: SUNRISE.night,
@@ -49,20 +59,20 @@ const STAGES: Record<'welcome' | 'complete' | number, StageColors> = {
     accent: SUNRISE.rise2,
     particle: SUNRISE.rise2,
   },
-  0: { sky: SUNRISE.night,     horizon: SUNRISE.predawn1, accent: SUNRISE.rise2, particle: SUNRISE.rise2 },
-  1: { sky: SUNRISE.predawn1,  horizon: SUNRISE.predawn2, accent: SUNRISE.rise2, particle: SUNRISE.rise2 },
-  2: { sky: SUNRISE.predawn1,  horizon: SUNRISE.dawn1,    accent: SUNRISE.rise1, particle: SUNRISE.rise2 },
-  3: { sky: SUNRISE.predawn2,  horizon: SUNRISE.dawn1,    accent: SUNRISE.rise1, particle: SUNRISE.rise1 },
-  4: { sky: SUNRISE.predawn2,  horizon: SUNRISE.dawn2,    accent: SUNRISE.rise1, particle: SUNRISE.rise1 },
-  5: { sky: SUNRISE.dawn1,     horizon: SUNRISE.dawn2,    accent: SUNRISE.rise1, particle: SUNRISE.rise2 },
-  6: { sky: SUNRISE.dawn1,     horizon: SUNRISE.rise1,    accent: SUNRISE.rise2, particle: SUNRISE.rise2 },
-  7: { sky: SUNRISE.dawn2,     horizon: SUNRISE.rise1,    accent: SUNRISE.rise2, particle: SUNRISE.rise2 },
-  8: { sky: SUNRISE.dawn2,     horizon: SUNRISE.rise2,    accent: SUNRISE.rise2, particle: SUNRISE.fulllight },
-  9: { sky: SUNRISE.rise1,     horizon: SUNRISE.rise2,    accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
-  10:{ sky: SUNRISE.rise1,     horizon: SUNRISE.fulllight,accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
-  11:{ sky: SUNRISE.rise2,     horizon: SUNRISE.fulllight,accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
+  0:  { sky: SUNRISE.night,    horizon: SUNRISE.predawn1, accent: SUNRISE.rise2,     particle: SUNRISE.rise2 },
+  1:  { sky: SUNRISE.night,    horizon: SUNRISE.predawn2, accent: SUNRISE.rise2,     particle: SUNRISE.rise2 },
+  2:  { sky: SUNRISE.predawn1, horizon: SUNRISE.predawn2, accent: SUNRISE.rise1,     particle: SUNRISE.rise2 },
+  3:  { sky: SUNRISE.predawn1, horizon: SUNRISE.dawn1,    accent: SUNRISE.rise1,     particle: SUNRISE.rise1 },
+  4:  { sky: SUNRISE.predawn1, horizon: SUNRISE.dawn1,    accent: SUNRISE.rise1,     particle: SUNRISE.rise1 },
+  5:  { sky: SUNRISE.predawn2, horizon: SUNRISE.dawn2,    accent: SUNRISE.rise1,     particle: SUNRISE.rise2 },
+  6:  { sky: SUNRISE.predawn2, horizon: SUNRISE.dawn2,    accent: SUNRISE.rise2,     particle: SUNRISE.rise2 },
+  7:  { sky: SUNRISE.predawn2, horizon: SUNRISE.rise1,    accent: SUNRISE.rise2,     particle: SUNRISE.rise2 },
+  8:  { sky: SUNRISE.predawn2, horizon: SUNRISE.rise1,    accent: SUNRISE.rise2,     particle: SUNRISE.fulllight },
+  9:  { sky: SUNRISE.predawn2, horizon: SUNRISE.rise2,    accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
+  10: { sky: SUNRISE.predawn2, horizon: SUNRISE.rise2,    accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
+  11: { sky: SUNRISE.predawn2, horizon: SUNRISE.fulllight,accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
   complete: {
-    sky: SUNRISE.rise2,
+    sky: SUNRISE.predawn2,
     horizon: SUNRISE.fulllight,
     accent: SUNRISE.fulllight,
     particle: SUNRISE.fulllight,

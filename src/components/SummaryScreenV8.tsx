@@ -109,8 +109,14 @@ export default function SummaryScreenV8({
           Día superado
         </h1>
 
-        <div className="mt-7 mb-4 summary-enter">
+        <div className="mt-7 mb-1 summary-enter flex flex-col items-center">
           <QualityGauge score={qualityScore} size={240} />
+          <div
+            className="mt-3 max-w-[28ch] text-center font-ui text-[11px] tracking-wider leading-relaxed"
+            style={{ color: 'var(--sunrise-text-muted)' }}
+          >
+            Basado en fases completadas, ritmo y racha.
+          </div>
         </div>
 
         {/* Stats grid */}

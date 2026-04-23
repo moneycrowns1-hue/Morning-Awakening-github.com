@@ -143,25 +143,41 @@ export default function GradientBackground({
       const current = interpolateStage(s.fromColors, s.toColors, eased);
 
       // ── Background gradient ──────────────────────────────────
+      // Radial gradient from the horizon (just below the fold) upwards.
+      // The horizon is bright/warm; the sky at the top is deep twilight.
       const grad = ctx.createRadialGradient(
         s.width * 0.5,
-        s.height * 0.82,          // horizon a bit below centre
+        s.height * 0.88,          // horizon slightly lower than before
         0,
         s.width * 0.5,
-        s.height * 0.82,
-        Math.max(s.width, s.height) * 0.95,
+        s.height * 0.88,
+        Math.max(s.width, s.height) * 1.05,
       );
       grad.addColorStop(0.0, current.horizon);
-      grad.addColorStop(0.45, mixHex(current.horizon, current.sky, 0.55));
+      grad.addColorStop(0.35, mixHex(current.horizon, current.sky, 0.6));
+      grad.addColorStop(0.7, current.sky);
       grad.addColorStop(1.0, current.sky);
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, s.width, s.height);
 
-      // Soft warm overlay near the bottom to accentuate the horizon.
-      const overlay = ctx.createLinearGradient(0, s.height * 0.55, 0, s.height);
-      overlay.addColorStop(0, 'rgba(0,0,0,0)');
-      overlay.addColorStop(1, hexWithAlpha(current.accent, 0.14));
-      ctx.fillStyle = overlay;
+      // ── Legibility overlay (TOP) ──────────────────────────────
+      // Always darken the top third to keep text readable regardless of
+      // how bright the horizon gets in later phases. This is the
+      // Light-Awake principle: text lives in the crepuscule, light
+      // rises below.
+      const topOverlay = ctx.createLinearGradient(0, 0, 0, s.height * 0.45);
+      topOverlay.addColorStop(0, 'rgba(5,3,15,0.55)');
+      topOverlay.addColorStop(0.6, 'rgba(5,3,15,0.18)');
+      topOverlay.addColorStop(1, 'rgba(5,3,15,0)');
+      ctx.fillStyle = topOverlay;
+      ctx.fillRect(0, 0, s.width, s.height);
+
+      // ── Warm horizon glow (BOTTOM) ───────────────────────────
+      // A subtle warm wash below to push the horizon forward.
+      const bottomOverlay = ctx.createLinearGradient(0, s.height * 0.55, 0, s.height);
+      bottomOverlay.addColorStop(0, 'rgba(0,0,0,0)');
+      bottomOverlay.addColorStop(1, hexWithAlpha(current.accent, 0.22));
+      ctx.fillStyle = bottomOverlay;
       ctx.fillRect(0, 0, s.width, s.height);
 
       // ── Particles ────────────────────────────────────────────
