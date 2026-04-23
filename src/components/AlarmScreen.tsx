@@ -30,6 +30,10 @@ interface AlarmScreenProps {
   onChange: (next: AlarmConfig) => void;
   onPreview: () => Promise<PreviewResult>;
   onFireNow: () => Promise<void>;
+  /** Fire with compressed timings (~1 min total) so every phase
+   *  (ramp → peak+coach → reaseguro → wake-up) is verifiable
+   *  in one sitting. */
+  onFireTest: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -38,6 +42,7 @@ export default function AlarmScreen({
   onChange,
   onPreview,
   onFireNow,
+  onFireTest,
   onClose,
 }: AlarmScreenProps) {
   const info = useMemo(() => nextFireInfo(config), [config]);
@@ -401,6 +406,20 @@ export default function AlarmScreen({
             Empezar ahora
           </button>
         </div>
+
+        {/* ─── Test completo (compressed ~1 min) ────── */}
+        <button
+          onClick={() => { haptics.tick(); void onFireTest(); }}
+          className="w-full py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98] mb-5 sunrise-fade-up"
+          style={{
+            animationDelay: '300ms',
+            border: `1px dashed ${hexToRgba(SUNRISE.dawn2, 0.5)}`,
+            background: hexToRgba(SUNRISE.dawn2, 0.08),
+            color: 'var(--sunrise-text-soft)',
+          }}
+        >
+          Test completo · 1 min (ramp → peak → reaseguro)
+        </button>
 
         {/* ─── Preview diagnostic ───────────────────── */}
         {previewState.status === 'done' && (

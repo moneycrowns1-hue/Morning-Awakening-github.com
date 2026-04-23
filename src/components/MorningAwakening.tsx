@@ -462,6 +462,7 @@ export default function MorningAwakening() {
             onChange={alarm.setConfig}
             onPreview={alarm.preview}
             onFireNow={alarm.fireNow}
+            onFireTest={alarm.fireTest}
             onClose={() => setShowAlarm(false)}
           />
         ) : (

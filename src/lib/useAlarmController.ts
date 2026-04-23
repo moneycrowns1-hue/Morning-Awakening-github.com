@@ -54,6 +54,12 @@ export interface UseAlarmController {
   preview: () => Promise<PreviewResult>;
   /** Manually trigger the alarm (used from the "Empezar ahora" button). */
   fireNow: () => Promise<void>;
+  /**
+   * Fire the alarm with compressed timings (~1 min total) so the
+   * user can verify ramp → peak+coach → reaseguro → wake-up in one
+   * take without waiting 5-10 real minutes. Does NOT persist the
+   * config — only this one invocation is compressed. */
+  fireTest: () => Promise<void>;
   /** Stop the alarm and mark as dismissed (no wake-up voice). */
   dismiss: () => void;
   /**
@@ -296,6 +302,42 @@ export function useAlarmController(): UseAlarmController {
     await fireAlarmInternal(Math.max(0, config.rampSec - 2));
   }, [config.rampSec, fireAlarmInternal]);
 
+  // ── Test-mode fire (compressed sequence ~1 min) ─────
+  // Bypasses fireAlarmInternal to avoid touching the persisted
+  // config. Runs the engine directly with hardcoded short timings
+  // so every phase is audible end-to-end in under a minute.
+  const fireTest = useCallback(async () => {
+    if (engineRef.current) return;
+    unlockAlarmAudio();
+    startSilentKeepalive();
+
+    const engine = new AlarmEngine(DEFAULT_STEMS, {
+      onStageChange: (s: AlarmStage) => setStage(s),
+      onProgress: (v: number) => setIntensity(Math.min(1, Math.max(0, v))),
+    });
+    engineRef.current = engine;
+
+    try {
+      // Compressed timings:
+      //   ramp:      12 s (fade in from 0 to peak)
+      //   peak:      coach voice plays ~2 s after peak
+      //   reaseguro: 25 s after peak → crossfade 8 s on top
+      //   user taps Despertar to hear wake-up
+      const startPromise = engine.start({
+        rampDurationSec: 12,
+        reaseguroDelaySec: 25,
+        peakVolume: 0.6,
+        startOffsetSec: 0,
+        coachText: DEFAULT_COACH_TEXT,
+      });
+      setIsRinging(true);
+      void requestWakeLock();
+      await startPromise;
+    } catch {
+      setIsRinging(true);
+    }
+  }, [requestWakeLock]);
+
   // Unmount cleanup.
   useEffect(() => {
     return () => {
@@ -315,6 +357,7 @@ export function useAlarmController(): UseAlarmController {
     intensity,
     preview,
     fireNow,
+    fireTest,
     dismiss,
     dismissWithWakeup,
     snooze,

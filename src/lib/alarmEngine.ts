@@ -195,6 +195,42 @@ function rampVolume(stem: Stem, target: number, durSec: number): void {
   stem.rafHandle = requestAnimationFrame(step);
 }
 
+/**
+ * Touch an HTMLAudioElement inside a user gesture so iOS Safari
+ * allows later timer-driven play() calls on it. The element is
+ * momentarily played while muted, then paused and rewound. After
+ * this runs successfully the element is "unlocked" for the rest
+ * of the page's lifetime.
+ *
+ * This is the fix for reaseguro/coach/wake-up not sounding on
+ * iPad PWAs: those stems are created in setTimeout callbacks,
+ * well after the original gesture's microtask ended, and iOS
+ * would reject their play() without this priming.
+ */
+function primeAudioElement(el: HTMLAudioElement): void {
+  el.muted = true;
+  try {
+    const p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        try { el.pause(); } catch { /* ignore */ }
+        try { el.currentTime = 0; } catch { /* ignore */ }
+        el.muted = false;
+        el.volume = 0;
+      }).catch(() => {
+        // iOS refused even the muted play. Fall back to a
+        // regular element — at least it's pre-loaded.
+        el.muted = false;
+      });
+    } else {
+      try { el.pause(); } catch { /* ignore */ }
+      el.muted = false;
+    }
+  } catch {
+    el.muted = false;
+  }
+}
+
 export class AlarmEngine {
   private ramp: Stem | null = null;
   private reaseguro: Stem | null = null;
@@ -209,8 +245,21 @@ export class AlarmEngine {
   private progressTimer: number | null = null;
   private peakVolume = 0.8;
   private coachText: string | undefined;
+  /** The currently-playing coach mp3 (if any). Set inside playCoach,
+   *  cleared by cancelCoach. Distinct from coachPrimedEl below. */
   private coachAudio: HTMLAudioElement | null = null;
   private coachSpeaking = false;
+  /**
+   * Coach-mp3 element primed during the user gesture in `start()`.
+   * iOS Safari inside an installed PWA is strict about timer-driven
+   * play(): even after unlockAlarmAudio, creating a brand new Audio
+   * element from a setTimeout callback and calling play() can be
+   * rejected. The workaround is to touch the element during the
+   * gesture (play()+pause() while muted) so iOS marks it as
+   * user-initiated; then the timer can resume it freely. Same rule
+   * applies to the reaseguro and wake-up stems — both are now
+   * created + primed synchronously inside start() below. */
+  private coachPrimedEl: HTMLAudioElement | null = null;
 
   constructor(stems: StemPaths, callbacks: AlarmCallbacks = {}) {
     this.stems = stems;
@@ -260,6 +309,28 @@ export class AlarmEngine {
     if (pp && typeof pp.then === 'function') {
       pp.catch((err) => console.warn('[AlarmEngine] ramp play rejected', err));
     }
+
+    // ─── iOS priming ─────────────────────────────────
+    // Create + prime reaseguro, wake-up, and coach-mp3 elements
+    // SYNCHRONOUSLY inside this gesture so later timer callbacks
+    // (enterReaseguro, playWakeup, tryCoachMp3) can resume them
+    // without iOS Safari rejecting the play().
+    if (reaseguroSec > 0) {
+      const reEl = makeStemEl(this.stems.reaseguro, true);
+      this.reaseguro = { el: reEl, target: 0, rafHandle: null };
+      primeAudioElement(reEl);
+    }
+    {
+      const wkEl = makeStemEl(this.stems.wakeup, false);
+      this.wakeup = { el: wkEl, target: 0, rafHandle: null };
+      primeAudioElement(wkEl);
+    }
+    if (this.stems.coachVoice) {
+      const cvEl = makeStemEl(this.stems.coachVoice, false);
+      this.coachPrimedEl = cvEl;
+      primeAudioElement(cvEl);
+    }
+    // ─────────────────────────────────────────────────
 
     const remaining = rampSec - offset;
     rampVolume(this.ramp, peak, Math.max(0.5, remaining));
@@ -315,9 +386,14 @@ export class AlarmEngine {
       this.cb.onStageChange?.('wakeup');
       this.cb.onProgress?.(1, 'wakeup');
 
-      // Create + play wakeup stem SYNCHRONOUSLY (iOS gesture rule).
-      const wkEl = makeStemEl(this.stems.wakeup, false);
-      this.wakeup = { el: wkEl, target: 0, rafHandle: null };
+      // Reuse the primed wake-up stem from start(). Fall back to a
+      // fresh element if priming didn't happen.
+      if (!this.wakeup) {
+        const wkEl = makeStemEl(this.stems.wakeup, false);
+        this.wakeup = { el: wkEl, target: 0, rafHandle: null };
+      }
+      const wkEl = this.wakeup.el;
+      try { wkEl.currentTime = 0; } catch { /* ignore */ }
       wkEl.volume = 0.0001;
       wkEl.addEventListener('ended', done, { once: true });
       wkEl.addEventListener('error', done, { once: true });
@@ -438,8 +514,16 @@ export class AlarmEngine {
     this.cb.onStageChange?.('reaseguro');
     this.cancelCoach();
 
-    const reEl = makeStemEl(this.stems.reaseguro, true);
-    this.reaseguro = { el: reEl, target: 0, rafHandle: null };
+    // Reuse the primed element created in start(). Falls back to
+    // a fresh element only if priming didn't happen (e.g. engine
+    // was started without going through the user-gesture path —
+    // normally impossible, but keeps the code defensive).
+    if (!this.reaseguro) {
+      const reEl = makeStemEl(this.stems.reaseguro, true);
+      this.reaseguro = { el: reEl, target: 0, rafHandle: null };
+    }
+    const reEl = this.reaseguro.el;
+    try { reEl.currentTime = 0; } catch { /* ignore */ }
     reEl.volume = 0.0001;
     const pp = reEl.play();
     if (pp && typeof pp.then === 'function') {
@@ -473,17 +557,39 @@ export class AlarmEngine {
     }
   }
 
-  private async tryCoachMp3(url: string, onDone: () => void): Promise<void> {
+  private tryCoachMp3(url: string, onDone: () => void): void {
     try {
-      const probe = await fetch(encodeURI(url), { method: 'HEAD' });
-      if (!probe.ok) throw new Error(`coach mp3 HTTP ${probe.status}`);
-      const el = makeStemEl(url, false);
+      // Reuse the primed coach element from start(). If priming
+      // didn't happen (rare: engine instantiated without a user
+      // gesture), create + play a fresh element — may fail on iOS
+      // but works on desktop browsers.
+      const el = this.coachPrimedEl ?? makeStemEl(url, false);
+      try { el.currentTime = 0; } catch { /* ignore */ }
       el.volume = 1;
       this.coachAudio = el;
-      el.addEventListener('ended', onDone, { once: true });
-      el.addEventListener('error', onDone, { once: true });
+      const onError = () => {
+        // Fall back to TTS on media error.
+        console.warn('[AlarmEngine] coach mp3 playback error, using TTS');
+        el.removeEventListener('ended', handleEnd);
+        if (this.coachText) this.speakCoach(this.coachText, onDone);
+        else onDone();
+      };
+      const handleEnd = () => {
+        el.removeEventListener('error', onError);
+        onDone();
+      };
+      el.addEventListener('ended', handleEnd, { once: true });
+      el.addEventListener('error', onError, { once: true });
       const pp = el.play();
-      if (pp && typeof pp.then === 'function') pp.catch(() => onDone());
+      if (pp && typeof pp.then === 'function') {
+        pp.catch((err) => {
+          console.warn('[AlarmEngine] coach mp3 play rejected, using TTS', err);
+          el.removeEventListener('ended', handleEnd);
+          el.removeEventListener('error', onError);
+          if (this.coachText) this.speakCoach(this.coachText, onDone);
+          else onDone();
+        });
+      }
     } catch (err) {
       console.warn('[AlarmEngine] coach mp3 unavailable, using TTS', err);
       if (this.coachText) this.speakCoach(this.coachText, onDone);
@@ -546,6 +652,10 @@ export class AlarmEngine {
       if (!s) continue;
       cancelRamp(s);
       try { s.el.pause(); s.el.src = ''; s.el.load(); } catch { /* ignore */ }
+    }
+    if (this.coachPrimedEl) {
+      try { this.coachPrimedEl.pause(); this.coachPrimedEl.src = ''; this.coachPrimedEl.load(); } catch { /* ignore */ }
+      this.coachPrimedEl = null;
     }
     this.ramp = null;
     this.reaseguro = null;
