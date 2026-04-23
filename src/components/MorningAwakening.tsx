@@ -34,6 +34,8 @@ import HistoryScreen from './HistoryScreen';
 import OnboardingModal from './OnboardingModal';
 import WelcomeScreen from './WelcomeScreen';
 import { appendSession, computeQualityScore } from '@/lib/sessionHistory';
+import { startSilentKeepalive, stopSilentKeepalive } from '@/lib/silentAudioKeepalive';
+import { clearMediaSession } from '@/lib/mediaSession';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -162,6 +164,13 @@ export default function MorningAwakening() {
     // silent while the later phase briefings (fired much later, once
     // the context had settled) played fine.
     await audioRef.current.resume();
+
+    // Start the silent <audio> keepalive so iOS classifies the page as
+    // 'playing media' and shows our Media Session metadata on the lock
+    // screen. Must run inside this user gesture — iOS rejects .play()
+    // otherwise. No-op on Android / desktop (they handle Media Session
+    // regardless, but the element doesn't hurt).
+    startSilentKeepalive();
 
     // Ambient drone disabled per user request (v8.0-α3) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
@@ -296,12 +305,19 @@ export default function MorningAwakening() {
   const handleProceedToStudy = useCallback(() => {
     audioRef.current?.stopAll();
     operatorRef.current?.cancel();
+    // Tear down the lock-screen media session + silent keepalive audio
+    // once the user returns to IDLE. Mirror of startSilentKeepalive()
+    // in handleInitialize.
+    clearMediaSession();
+    stopSilentKeepalive();
     setAppState('IDLE');
   }, []);
 
   const handleReset = useCallback(() => {
     audioRef.current?.stopAll();
     operatorRef.current?.cancel();
+    clearMediaSession();
+    stopSilentKeepalive();
     setAppState('IDLE');
     setMissionIndex(0);
   }, []);
