@@ -167,7 +167,7 @@ export default function MorningAwakening() {
   }, []);
 
   // ═══════════════ Initialize audio + operator ═══════════════
-  const handleInitialize = useCallback(() => {
+  const handleInitialize = useCallback(async () => {
     if (!audioRef.current) {
       audioRef.current = new AudioEngine();
       audioRef.current.init();
@@ -179,8 +179,15 @@ export default function MorningAwakening() {
     }
     // iOS Safari: unlock SpeechSynthesis inside this user-gesture click.
     operatorRef.current.unlockForIOS();
+    // Critical on iPad: await the AudioContext.resume() while we're
+    // still inside the user gesture, so the very first speak(intro)
+    // below schedules on a running context. Without this, the intro
+    // mp3 got queued on a suspended context and came out clipped or
+    // silent while the later phase briefings (fired much later, once
+    // the context had settled) played fine.
+    await audioRef.current.resume();
 
-    // Ambient drone disabled per user request (v7.12) — sounded muddy
+    // Ambient drone disabled per user request (v7.13) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
     // ducking all still work because AudioEngine.init() already built
     // master/voiceBus/voiceDuckGain, independent of the ambient layers.
@@ -551,7 +558,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.12</span>
+          <span>MORNING:AWAKENING · v7.13</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}
