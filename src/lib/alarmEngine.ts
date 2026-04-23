@@ -311,14 +311,32 @@ export class AlarmEngine {
     }
 
     // ─── iOS priming ─────────────────────────────────
-    // Create + prime reaseguro, wake-up, and coach-mp3 elements
-    // SYNCHRONOUSLY inside this gesture so later timer callbacks
-    // (enterReaseguro, playWakeup, tryCoachMp3) can resume them
-    // without iOS Safari rejecting the play().
+    // Create downstream stems SYNCHRONOUSLY inside this gesture so
+    // iOS Safari honors later play() calls on them.
+    //
+    // REASEGURO uses a different, stronger strategy than the others:
+    // instead of play()+pause() (which iOS inside an installed PWA
+    // sometimes un-flags after the pause, causing silent failure
+    // when the timer tries to resume it 5 minutes later), we simply
+    // start playing it silently at volume 0 and NEVER pause it.
+    // The element loops quietly in the background until
+    // enterReaseguro ramps the volume up. This removes every point
+    // of failure that was making reaseguro inaudible on iPad.
+    //
+    // WAKE-UP and COACH are one-shot (not looped), so we can't just
+    // let them play through silently — they'd finish before the
+    // user needs them. For these we fall back to the muted
+    // play()+pause() prime, which works on most iOS versions and
+    // gracefully falls back on the rest (wake-up is fired from a
+    // user gesture anyway; coach falls back to TTS).
     if (reaseguroSec > 0) {
       const reEl = makeStemEl(this.stems.reaseguro, true);
       this.reaseguro = { el: reEl, target: 0, rafHandle: null };
-      primeAudioElement(reEl);
+      reEl.volume = 0;
+      const rep = reEl.play();
+      if (rep && typeof rep.then === 'function') {
+        rep.catch((err) => console.warn('[AlarmEngine] reaseguro silent-prime rejected', err));
+      }
     }
     {
       const wkEl = makeStemEl(this.stems.wakeup, false);
@@ -514,20 +532,27 @@ export class AlarmEngine {
     this.cb.onStageChange?.('reaseguro');
     this.cancelCoach();
 
-    // Reuse the primed element created in start(). Falls back to
-    // a fresh element only if priming didn't happen (e.g. engine
-    // was started without going through the user-gesture path —
-    // normally impossible, but keeps the code defensive).
+    // Reaseguro has been playing silently at volume 0 since start().
+    // Just rewind and ramp the volume up — NO play() call from this
+    // timer callback, which is where iOS inside a PWA was rejecting
+    // us before.
     if (!this.reaseguro) {
+      // Defensive fallback: priming didn't happen (reaseguroSec was
+      // 0 at start, or constructor bypassed the gesture path).
       const reEl = makeStemEl(this.stems.reaseguro, true);
       this.reaseguro = { el: reEl, target: 0, rafHandle: null };
     }
     const reEl = this.reaseguro.el;
     try { reEl.currentTime = 0; } catch { /* ignore */ }
-    reEl.volume = 0.0001;
-    const pp = reEl.play();
-    if (pp && typeof pp.then === 'function') {
-      pp.catch((err) => console.warn('[AlarmEngine] reaseguro play rejected', err));
+    // If the silent-prime play() was actually rejected by iOS (very
+    // rare — would only happen if the gesture check failed), try to
+    // play now. Harmless when the element is already playing.
+    if (reEl.paused) {
+      reEl.volume = 0.0001;
+      const pp = reEl.play();
+      if (pp && typeof pp.then === 'function') {
+        pp.catch((err) => console.warn('[AlarmEngine] reaseguro late play rejected', err));
+      }
     }
     rampVolume(this.reaseguro, 1, REASEGURO_XFADE_SEC);
     if (this.ramp) {
@@ -630,13 +655,22 @@ export class AlarmEngine {
   }
 
   private duckMusic(ducking: boolean): void {
-    const apply = (stem: Stem | null, base: number) => {
-      if (!stem) return;
-      const tgt = ducking ? base * DUCK_RATIO : base;
-      rampVolume(stem, tgt, ducking ? 0.8 : 1.2);
-    };
-    apply(this.ramp, this.peakVolume);
-    apply(this.reaseguro, 1.0);
+    // Only duck whichever stem is currently audible. During peak
+    // (where the coach voice runs) that's the ramp. If we ever add
+    // coach-over-reaseguro, extend here. Critically: do NOT touch
+    // this.reaseguro while it's silent-priming — pulling its
+    // volume up to (1 × DUCK_RATIO) would leak Zimmer into the
+    // peak/voice phase.
+    const dur = ducking ? 0.8 : 1.2;
+    if (this.stage === 'ramp' || this.stage === 'peak') {
+      if (this.ramp) {
+        rampVolume(this.ramp, ducking ? this.peakVolume * DUCK_RATIO : this.peakVolume, dur);
+      }
+    } else if (this.stage === 'reaseguro') {
+      if (this.reaseguro) {
+        rampVolume(this.reaseguro, ducking ? DUCK_RATIO : 1.0, dur);
+      }
+    }
   }
 
   // ─── Lifecycle ────────────────────────────────────────

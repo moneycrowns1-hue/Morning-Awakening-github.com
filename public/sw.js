@@ -16,7 +16,7 @@
 // PWAs on iOS are VERY sticky — the only way to force them to drop
 // stale audio/JS is a new VERSION string here, which causes the
 // activate handler to delete ma-static-<old>/ma-runtime-<old>.
-const VERSION = 'v8.0-alpha6-phases';
+const VERSION = 'v8.0-alpha7-reaseguro';
 const STATIC_CACHE = `ma-static-${VERSION}`;
 const RUNTIME_CACHE = `ma-runtime-${VERSION}`;
 

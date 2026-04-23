@@ -319,13 +319,14 @@ export function useAlarmController(): UseAlarmController {
 
     try {
       // Compressed timings:
-      //   ramp:      12 s (fade in from 0 to peak)
-      //   peak:      coach voice plays ~2 s after peak
-      //   reaseguro: 25 s after peak → crossfade 8 s on top
+      //   ramp:      15 s (fade in from 0 to peak)
+      //   peak+2s:   coach voice plays (~45 s total)
+      //   reaseguro: 60 s after peak → voice has finished by then,
+      //              Zimmer crossfade comes in cleanly over 8 s
       //   user taps Despertar to hear wake-up
       const startPromise = engine.start({
-        rampDurationSec: 12,
-        reaseguroDelaySec: 25,
+        rampDurationSec: 15,
+        reaseguroDelaySec: 60,
         peakVolume: 0.6,
         startOffsetSec: 0,
         coachText: DEFAULT_COACH_TEXT,
