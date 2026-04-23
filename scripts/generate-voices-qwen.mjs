@@ -56,8 +56,8 @@ function extractLines(src) {
 // OmniVoice), but we also pre-generate a Qwen fallback so the app still
 // has audio if the premium files are missing.
 const EXTRA_LINES = [
-  'Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.',
-  'Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.',
+  'Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy es tu día. Doce fases. Una hora y cuarenta y cinco minutos que van a decidir las próximas dieciocho. Vamos a por ellas. Bienvenido.',
+  'Protocolo completo. Doce fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.',
 ];
 
 function hashLine(text) {

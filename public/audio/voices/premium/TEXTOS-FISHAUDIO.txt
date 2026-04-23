@@ -1,0 +1,110 @@
+═══════════════════════════════════════════════════════════════
+ TEXTOS PARA FISH AUDIO — 14 audios, 3 voces
+═══════════════════════════════════════════════════════════════
+
+Copia EXACTAMENTE cada bloque (incluyendo tildes y puntuación)
+en fish.audio, selecciona la voz indicada, genera, descarga como
+.mp3 y renombra al nombre de archivo indicado.
+
+Voces:
+  A = Hombre motivación intensa  (comandante, urgente)
+  B = Mujer motivadora suave     (calmada, cuidado)
+  C = Mujer mentalidad           (analítica, filosófica)
+
+
+───────────────────────────────────────────────────────────────
+ 00-opening.mp3  ·  VOZ A  ·  Intro ceremonial
+───────────────────────────────────────────────────────────────
+Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy es tu día. Doce fases. Una hora y cuarenta y cinco minutos que van a decidir las próximas dieciocho. Vamos a por ellas. Bienvenido.
+
+
+───────────────────────────────────────────────────────────────
+ 01-genesis.mp3  ·  VOZ A  ·  Fase 1 · Despertar + cama
+───────────────────────────────────────────────────────────────
+Fase uno. Génesis. Así empieza todo, Jugador. Cuenta atrás: cinco, cuatro, tres, dos, uno. Pies al suelo. Sin negociar con la almohada. Ahora haz tu cama, impecable, sesenta segundos. Es pequeño, lo sé. Pero esa cama hecha es la primera victoria del día, y tu cerebro la registra. Acabas de decirle a tu mente: hoy gano yo. Vamos.
+
+
+───────────────────────────────────────────────────────────────
+ 02-aqua.mp3  ·  VOZ B  ·  Fase 2 · Hidratación
+───────────────────────────────────────────────────────────────
+Fase dos. Aqua. Durante la noche perdiste casi un litro de agua, y tu cerebro lo nota. Toma quinientos mililitros, con una pizca de sal marina. Sin prisa. Siente cómo vuelves a ti. Cada célula te lo está pidiendo. Bebe con calma; los próximos noventa minutos dependen de este vaso.
+
+
+───────────────────────────────────────────────────────────────
+ 03-flex.mp3  ·  VOZ B  ·  Fase 3 · Movilidad
+───────────────────────────────────────────────────────────────
+Fase tres. Flex. Tu cuerpo lleva ocho horas inmóvil. Caderas cerradas. Columna rígida. Isquiotibiales dormidos. Ocho minutos de movilidad consciente: ni uno más, ni uno menos. Abre lo que el escritorio te ha ido cerrando. Respira en cada estiramiento, profundo y largo. Esto no es calentar; es reclamar tu cuerpo antes de pedirle algo difícil.
+
+
+───────────────────────────────────────────────────────────────
+ 04-surge.mp3  ·  VOZ A  ·  Fase 4 · Cardio / correr
+───────────────────────────────────────────────────────────────
+Fase cuatro. Surge. Sal. Al frío. A la calle. Diez minutos corriendo: hoy sprint, o zona dos si toca recuperar; tú sabes cómo vienes. Postura alta, cadencia constante, respira por la nariz si puedes. Mientras corres, tu cuerpo está fabricando B D N F, neuronas nuevas en tu hipocampo. Te estás haciendo literalmente más inteligente. No lo olvides cuando duela. Esta intensidad es la que se queda contigo todo el día.
+
+
+───────────────────────────────────────────────────────────────
+ 05-forge.mp3  ·  VOZ A  ·  Fase 5 · Fuerza
+───────────────────────────────────────────────────────────────
+Fase cinco. Forge. Aquí no hay excusas, Jugador. Veinticinco minutos. Empuje. Tracción. Piernas. Núcleo. Descansos cortos, sesenta segundos y ni uno más. Forma antes que carga, siempre. En ayunas tu cuerpo está liberando testosterona y hormona de crecimiento como en pocos momentos del día: te estás forjando por dentro. En el último tercio no bajes la guardia; ahí se decide quién eres. Cierra con el núcleo. Gánate el desayuno.
+
+
+───────────────────────────────────────────────────────────────
+ 06-pneuma.mp3  ·  VOZ B  ·  Fase 6 · Respiración Wim Hof
+───────────────────────────────────────────────────────────────
+Fase seis. Pneuma. Cierra los ojos. Siéntate cómodo. Tres rondas: respiraciones profundas y sostenidas, y luego retén sin aire. Tu sangre se alcaliniza, la noradrenalina se dispara, tu sistema autónomo se recalibra. En altitud no fuerces nada; escucha a tu cuerpo, él sabe. Si aparece el hormigueo en las manos, es normal, solo respira. Estás limpiando por dentro.
+
+
+───────────────────────────────────────────────────────────────
+ 07-cryo.mp3  ·  VOZ A  ·  Fase 7 · Ducha fría
+───────────────────────────────────────────────────────────────
+Fase siete. Cryo. Ahora viene la que te pone a prueba, Jugador. Entras al agua fría. Tres minutos. Tu cuerpo va a gritar que salgas; no salgas. Exhala lento. Resiste el primer impulso. Ahí, justo ahí, es donde se entrena el control emocional para todo el día. La dopamina que liberas aquí te acompaña dos, tres horas. Y termina en frío: no negocies con el calor al final. Se gana dentro.
+
+
+───────────────────────────────────────────────────────────────
+ 08-refuel.mp3  ·  VOZ B  ·  Fase 8 · Desayuno
+───────────────────────────────────────────────────────────────
+Fase ocho. Refuel. Tu cuerpo acaba de romper músculo; ahora toca reconstruirlo. Proteína para reparar, carbohidratos complejos para reponer energía, grasas saludables para tus hormonas. Come sin pantallas, sin prisa. Mastica despacio, disfrútalo. La digestión empieza en la boca, y este es el combustible que va a mover las próximas horas. Estás nutriendo al que despertó hace una hora.
+
+
+───────────────────────────────────────────────────────────────
+ 09-helio.mp3  ·  VOZ C  ·  Fase 9 · Luz solar + entorno
+───────────────────────────────────────────────────────────────
+Fase nueve. Helio. Busca la luz natural: ventana abierta, o sal al balcón un momento. Diez minutos de luz directa le dicen a tu cerebro que es de día, que despierte en serio. Tu ritmo circadiano se ancla aquí, el cortisol matutino alcanza su pico, la melatonina se retira. Mientras tanto, organiza tu escritorio. Cero objetos fuera de lugar. Un entorno limpio es una mente limpia. Configura el espacio donde vas a pensar hoy.
+
+
+───────────────────────────────────────────────────────────────
+ 10-void.mp3  ·  VOZ C  ·  Fase 10 · Meditación estoica
+───────────────────────────────────────────────────────────────
+Fase diez. Void. Siéntate. Espalda recta. Ojos cerrados. Tres minutos: visualiza los problemas del día antes de que ocurran. Ese bug, esa conversación difícil, esa tentación de procrastinar. Imagínate resolviéndolos con frialdad, sin sobresalto. Los estoicos la llamaban Premeditatio Malorum: anticipar lo peor para no reaccionar cuando llegue. Luego dos minutos de silencio; solo tu respiración. Sin juzgar. Sin controlar. Observar.
+
+
+───────────────────────────────────────────────────────────────
+ 11-codex.mp3  ·  VOZ C  ·  Fase 11 · Journaling
+───────────────────────────────────────────────────────────────
+Fase once. Codex. Coge el papel. A mano, siempre a mano; la letra activa áreas del cerebro que el teclado nunca alcanzará. Máximo tres prioridades hoy. Tres, no cuatro. Lo que no cabe en tres líneas, hoy no importa. Externalizar las tareas libera memoria para pensar, y la claridad de propósito reduce la ansiedad casi a la mitad. Está en los estudios. Escribe lo que hoy harás de ti.
+
+
+───────────────────────────────────────────────────────────────
+ 12-cipher.mp3  ·  VOZ C  ·  Fase 12 · Lectura + Active Recall
+───────────────────────────────────────────────────────────────
+Fase doce. Cipher. Diez minutos de lectura: filosofía, historia, biografías. Lo que te haga más grande. Luego cinco minutos procesando: extrae una sola idea, la más potente. Conviértela en pregunta, y después en flashcard. Active Recall más Repetición Espaciada: así funciona la memoria real. Leer por leer te hace consumidor de texto; esto te hace otra cosa. Una idea al día, multiplicada por trescientos sesenta y cinco, cambia quién eres.
+
+
+───────────────────────────────────────────────────────────────
+ 13-closing.mp3  ·  VOZ B  ·  Outro ceremonial
+───────────────────────────────────────────────────────────────
+Protocolo completo. Doce fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.
+
+
+═══════════════════════════════════════════════════════════════
+ Resumen de casting
+═══════════════════════════════════════════════════════════════
+
+VOZ A · Hombre motivación intensa  (5 audios)
+  00-opening, 01-genesis, 04-surge, 05-forge, 07-cryo
+
+VOZ B · Mujer motivadora suave  (5 audios)
+  02-aqua, 03-flex, 06-pneuma, 08-refuel, 13-closing
+
+VOZ C · Mujer mentalidad  (4 audios)
+  09-helio, 10-void, 11-codex, 12-cipher

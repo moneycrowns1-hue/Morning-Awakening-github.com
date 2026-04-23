@@ -189,7 +189,7 @@ export default function MorningAwakening() {
     // user records manually). Personalization (rank, name, streak) stays
     // visible in the HUD, not spoken.
     operatorRef.current.speak(
-      'Sistema en línea. Sincronización completa. Jugador detectado. El protocolo comienza ahora. Bienvenido.',
+      'Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy es tu día. Doce fases. Una hora y cuarenta y cinco minutos que van a decidir las próximas dieciocho. Vamos a por ellas. Bienvenido.',
       { rate: 0.94 }
     );
 
@@ -242,7 +242,7 @@ export default function MorningAwakening() {
 
     if (nextIndex >= MISSIONS.length) {
       audioRef.current?.playGong();
-      operatorRef.current?.speak('Protocolo completo. Doce fases ejecutadas. El día es tuyo, Jugador. Nos vemos mañana al amanecer.', { rate: 0.9 });
+      operatorRef.current?.speak('Protocolo completo. Doce fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.', { rate: 0.9 });
 
       const today = getToday();
       const newData: StreakData = {
