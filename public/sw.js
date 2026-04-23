@@ -100,6 +100,7 @@ async function staleWhileRevalidate(req) {
 // granted. Android delivers reliably.
 
 let scheduledTimeoutId = null;
+let alarmTimeoutId = null;
 
 self.addEventListener('message', (event) => {
   const data = event.data || {};
@@ -107,8 +108,35 @@ self.addEventListener('message', (event) => {
     scheduleMorning(data.hour, data.minute);
   } else if (data.type === 'CANCEL_MORNING') {
     if (scheduledTimeoutId) { clearTimeout(scheduledTimeoutId); scheduledTimeoutId = null; }
+  } else if (data.type === 'SCHEDULE_ALARM') {
+    scheduleAlarm(data.hour, data.minute);
+  } else if (data.type === 'CANCEL_ALARM') {
+    if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
   }
 });
+
+function scheduleAlarm(hour, minute) {
+  if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
+  const now = new Date();
+  const next = new Date();
+  next.setHours(hour, minute, 0, 0);
+  if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+  const delay = next.getTime() - now.getTime();
+  alarmTimeoutId = setTimeout(() => {
+    self.registration.showNotification('Es hora, operador.', {
+      body: 'Tu alarma suave est\u00e1 sonando. Abre para despertar.',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'morning-alarm',
+      requireInteraction: true,
+      silent: false,
+      data: { kind: 'alarm' },
+    });
+    // Re-arm for tomorrow so the fallback keeps firing daily even if
+    // the page never reopens.
+    scheduleAlarm(hour, minute);
+  }, delay);
+}
 
 function scheduleMorning(hour, minute) {
   if (scheduledTimeoutId) { clearTimeout(scheduledTimeoutId); scheduledTimeoutId = null; }

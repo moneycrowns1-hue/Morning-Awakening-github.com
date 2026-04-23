@@ -43,6 +43,9 @@ import {
   persistNewlyUnlocked,
 } from '@/lib/achievements';
 import AchievementToast from './AchievementToast';
+import AlarmScreen from './AlarmScreen';
+import AlarmRingingOverlay from './AlarmRingingOverlay';
+import { useAlarmController } from '@/lib/useAlarmController';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -77,6 +80,12 @@ export default function MorningAwakening() {
   const [sessionXp, setSessionXp] = useState(0);
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
   const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
+  const [showAlarm, setShowAlarm] = useState(false);
+
+  // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
+  // lock and the ringing overlay state. Config changes persist through
+  // the hook itself (saveAlarm inside setConfig).
+  const alarm = useAlarmController();
 
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
@@ -379,6 +388,23 @@ export default function MorningAwakening() {
     setXpToasts(ts => ts.filter(t => t.id !== id));
   }, []);
 
+  // ═══════════════ Alarm dismiss / snooze ═══════════════
+  // When the user dismisses the ringing alarm, optionally chain
+  // straight into the morning protocol (config.chainProtocol).
+  // handleInitialize needs the click to happen inside a user gesture
+  // for iOS AudioContext unlock — the dismiss button IS that gesture.
+  const handleAlarmDismiss = useCallback(async () => {
+    const shouldChain = alarm.config.chainProtocol && appState === 'IDLE';
+    alarm.dismiss();
+    if (shouldChain) {
+      // Close any fullscreens that would mask the protocol start.
+      setShowAlarm(false);
+      setShowHistory(false);
+      setShowSettings(false);
+      await handleInitialize();
+    }
+  }, [alarm, appState]);  // eslint-disable-line react-hooks/exhaustive-deps
+
   const totalElapsed = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
   const currentPhase =
     appState === 'COMPLETE' ? MISSIONS.length :
@@ -408,6 +434,14 @@ export default function MorningAwakening() {
           />
         ) : showHistory ? (
           <HistoryScreen onClose={() => setShowHistory(false)} />
+        ) : showAlarm ? (
+          <AlarmScreen
+            config={alarm.config}
+            onChange={alarm.setConfig}
+            onPreview={alarm.preview}
+            onFireNow={alarm.fireNow}
+            onClose={() => setShowAlarm(false)}
+          />
         ) : (
           <WelcomeScreen
             profile={profile}
@@ -416,6 +450,8 @@ export default function MorningAwakening() {
             onOpenProfile={() => setShowProfile(true)}
             onOpenSettings={() => setShowSettings(true)}
             onOpenHistory={() => setShowHistory(true)}
+            onOpenAlarm={() => setShowAlarm(true)}
+            alarmArmed={alarm.config.enabled}
           />
         )}
 
@@ -427,6 +463,18 @@ export default function MorningAwakening() {
         {/* Onboarding modal (first run) */}
         {showOnboarding && (
           <OnboardingModal onComplete={handleOnboardingComplete} />
+        )}
+
+        {/* Alarm ringing overlay — takes over when the gentle alarm
+            actually fires, even if another IDLE full-screen was open. */}
+        {alarm.isRinging && (
+          <AlarmRingingOverlay
+            stage={alarm.stage}
+            intensity={alarm.intensity}
+            onDismiss={handleAlarmDismiss}
+            onSnooze={() => alarm.snooze(9)}
+            willChainProtocol={alarm.config.chainProtocol}
+          />
         )}
       </div>
     );
@@ -517,6 +565,19 @@ export default function MorningAwakening() {
           />
         );
       })}
+
+      {/* Alarm ringing overlay — same as IDLE branch, also available
+          during MISSION/COMPLETE so an alarm fired mid-protocol or
+          post-summary still gets focus. */}
+      {alarm.isRinging && (
+        <AlarmRingingOverlay
+          stage={alarm.stage}
+          intensity={alarm.intensity}
+          onDismiss={handleAlarmDismiss}
+          onSnooze={() => alarm.snooze(9)}
+          willChainProtocol={alarm.config.chainProtocol}
+        />
+      )}
     </div>
   );
 }

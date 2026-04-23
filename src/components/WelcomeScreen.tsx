@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Flame, User, Settings as SettingsIcon, LineChart } from 'lucide-react';
+import { Bell, Flame, User, Settings as SettingsIcon, LineChart } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
@@ -28,6 +28,9 @@ interface WelcomeScreenProps {
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   onOpenHistory?: () => void;
+  onOpenAlarm?: () => void;
+  /** True when a gentle alarm is armed — shows a subtle dot on the bell. */
+  alarmArmed?: boolean;
 }
 
 export default function WelcomeScreen({
@@ -37,6 +40,8 @@ export default function WelcomeScreen({
   onOpenProfile,
   onOpenSettings,
   onOpenHistory,
+  onOpenAlarm,
+  alarmArmed,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
@@ -79,6 +84,22 @@ export default function WelcomeScreen({
               días
             </span>
           </div>
+          {onOpenAlarm && (
+            <button
+              onClick={onOpenAlarm}
+              aria-label="Abrir alarma"
+              className="relative rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: alarmArmed ? 'var(--sunrise-rise-2, #f4c267)' : 'var(--sunrise-text-soft)' }}
+            >
+              <Bell size={18} strokeWidth={1.75} />
+              {alarmArmed && (
+                <span
+                  className="absolute top-1 right-1 block w-1.5 h-1.5 rounded-full"
+                  style={{ background: 'var(--sunrise-rise-2, #f4c267)', boxShadow: '0 0 6px rgba(244,194,103,0.7)' }}
+                />
+              )}
+            </button>
+          )}
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}
