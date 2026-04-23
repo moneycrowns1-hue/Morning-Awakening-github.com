@@ -567,10 +567,15 @@ export class AlarmEngine {
 
 // ─── Defaults ─────────────────────────────────────────
 
+// Filenames are plain ASCII with no spaces or extra dots. Previously
+// named "SpotiDown.App - Sunrise Projector - Tycho.mp3" etc., which
+// iPad Safari rejected with MediaError code 4 (SRC_NOT_SUPPORTED) —
+// the combination of spaces + dots + long paths trips iOS's stricter
+// URL/MIME sniffing.
 export const DEFAULT_STEMS: StemPaths = {
-  ramp: '/audio/voices/premium/SpotiDown.App - Sunrise Projector - Tycho.mp3',
-  reaseguro: '/audio/voices/premium/SpotiDown.App - Time - Hans Zimmer.mp3',
-  wakeup: '/audio/voices/premium/musica principal.mp3',
+  ramp: '/audio/voices/premium/ramp-tycho.mp3',
+  reaseguro: '/audio/voices/premium/reaseguro-zimmer.mp3',
+  wakeup: '/audio/voices/premium/wakeup-principal.mp3',
   coachVoice: '/audio/voices/premium/voz-proposito.mp3',
 };
 
