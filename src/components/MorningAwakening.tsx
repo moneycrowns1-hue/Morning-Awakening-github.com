@@ -180,7 +180,7 @@ export default function MorningAwakening() {
     // iOS Safari: unlock SpeechSynthesis inside this user-gesture click.
     operatorRef.current.unlockForIOS();
 
-    // Ambient drone disabled per user request (v7.11) — sounded muddy
+    // Ambient drone disabled per user request (v7.12) — sounded muddy
     // between voice lines. Voice bus, SFX (strike/chime/gong) and
     // ducking all still work because AudioEngine.init() already built
     // master/voiceBus/voiceDuckGain, independent of the ambient layers.
@@ -551,7 +551,7 @@ export default function MorningAwakening() {
           style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
         />
         <div className="flex justify-between text-[11px] tracking-[0.25em]" style={{ color: 'rgba(232,220,196,0.25)' }}>
-          <span>MORNING:AWAKENING · v7.11</span>
+          <span>MORNING:AWAKENING · v7.12</span>
           {appState === 'COMPLETE' && (
             <button
               onClick={handleReset}

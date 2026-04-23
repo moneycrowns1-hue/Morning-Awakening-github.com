@@ -62,10 +62,20 @@ export default function MissionPhase({
   useEffect(() => {
     if (!operator || spokenOpenRef.current) return;
     spokenOpenRef.current = true;
-    const t = setTimeout(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      // If an earlier speak() is still playing (e.g. the boot intro
+      // queued from handleInitialize), wait for it to finish before
+      // speaking this phase briefing. Otherwise speak() would call
+      // cancel() on entry and cut the intro mid-sentence.
+      await operator.waitForPendingSpeech();
+      if (cancelled) return;
       operator.speak(mission.voiceLineBriefing, { rate: 0.93 });
     }, 600);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [mission, operator]);
 
   // ═══ Typewriter system log ═══

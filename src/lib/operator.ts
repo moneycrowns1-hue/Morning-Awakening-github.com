@@ -75,6 +75,12 @@ export class Operator {
   private currentSource: AudioBufferSourceNode | null = null;
   private currentGain: GainNode | null = null;
   private currentResolve: (() => void) | null = null;
+  // Promise for the currently-speaking line, cleared when it ends. Used
+  // by waitForPendingSpeech() so a downstream caller can chain its own
+  // speak() after the current one finishes, instead of cancelling it
+  // mid-sentence (which is what speak() does on its first line by
+  // calling cancel() on entry).
+  private currentSpeakPromise: Promise<void> | null = null;
 
   constructor(engine?: AudioEngine) {
     this.engine = engine ?? null;
@@ -189,7 +195,20 @@ export class Operator {
     // Always cancel in-flight speech so we never overlap voices.
     this.cancel();
 
-    return this.resolveAndPlay(text, opts);
+    const p = this.resolveAndPlay(text, opts);
+    this.currentSpeakPromise = p;
+    p.finally(() => {
+      if (this.currentSpeakPromise === p) this.currentSpeakPromise = null;
+    });
+    return p;
+  }
+
+  /** Resolves when the currently-speaking line ends (or immediately if
+   *  nothing is playing). Does NOT cancel in-flight audio — callers use
+   *  this to chain their own speak() after the current one completes,
+   *  avoiding the cancel-on-entry behaviour of speak(). */
+  waitForPendingSpeech(): Promise<void> {
+    return this.currentSpeakPromise ?? Promise.resolve();
   }
 
   private async resolveAndPlay(text: string, opts: OperatorOptions): Promise<void> {
