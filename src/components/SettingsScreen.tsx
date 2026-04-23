@@ -10,11 +10,18 @@
 //   - Acerca: versión, créditos.
 // ═══════════════════════════════════════════════════════
 
-import { useState } from 'react';
-import { ChevronLeft, Download, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, ChevronLeft, Download, RotateCcw } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { haptics } from '@/lib/haptics';
 import { loadSessions } from '@/lib/sessionHistory';
+import {
+  disableReminder,
+  enableReminder,
+  loadConfig as loadReminderConfig,
+  permissionStatus,
+  type ReminderConfig,
+} from '@/lib/morningReminder';
 
 interface SettingsScreenProps {
   voiceEnabled: boolean;
@@ -34,6 +41,36 @@ export default function SettingsScreen({
   onClose,
 }: SettingsScreenProps) {
   const [hapticsOn, setHapticsOn] = useState<boolean>(haptics.isEnabled());
+  const [reminder, setReminder] = useState<ReminderConfig>({ enabled: false, hour: 5, minute: 0 });
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
+
+  // Hydrate reminder config + permission state on mount (client-only).
+  useEffect(() => {
+    setReminder(loadReminderConfig());
+    setPermission(permissionStatus());
+  }, []);
+
+  const handleToggleReminder = async (on: boolean) => {
+    haptics.tap();
+    if (on) {
+      const ok = await enableReminder(reminder.hour, reminder.minute);
+      if (ok) {
+        setReminder({ ...reminder, enabled: true });
+        setPermission('granted');
+      } else {
+        setPermission(permissionStatus());
+      }
+    } else {
+      await disableReminder();
+      setReminder({ ...reminder, enabled: false });
+    }
+  };
+
+  const handleTimeChange = async (hour: number, minute: number) => {
+    const next = { ...reminder, hour, minute };
+    setReminder(next);
+    if (next.enabled) await enableReminder(hour, minute);
+  };
 
   const handleToggleHaptics = (on: boolean) => {
     haptics.setEnabled(on);
@@ -115,6 +152,41 @@ export default function SettingsScreen({
             onChange={onVolumeChange}
             display={`${Math.round(masterVolume * 100)}%`}
           />
+        </SettingsGroup>
+
+        {/* Recordatorio matutino */}
+        <SettingsGroup title="Recordatorio">
+          <ToggleRow
+            label="Aviso matutino"
+            hint={
+              permission === 'unsupported'
+                ? 'Este navegador no soporta notificaciones'
+                : permission === 'denied'
+                  ? 'Permiso denegado · habilita notificaciones en ajustes del navegador'
+                  : 'Notificación diaria a la hora elegida'
+            }
+            value={reminder.enabled && permission === 'granted'}
+            onChange={handleToggleReminder}
+          />
+          {reminder.enabled && permission === 'granted' && (
+            <>
+              <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
+              <TimePickerRow
+                hour={reminder.hour}
+                minute={reminder.minute}
+                onChange={handleTimeChange}
+              />
+            </>
+          )}
+          {permission !== 'granted' && reminder.enabled === false && (
+            <div
+              className="px-4 pb-4 -mt-2 font-ui text-[10px] leading-relaxed"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              <span style={{ color: 'var(--sunrise-text-soft)' }}>Tip iPad: </span>
+              instala la app al home screen (Compartir → Añadir a inicio) para que el aviso funcione con la pantalla bloqueada.
+            </div>
+          )}
         </SettingsGroup>
 
         {/* Dispositivo */}
@@ -232,6 +304,56 @@ function ToggleRow({
         onChange={(e) => onChange(e.target.checked)}
       />
     </label>
+  );
+}
+
+function TimePickerRow({
+  hour,
+  minute,
+  onChange,
+}: { hour: number; minute: number; onChange: (h: number, m: number) => void }) {
+  // Native <input type="time"> is the right call here: on iOS it
+  // surfaces the wheel picker which is the best UX for this, and on
+  // desktop / Android it's a clean 24h input. Value is "HH:MM".
+  const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  return (
+    <div className="flex items-center justify-between px-4 py-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <span
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+          style={{
+            color: 'var(--sunrise-rise-2, #f4c267)',
+            background: 'rgba(244,194,103,0.12)',
+            border: '1px solid rgba(244,194,103,0.35)',
+          }}
+        >
+          <Bell size={14} strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0">
+          <div className="font-ui text-[14px] font-[500]" style={{ color: 'var(--sunrise-text)' }}>
+            Hora
+          </div>
+          <div className="font-ui text-[11px] mt-0.5" style={{ color: 'var(--sunrise-text-muted)' }}>
+            Se repite cada día
+          </div>
+        </div>
+      </div>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => {
+          const [h, m] = e.target.value.split(':').map((s) => parseInt(s, 10));
+          if (!Number.isNaN(h) && !Number.isNaN(m)) onChange(h, m);
+        }}
+        className="font-mono text-[15px] px-3 py-1.5 rounded-lg focus:outline-none"
+        style={{
+          background: 'rgba(5,3,15,0.55)',
+          border: '1px solid rgba(255,250,240,0.12)',
+          color: 'var(--sunrise-text)',
+          colorScheme: 'dark',
+        }}
+      />
+    </div>
   );
 }
 

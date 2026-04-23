@@ -18,10 +18,31 @@
 // ═══════════════════════════════════════════════════════
 
 import { useMemo } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import {
+  Award,
+  ChevronLeft,
+  Clock,
+  Flame,
+  Lock,
+  Sparkles,
+  Sunrise,
+  Target,
+  Trophy,
+  Zap,
+} from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { loadSessions, type SessionRecord } from '@/lib/sessionHistory';
 import { SUNRISE, hexToRgba, mixHex } from '@/lib/theme';
+import { ACHIEVEMENTS, loadUnlocked, type AchievementDef } from '@/lib/achievements';
+
+const ICONS = { Award, Clock, Flame, Sparkles, Sunrise, Target, Trophy, Zap } as const;
+const TONE_HEX: Record<AchievementDef['tone'], string> = {
+  gold: SUNRISE.rise2,
+  coral: SUNRISE.dawn2,
+  amber: SUNRISE.rise1,
+  rose: SUNRISE.dawn1,
+  cool: SUNRISE.cool,
+};
 
 interface HistoryScreenProps {
   onClose: () => void;
@@ -76,6 +97,8 @@ export default function HistoryScreen({ onClose }: HistoryScreenProps) {
 
   const recent = useMemo(() => sessions.slice(-14).reverse(), [sessions]);
   const sparkline = useMemo(() => sessions.slice(-30).map((r) => r.score), [sessions]);
+  const unlockedMap = useMemo(() => loadUnlocked(), [sessions]);
+  const unlockedCount = Object.keys(unlockedMap).length;
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
@@ -188,8 +211,65 @@ export default function HistoryScreen({ onClose }: HistoryScreenProps) {
               </section>
             )}
 
+            {/* ── Achievements grid ────────────────── */}
+            <section className="mt-7 sunrise-fade-up" style={{ animationDelay: '200ms' }}>
+              <SectionHeader
+                title="Logros"
+                hint={`${unlockedCount} / ${ACHIEVEMENTS.length}`}
+              />
+              <div
+                className="rounded-2xl p-4 grid grid-cols-2 gap-2"
+                style={{
+                  border: '1px solid rgba(255,250,240,0.08)',
+                  background: 'rgba(255,250,240,0.03)',
+                }}
+              >
+                {ACHIEVEMENTS.map((a) => {
+                  const Icon = ICONS[a.icon];
+                  const hex = TONE_HEX[a.tone];
+                  const unlocked = a.id in unlockedMap;
+                  return (
+                    <div
+                      key={a.id}
+                      className="flex items-start gap-2.5 p-2.5 rounded-xl"
+                      style={{
+                        border: `1px solid ${unlocked ? hexToRgba(hex, 0.35) : 'rgba(255,250,240,0.06)'}`,
+                        background: unlocked ? hexToRgba(hex, 0.08) : 'rgba(255,250,240,0.02)',
+                        opacity: unlocked ? 1 : 0.55,
+                      }}
+                    >
+                      <span
+                        className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{
+                          background: unlocked ? hexToRgba(hex, 0.18) : 'rgba(255,250,240,0.04)',
+                          color: unlocked ? hex : 'var(--sunrise-text-muted)',
+                          border: unlocked ? `1px solid ${hexToRgba(hex, 0.4)}` : '1px solid rgba(255,250,240,0.08)',
+                        }}
+                      >
+                        {unlocked ? <Icon size={14} strokeWidth={1.9} /> : <Lock size={12} strokeWidth={1.8} />}
+                      </span>
+                      <div className="min-w-0">
+                        <div
+                          className="font-ui text-[12px] font-[500] leading-tight"
+                          style={{ color: unlocked ? 'var(--sunrise-text)' : 'var(--sunrise-text-soft)' }}
+                        >
+                          {a.title}
+                        </div>
+                        <div
+                          className="font-ui text-[10px] mt-0.5 leading-snug"
+                          style={{ color: 'var(--sunrise-text-muted)' }}
+                        >
+                          {a.description}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* ── Session list ────────────────────── */}
-            <section className="mt-7 sunrise-fade-up" style={{ animationDelay: '220ms' }}>
+            <section className="mt-7 sunrise-fade-up" style={{ animationDelay: '260ms' }}>
               <SectionHeader title="Últimas sesiones" />
               <div className="flex flex-col gap-2">
                 {recent.map((rec) => (

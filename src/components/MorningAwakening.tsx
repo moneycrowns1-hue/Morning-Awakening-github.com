@@ -33,9 +33,16 @@ import SettingsScreen from './SettingsScreen';
 import HistoryScreen from './HistoryScreen';
 import OnboardingModal from './OnboardingModal';
 import WelcomeScreen from './WelcomeScreen';
-import { appendSession, computeQualityScore } from '@/lib/sessionHistory';
+import { appendSession, computeQualityScore, loadSessions } from '@/lib/sessionHistory';
 import { startSilentKeepalive, stopSilentKeepalive } from '@/lib/silentAudioKeepalive';
 import { clearMediaSession } from '@/lib/mediaSession';
+import {
+  evaluateAchievements,
+  getDefinition,
+  loadUnlocked,
+  persistNewlyUnlocked,
+} from '@/lib/achievements';
+import AchievementToast from './AchievementToast';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -69,6 +76,7 @@ export default function MorningAwakening() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sessionXp, setSessionXp] = useState(0);
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
+  const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
 
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
@@ -270,6 +278,17 @@ export default function MorningAwakening() {
         streak: newData.streak,
       });
 
+      // Re-evaluate achievements against the *updated* sessions list.
+      // Any newly-unlocked ids get persisted and queued for the toast
+      // stack the SummaryScreen renders. loadSessions returns the full
+      // history including the record we just appended.
+      const unlocked = loadUnlocked();
+      const freshlyUnlocked = evaluateAchievements(loadSessions(), unlocked);
+      if (freshlyUnlocked.length > 0) {
+        persistNewlyUnlocked(freshlyUnlocked);
+        setAchievementQueue((q) => [...q, ...freshlyUnlocked]);
+      }
+
       if (containerRef.current) {
         gsap.to(containerRef.current, {
           opacity: 0, duration: 0.5, onComplete: () => {
@@ -341,6 +360,11 @@ export default function MorningAwakening() {
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(PROFILE_KEY);
+      // Also wipe derived state so the fresh profile isn't haunted by
+      // old sessions, unlocked achievements or a scheduled reminder.
+      localStorage.removeItem('morning-awakening-sessions');
+      localStorage.removeItem('morning-awakening-achievements');
+      localStorage.removeItem('morning-awakening-reminder');
     } catch { /* ignore */ }
     setStreakData(DEFAULT_STREAK_DATA);
     setProfile(DEFAULT_PROFILE);
@@ -348,6 +372,7 @@ export default function MorningAwakening() {
     setShowOnboarding(true);
     setAppState('IDLE');
     setMissionIndex(0);
+    setAchievementQueue([]);
   }, []);
 
   const removeToast = useCallback((id: number) => {
@@ -474,6 +499,24 @@ export default function MorningAwakening() {
       {showOnboarding && (
         <OnboardingModal onComplete={handleOnboardingComplete} />
       )}
+
+      {/* Achievement toast stack — renders in MISSION/COMPLETE only.
+          Each toast self-dismisses after ~3.6s and pops itself off the
+          queue via onDone. The IDLE branch renders its own copy below
+          so unlocks also surface on Welcome (e.g. if the user closes
+          and re-opens mid-flow). */}
+      {achievementQueue.map((id, i) => {
+        const def = getDefinition(id);
+        if (!def) return null;
+        return (
+          <AchievementToast
+            key={`${id}-${i}`}
+            def={def}
+            stackIndex={i}
+            onDone={() => setAchievementQueue((q) => q.filter((x, idx) => !(idx === 0 && x === id)))}
+          />
+        );
+      })}
     </div>
   );
 }

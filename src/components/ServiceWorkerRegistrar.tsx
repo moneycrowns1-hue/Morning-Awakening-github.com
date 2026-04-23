@@ -18,6 +18,15 @@ export default function ServiceWorkerRegistrar() {
     const onLoad = () => {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
+        .then(async () => {
+          // Once the SW is active, re-post the morning reminder schedule.
+          // This is necessary because SW timeouts don't survive browser
+          // restarts — the page has to tell it again every load.
+          try {
+            const { rehydrateReminder } = await import('@/lib/morningReminder');
+            await rehydrateReminder();
+          } catch { /* ignore */ }
+        })
         .catch((err) => {
           // eslint-disable-next-line no-console
           console.warn('[sw] registration failed', err);

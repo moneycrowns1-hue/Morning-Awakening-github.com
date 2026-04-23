@@ -423,6 +423,18 @@ html, body {
   filter: drop-shadow(0 0 14px rgba(244, 194, 103, 0.35));
 }
 
+/* Achievement toast entry animation. Drop-in from the top with
+   a quick opacity, blur and translate, stay, then fade out. */
+@keyframes achievement-toast-enter {
+  0%   { opacity: 0; transform: translate(-50%, -18px); filter: blur(4px); }
+  12%  { opacity: 1; transform: translate(-50%, 0);     filter: blur(0); }
+  85%  { opacity: 1; transform: translate(-50%, 0);     filter: blur(0); }
+  100% { opacity: 0; transform: translate(-50%, -12px); filter: blur(3px); }
+}
+.achievement-toast-enter {
+  animation: achievement-toast-enter 3.6s ease-in-out forwards;
+}
+
 /* Range slider styled to match the sunrise palette. Used in
    SettingsScreen. Thumb is gold, track is subtle cream. */
 .sunrise-slider {
