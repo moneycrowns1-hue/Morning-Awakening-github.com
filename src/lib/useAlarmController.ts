@@ -297,10 +297,16 @@ export function useAlarmController(): UseAlarmController {
   }, []);
 
   // ── Manual fire ("Empezar ahora" from settings) ─────
+  // Starts the full sequence from the very beginning of the ramp so
+  // the user actually experiences the configured `rampSec` seconds
+  // of gentle fade-in BEFORE reaching peak (previous behaviour used
+  // `rampSec - 2`, which made it look like the ramp only lasted
+  // 2 seconds — the user reported "se cambia después de 2 o 3s y
+  // comienza el peak").
   const fireNow = useCallback(async () => {
     unlockAlarmAudio();
-    await fireAlarmInternal(Math.max(0, config.rampSec - 2));
-  }, [config.rampSec, fireAlarmInternal]);
+    await fireAlarmInternal(0);
+  }, [fireAlarmInternal]);
 
   // ── Test-mode fire (compressed sequence ~1 min) ─────
   // Bypasses fireAlarmInternal to avoid touching the persisted

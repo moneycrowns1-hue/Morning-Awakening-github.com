@@ -382,9 +382,11 @@ export class AlarmEngine {
     this.wakeupFired = true;
 
     let fired = false;
+    let safetyTimer: number | null = null;
     const done = () => {
       if (fired) return;
       fired = true;
+      if (safetyTimer !== null) { clearTimeout(safetyTimer); safetyTimer = null; }
       try { onComplete(); } catch (err) { console.error('[AlarmEngine] onComplete error', err); }
     };
 
@@ -424,6 +426,35 @@ export class AlarmEngine {
         });
       }
       rampVolume(this.wakeup, 1, WAKEUP_FADE_SEC);
+
+      // ─── Safety timeout ──────────────────────────────
+      // iOS Safari (especially inside an installed PWA) occasionally
+      // fails to emit 'ended' on short mp3s: the audio decoder
+      // underruns at the very tail and the element transitions to
+      // paused without firing the event. If that happens we'd hang
+      // on the ringing overlay forever — the user reported exactly
+      // that: "se quita después de un rato" / "aunque sea poner un
+      // tiempo, se acaba ese tiempo y se va a la pantalla inicial".
+      //
+      // Compute a hard upper bound based on the file's real duration
+      // (known once metadata has loaded) + 3 s slack, defaulting to
+      // 90 s when metadata isn't available yet. When this timer
+      // fires, done() chains to onComplete so the overlay dismisses
+      // and the protocol (if chained) starts regardless.
+      const scheduleSafety = () => {
+        const dur = Number.isFinite(wkEl.duration) && wkEl.duration > 0
+          ? wkEl.duration
+          : 90;
+        const ms = Math.ceil((dur + 3) * 1000);
+        safetyTimer = window.setTimeout(() => {
+          if (!fired) {
+            console.warn('[AlarmEngine] wakeup safety timeout fired — ended event missed');
+            done();
+          }
+        }, ms);
+      };
+      if (wkEl.readyState >= 1) scheduleSafety();
+      else wkEl.addEventListener('loadedmetadata', scheduleSafety, { once: true });
     } catch (err) {
       console.error('[AlarmEngine] playWakeup error', err);
       done();
