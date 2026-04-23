@@ -13,7 +13,7 @@
 //      fire, platform caveat note.
 // ═══════════════════════════════════════════════════════
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, BellOff, ChevronLeft, Info, Play, Sparkles, Sun } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { haptics } from '@/lib/haptics';
@@ -22,12 +22,13 @@ import {
   nextFireInfo,
   type AlarmConfig,
 } from '@/lib/alarmSchedule';
+import { prefetchAlarmAudio, type PreviewResult } from '@/lib/alarmEngine';
 import { SUNRISE, hexToRgba } from '@/lib/theme';
 
 interface AlarmScreenProps {
   config: AlarmConfig;
   onChange: (next: AlarmConfig) => void;
-  onPreview: () => Promise<void>;
+  onPreview: () => Promise<PreviewResult>;
   onFireNow: () => Promise<void>;
   onClose: () => void;
 }
@@ -40,6 +41,21 @@ export default function AlarmScreen({
   onClose,
 }: AlarmScreenProps) {
   const info = useMemo(() => nextFireInfo(config), [config]);
+
+  // Preview diagnostic — surfaced in the UI so we can debug iOS audio
+  // without Safari Web Inspector. Populated by the "Probar 6s" handler.
+  const [previewState, setPreviewState] = useState<
+    | { status: 'idle' }
+    | { status: 'running' }
+    | { status: 'done'; result: PreviewResult }
+  >({ status: 'idle' });
+
+  // Warm the HTTP cache for the 7 MB Tycho file (+ Zimmer + musica
+  // principal) the moment AlarmScreen mounts. This is the iOS fix for
+  // "Probar 6s" completing before the fetch even finished on cellular.
+  useEffect(() => {
+    void prefetchAlarmAudio();
+  }, []);
 
   const rampMin = Math.round(config.rampSec / 60);
   const reaseguroMin = Math.round(config.reaseguroSec / 60);
@@ -354,15 +370,24 @@ export default function AlarmScreen({
         {/* ─── Actions ──────────────────────────────── */}
         <div className="flex gap-2 mb-5 sunrise-fade-up" style={{ animationDelay: '280ms' }}>
           <button
-            onClick={() => { haptics.tap(); void onPreview(); }}
-            className="flex-1 py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98]"
+            onClick={() => {
+              haptics.tap();
+              setPreviewState({ status: 'running' });
+              // Fire-and-display — onPreview itself unlocks audio
+              // synchronously inside this click handler.
+              void onPreview().then((result) => {
+                setPreviewState({ status: 'done', result });
+              });
+            }}
+            disabled={previewState.status === 'running'}
+            className="flex-1 py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98] disabled:opacity-60"
             style={{
               border: '1px solid rgba(255,250,240,0.15)',
               background: 'rgba(255,250,240,0.04)',
               color: 'var(--sunrise-text-soft)',
             }}
           >
-            Probar 6s
+            {previewState.status === 'running' ? 'Sonando…' : 'Probar 6s'}
           </button>
           <button
             onClick={() => { haptics.warn(); void onFireNow(); }}
@@ -376,6 +401,56 @@ export default function AlarmScreen({
             Empezar ahora
           </button>
         </div>
+
+        {/* ─── Preview diagnostic ───────────────────── */}
+        {previewState.status === 'done' && (
+          <div
+            className="rounded-xl p-3 mb-4 sunrise-fade-up"
+            style={{
+              border: `1px solid ${previewState.result.ok
+                ? hexToRgba(SUNRISE.rise2, 0.35)
+                : 'rgba(255, 120, 120, 0.35)'}`,
+              background: previewState.result.ok
+                ? hexToRgba(SUNRISE.rise2, 0.06)
+                : 'rgba(255, 120, 120, 0.06)',
+            }}
+          >
+            <div
+              className="font-ui text-[10px] uppercase tracking-[0.28em] mb-1"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              {previewState.result.ok ? 'Preview OK' : 'Preview falló'}
+            </div>
+            <div
+              className="font-mono text-[11px] leading-relaxed"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              play started: <b>{previewState.result.playStarted ? 'sí' : 'NO'}</b>{' '}
+              · buffered: <b>{previewState.result.bufferedSec.toFixed(1)}s</b>
+              {previewState.result.error && (
+                <>
+                  <br />error: <b>{previewState.result.error}</b>
+                </>
+              )}
+            </div>
+            {!previewState.result.ok && !previewState.result.playStarted && !previewState.result.error && (
+              <div
+                className="font-ui text-[10px] mt-1 leading-relaxed"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                play() no se ejecutó. Toca el botón más fuerte/directo — iOS necesita el gesto exactamente sobre el botón.
+              </div>
+            )}
+            {!previewState.result.ok && previewState.result.bufferedSec < 1 && (
+              <div
+                className="font-ui text-[10px] mt-1 leading-relaxed"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                No se buffereó audio. Revisa conexión. El archivo Tycho pesa 7 MB.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ─── Status ───────────────────────────────── */}
         {config.enabled && (

@@ -47,6 +47,17 @@ export interface AlarmCallbacks {
   onProgress?: (volume: number, stage: AlarmStage) => void;
 }
 
+/** Diagnostic returned by AlarmEngine.preview so the UI can show
+ *  the user exactly why no sound was heard (buffering, autoplay
+ *  policy rejection, MediaError, etc). */
+export interface PreviewResult {
+  ok: boolean;
+  playStarted: boolean;
+  /** Seconds of audio the browser managed to buffer during the preview. */
+  bufferedSec: number;
+  error: string | null;
+}
+
 export interface AlarmStartOptions {
   rampDurationSec: number;
   reaseguroDelaySec: number;
@@ -80,6 +91,27 @@ export function getAlarmCtx(): AudioContext {
     sharedCtx = new AC();
   }
   return sharedCtx;
+}
+
+/**
+ * Warm the HTTP cache for the alarm stems. Call once when the
+ * AlarmScreen mounts so the 7 MB Tycho file is already buffered
+ * by the time the user taps "Probar 6s" — otherwise the preview
+ * finishes before the fetch does and no audio reaches the ear.
+ *
+ * Returns a Promise so callers can await if they want, but it's
+ * safe to fire-and-forget (errors are swallowed).
+ */
+export function prefetchAlarmAudio(stems: StemPaths = DEFAULT_STEMS): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  const urls = [stems.ramp, stems.wakeup, stems.reaseguro].filter(Boolean);
+  return Promise.all(
+    urls.map((u) =>
+      fetch(encodeURI(u), { cache: 'force-cache', credentials: 'same-origin' })
+        .then((r) => r.ok ? r.blob() : null)  // consume so browser actually caches
+        .catch(() => null),
+    ),
+  ).then(() => undefined);
 }
 
 /**
@@ -317,8 +349,24 @@ export class AlarmEngine {
     this.cb.onStageChange?.('idle');
   }
 
-  /** 6s preview of the ramp stem near peak volume. */
-  async preview(durationSec = 6, previewVol = 0.7): Promise<void> {
+  /**
+   * 6 s preview of the ramp stem near peak volume.
+   *
+   * Returns a diagnostic object describing what actually happened —
+   * `AlarmScreen` renders the result so the user can see whether the
+   * audio played, errored, or never buffered. This is the only way
+   * to debug iOS audio without a Mac + Safari Web Inspector.
+   */
+  async preview(
+    durationSec = 6,
+    previewVol = 0.7,
+  ): Promise<PreviewResult> {
+    const result: PreviewResult = {
+      ok: false,
+      playStarted: false,
+      bufferedSec: 0,
+      error: null,
+    };
     try {
       const el = makeStemEl(this.stems.ramp, false);
       const stem: Stem = { el, target: 0, rafHandle: null };
@@ -333,19 +381,43 @@ export class AlarmEngine {
       if (el.readyState >= 1) seek();
       else el.addEventListener('loadedmetadata', seek, { once: true });
 
+      el.addEventListener('playing', () => { result.playStarted = true; }, { once: true });
+      el.addEventListener('error', () => {
+        const e = el.error;
+        result.error = e ? `media err ${e.code}` : 'media err';
+      }, { once: true });
+
       // Sync play() kick first — iOS demands it.
       el.volume = 0.0001;
       const pp = el.play();
       if (pp && typeof pp.then === 'function') {
-        pp.catch((err) => console.warn('[AlarmEngine] preview play rejected', err));
+        pp.catch((err: unknown) => {
+          result.error = err instanceof Error ? err.message : String(err);
+          console.warn('[AlarmEngine] preview play rejected', err);
+        });
       }
       rampVolume(stem, previewVol, durationSec / 2);
       await new Promise((r) => window.setTimeout(r, durationSec * 1000));
+
+      // Snapshot buffered range for diagnostics before fading out.
+      try {
+        if (el.buffered.length > 0) {
+          result.bufferedSec = el.buffered.end(el.buffered.length - 1) - el.buffered.start(0);
+        }
+      } catch { /* ignore */ }
+
       rampVolume(stem, 0, 0.8);
       await new Promise((r) => window.setTimeout(r, 900));
-      try { el.pause(); el.src = ''; el.load(); } catch { /* ignore */ }
+      // Pause only — do NOT set src='' or call load(), those abort any
+      // still-running fetch and were the reason early previews produced
+      // zero audio on slow connections.
+      try { el.pause(); } catch { /* ignore */ }
+      result.ok = result.playStarted && !result.error;
+      return result;
     } catch (err) {
+      result.error = err instanceof Error ? err.message : String(err);
       console.error('[AlarmEngine] preview failed', err);
+      return result;
     }
   }
 

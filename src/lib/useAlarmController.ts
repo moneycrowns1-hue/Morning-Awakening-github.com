@@ -34,6 +34,7 @@ import {
   DEFAULT_STEMS,
   unlockAlarmAudio,
   type AlarmStage,
+  type PreviewResult,
 } from './alarmEngine';
 import { startSilentKeepalive, stopSilentKeepalive } from './silentAudioKeepalive';
 
@@ -47,8 +48,10 @@ export interface UseAlarmController {
   /** 0..1 current audible intensity, driven by the engine. */
   intensity: number;
 
-  /** Starts a manual preview tone for ~6s (for "Probar" button). */
-  preview: () => Promise<void>;
+  /** Starts a manual preview tone for ~6 s (for "Probar" button).
+   *  Resolves with a diagnostic describing whether audio actually
+   *  played so the UI can surface iOS-specific failures. */
+  preview: () => Promise<PreviewResult>;
   /** Manually trigger the alarm (used from the "Empezar ahora" button). */
   fireNow: () => Promise<void>;
   /** Stop the alarm and mark as dismissed (no wake-up voice). */
@@ -271,13 +274,20 @@ export function useAlarmController(): UseAlarmController {
   );
 
   // ── Manual preview (settings "Probar" button) ───────
-  const preview = useCallback(async () => {
+  const preview = useCallback(async (): Promise<PreviewResult> => {
     // Must run synchronously in gesture stack on iOS.
     unlockAlarmAudio();
     const engine = new AlarmEngine(DEFAULT_STEMS);
     try {
-      await engine.preview(6, 0.55);
-    } catch { /* ignore */ }
+      return await engine.preview(6, 0.7);
+    } catch (err) {
+      return {
+        ok: false,
+        playStarted: false,
+        bufferedSec: 0,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }, []);
 
   // ── Manual fire ("Empezar ahora" from settings) ─────
