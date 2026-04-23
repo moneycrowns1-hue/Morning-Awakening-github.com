@@ -46,6 +46,7 @@ import AchievementToast from './AchievementToast';
 import AlarmScreen from './AlarmScreen';
 import AlarmRingingOverlay from './AlarmRingingOverlay';
 import { useAlarmController } from '@/lib/useAlarmController';
+import { unlockAlarmAudio } from '@/lib/alarmEngine';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -394,6 +395,9 @@ export default function MorningAwakening() {
   // handleInitialize needs the click to happen inside a user gesture
   // for iOS AudioContext unlock — the dismiss button IS that gesture.
   const handleAlarmDismiss = useCallback(async () => {
+    // Unlock the shared AudioContext inside the tap gesture BEFORE
+    // any await. iOS needs this or the wake-up stem won't play.
+    unlockAlarmAudio();
     const shouldChain = alarm.config.chainProtocol && appState === 'IDLE';
     if (shouldChain) {
       // Close any fullscreens that would mask the protocol start.

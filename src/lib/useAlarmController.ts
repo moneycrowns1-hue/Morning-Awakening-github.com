@@ -32,6 +32,7 @@ import {
   AlarmEngine,
   DEFAULT_COACH_TEXT,
   DEFAULT_STEMS,
+  unlockAlarmAudio,
   type AlarmStage,
 } from './alarmEngine';
 import { startSilentKeepalive, stopSilentKeepalive } from './silentAudioKeepalive';
@@ -117,13 +118,19 @@ export function useAlarmController(): UseAlarmController {
       });
       engineRef.current = engine;
 
-      // Keep the page classified as "playing media" so iOS doesn't
-      // throttle the AudioContext mid-ramp.
+      // CRITICAL iOS ORDERING:
+      // 1. Unlock shared AudioContext (must be synchronous in gesture).
+      // 2. Kick silent keepalive (uses HTMLAudioElement, needs gesture).
+      // 3. engine.start() which synchronously calls ramp.play().
+      // 4. Only THEN await wake lock (it awaits a permission prompt and
+      //    would otherwise break the gesture chain before play()).
+      unlockAlarmAudio();
       startSilentKeepalive();
-      await requestWakeLock();
 
       try {
-        await engine.start({
+        // Don't await — keeps us inside the gesture microtask so the
+        // engine's internal el.play() is accepted by iOS Safari.
+        const startPromise = engine.start({
           rampDurationSec: config.rampSec,
           reaseguroDelaySec: config.reaseguroSec,
           peakVolume: config.peakVolume,
@@ -131,6 +138,9 @@ export function useAlarmController(): UseAlarmController {
           coachText: DEFAULT_COACH_TEXT,
         });
         setIsRinging(true);
+        // Fire-and-forget wake lock request AFTER play() was kicked.
+        void requestWakeLock();
+        await startPromise;
       } catch {
         // AudioContext couldn't start (no gesture, etc). Surface the
         // ringing state anyway so the overlay renders and a tap on
@@ -262,6 +272,8 @@ export function useAlarmController(): UseAlarmController {
 
   // ── Manual preview (settings "Probar" button) ───────
   const preview = useCallback(async () => {
+    // Must run synchronously in gesture stack on iOS.
+    unlockAlarmAudio();
     const engine = new AlarmEngine(DEFAULT_STEMS);
     try {
       await engine.preview(6, 0.55);
@@ -270,6 +282,7 @@ export function useAlarmController(): UseAlarmController {
 
   // ── Manual fire ("Empezar ahora" from settings) ─────
   const fireNow = useCallback(async () => {
+    unlockAlarmAudio();
     await fireAlarmInternal(Math.max(0, config.rampSec - 2));
   }, [config.rampSec, fireAlarmInternal]);
 

@@ -70,6 +70,42 @@ interface Stem {
   gain: GainNode;
 }
 
+// ─── Shared AudioContext ──────────────────────────────
+// iOS Safari only allows new AudioContexts to start if created
+// inside a user gesture AND resumed before the gesture's async
+// stack is exhausted. We therefore keep ONE context per page and
+// unlock it on the first tap anywhere in the alarm UI.
+let sharedCtx: AudioContext | null = null;
+
+export function getAlarmCtx(): AudioContext {
+  if (!sharedCtx) {
+    const AC = (window.AudioContext
+      || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    sharedCtx = new AC();
+  }
+  return sharedCtx;
+}
+
+/**
+ * Call from a user-gesture handler (tap, click). Creates or
+ * resumes the shared AudioContext and plays a 1-sample silent
+ * buffer so subsequent `HTMLAudioElement.play()` calls on
+ * MediaElementSource-connected elements are allowed by iOS
+ * even when triggered from a timer.
+ */
+export function unlockAlarmAudio(): void {
+  try {
+    const ctx = getAlarmCtx();
+    // Resume synchronously — iOS accepts resume() inside a gesture.
+    void ctx.resume();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch { /* ignore */ }
+}
+
 export class AlarmEngine {
   private ctx: AudioContext | null = null;
   private ramp: Stem | null = null;
@@ -104,6 +140,13 @@ export class AlarmEngine {
     return this.stage;
   }
 
+  /**
+   * IMPORTANT iOS note: this method is NOT awaited before calling
+   * el.play(). The synchronous path is:
+   *   ensureCtxSync() → makeStem() → el.play()
+   * All within one microtask of the user gesture that called us.
+   * ctx.resume() is fire-and-forget so it doesn't break the gesture.
+   */
   async start(opts: AlarmStartOptions): Promise<void> {
     if (this.stage !== 'idle') this.stop();
 
@@ -114,16 +157,20 @@ export class AlarmEngine {
     this.peakVolume = peak;
     this.coachText = opts.coachText;
 
-    await this.ensureCtx();
+    this.ensureCtxSync();
 
-    // Build the ramp stem and start it.
+    // Build the ramp stem and start it SYNCHRONOUSLY. iOS only honors
+    // el.play() if it's reached without an await gap from the gesture.
     this.ramp = this.makeStem(this.stems.ramp, true);
     const now = this.ctx!.currentTime;
     const startVol = Math.max(0.0001, (offset / rampSec) * peak);
     this.ramp.gain.gain.setValueAtTime(startVol, now);
-    // Seek into the track so the Tycho intro doesn't always start from 0.
-    try { this.ramp.el.currentTime = Math.min(15, this.ramp.el.duration || 15); } catch { /* ignore */ }
-    try { await this.ramp.el.play(); } catch (err) { console.warn('[AlarmEngine] ramp play failed', err); }
+    // Kick playback. Don't await — iOS rejects play() if we hit a
+    // microtask boundary before calling it. Handle rejection async.
+    const playPromise = this.ramp.el.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.catch((err) => console.warn('[AlarmEngine] ramp play rejected', err));
+    }
 
     const remaining = rampSec - offset;
     this.ramp.gain.gain.exponentialRampToValueAtTime(
@@ -156,13 +203,14 @@ export class AlarmEngine {
    */
   async playWakeup(onComplete: () => void): Promise<void> {
     try {
-      await this.ensureCtx();
+      this.ensureCtxSync();
       this.clearTimers();
       this.cancelCoach();
 
-      // Fade out ramp + reaseguro.
       const ctx = this.ctx!;
       const t = ctx.currentTime;
+
+      // Fade out ramp + reaseguro over WAKEUP_FADE_SEC.
       for (const s of [this.ramp, this.reaseguro]) {
         if (!s) continue;
         try {
@@ -171,25 +219,32 @@ export class AlarmEngine {
           s.gain.gain.exponentialRampToValueAtTime(0.0001, t + WAKEUP_FADE_SEC);
         } catch { /* ignore */ }
       }
-      await new Promise<void>((r) => window.setTimeout(r, WAKEUP_FADE_SEC * 1000));
-      try { this.ramp?.el.pause(); } catch { /* ignore */ }
-      try { this.reaseguro?.el.pause(); } catch { /* ignore */ }
+      // Schedule the pause after fade — NOT awaited so the gesture stack
+      // stays alive long enough for wakeup.el.play() below.
+      window.setTimeout(() => {
+        try { this.ramp?.el.pause(); } catch { /* ignore */ }
+        try { this.reaseguro?.el.pause(); } catch { /* ignore */ }
+      }, WAKEUP_FADE_SEC * 1000);
 
       this.stage = 'wakeup';
       this.cb.onStageChange?.('wakeup');
       this.cb.onProgress?.(1, 'wakeup');
 
+      // Create and start the wakeup stem SYNCHRONOUSLY. Start it at
+      // low gain and fade it in over WAKEUP_FADE_SEC to smoothly
+      // crossfade with the ramp/reaseguro fade-out.
       this.wakeup = this.makeStem(this.stems.wakeup, false);
-      this.wakeup.gain.gain.setValueAtTime(1, this.ctx!.currentTime);
+      this.wakeup.gain.gain.setValueAtTime(0.0001, t);
+      this.wakeup.gain.gain.exponentialRampToValueAtTime(1, t + WAKEUP_FADE_SEC);
       const wk = this.wakeup;
-      wk.el.onended = () => {
-        onComplete();
-      };
-      try {
-        await wk.el.play();
-      } catch (err) {
-        console.warn('[AlarmEngine] wakeup play failed', err);
-        onComplete();
+      wk.el.onended = () => { onComplete(); };
+      wk.el.onerror = () => { onComplete(); };
+      const pp = wk.el.play();
+      if (pp && typeof pp.then === 'function') {
+        pp.catch((err) => {
+          console.warn('[AlarmEngine] wakeup play rejected', err);
+          onComplete();
+        });
       }
     } catch (err) {
       console.error('[AlarmEngine] playWakeup error', err);
@@ -224,14 +279,16 @@ export class AlarmEngine {
   /** ~6s preview of the ramp stem near peak volume. */
   async preview(durationSec = 6, previewVol = 0.6): Promise<void> {
     try {
-      await this.ensureCtx();
+      this.ensureCtxSync();
       const stem = this.makeStem(this.stems.ramp, false);
       const ctx = this.ctx!;
       const t = ctx.currentTime;
       stem.gain.gain.setValueAtTime(0.0001, t);
       stem.gain.gain.exponentialRampToValueAtTime(previewVol, t + durationSec / 2);
+      // Kick playback synchronously within the gesture stack so iOS allows it.
       try { stem.el.currentTime = 30; } catch { /* ignore */ }
-      try { await stem.el.play(); } catch { /* ignore */ }
+      const pp = stem.el.play();
+      if (pp && typeof pp.then === 'function') pp.catch(() => { /* ignore */ });
       await new Promise((r) => window.setTimeout(r, durationSec * 1000));
       const t2 = ctx.currentTime;
       stem.gain.gain.cancelScheduledValues(t2);
@@ -249,14 +306,17 @@ export class AlarmEngine {
   // Internals
   // ─────────────────────────────────────────────────────
 
-  private async ensureCtx(): Promise<AudioContext> {
-    if (!this.ctx) {
-      const AC = (window.AudioContext
-        || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-      this.ctx = new AC();
-    }
+  /**
+   * Synchronous ctx init — returns instantly. Resume is fire-and-forget
+   * so the caller never awaits. Required so we don't break the user
+   * gesture chain on iOS before calling el.play().
+   */
+  private ensureCtxSync(): AudioContext {
+    if (!this.ctx) this.ctx = getAlarmCtx();
     if (this.ctx.state === 'suspended') {
-      try { await this.ctx.resume(); } catch { /* ignore */ }
+      // Don't await — iOS accepts resume() synchronously in the gesture
+      // stack and the promise resolves later without blocking us.
+      this.ctx.resume().catch(() => { /* ignore */ });
     }
     return this.ctx;
   }
@@ -267,7 +327,12 @@ export class AlarmEngine {
     const el = new Audio(encodeURI(url));
     el.loop = loop;
     el.preload = 'auto';
-    el.crossOrigin = 'anonymous';
+    // iOS Safari requires these so play() is honored without full-screen.
+    el.setAttribute('playsinline', '');
+    el.setAttribute('webkit-playsinline', '');
+    // Don't set crossOrigin — the mp3s are same-origin. Setting it to
+    // 'anonymous' on same-origin files triggers a CORS preflight that
+    // some CDNs reject, silently blocking playback.
     const source = ctx.createMediaElementSource(el);
     const gain = ctx.createGain();
     gain.gain.value = 0;
@@ -331,13 +396,14 @@ export class AlarmEngine {
 
   private async tryCoachMp3(url: string, onDone: () => void): Promise<void> {
     try {
-      const ctx = await this.ensureCtx();
+      const ctx = this.ensureCtxSync();
       // Probe with HEAD first so a 404 falls back to TTS cleanly.
       const probe = await fetch(encodeURI(url), { method: 'HEAD' });
       if (!probe.ok) throw new Error(`coach mp3 HTTP ${probe.status}`);
       const el = new Audio(encodeURI(url));
-      el.crossOrigin = 'anonymous';
       el.preload = 'auto';
+      el.setAttribute('playsinline', '');
+      el.setAttribute('webkit-playsinline', '');
       this.coachAudio = el;
       const source = ctx.createMediaElementSource(el);
       const g = ctx.createGain();
@@ -345,7 +411,8 @@ export class AlarmEngine {
       source.connect(g).connect(ctx.destination);
       el.onended = () => { onDone(); };
       el.onerror = () => { onDone(); };
-      await el.play();
+      const pp = el.play();
+      if (pp && typeof pp.then === 'function') pp.catch(() => onDone());
     } catch (err) {
       console.warn('[AlarmEngine] coach mp3 unavailable, using TTS', err);
       if (this.coachText) this.speakCoach(this.coachText, onDone);
