@@ -24,6 +24,8 @@ import {
 } from '@/lib/alarmSchedule';
 import { prefetchAlarmAudio, type PreviewResult } from '@/lib/alarmEngine';
 import { SUNRISE, hexToRgba } from '@/lib/theme';
+import AppCloseWarningModal, { shouldShowAppCloseWarning } from './AppCloseWarningModal';
+import { requestPermission, permissionStatus } from '@/lib/morningReminder';
 
 interface AlarmScreenProps {
   config: AlarmConfig;
@@ -55,6 +57,19 @@ export default function AlarmScreen({
     | { status: 'done'; result: PreviewResult }
   >({ status: 'idle' });
 
+  // "No cierres la app" advisory modal. Shown the first time the
+  // user arms the alarm (enabled flips from false → true) and
+  // stays dismissed afterwards. Can be permanently silenced via
+  // the in-modal checkbox.
+  const [showCloseWarning, setShowCloseWarning] = useState(false);
+
+  // Surface the current Notification permission so the UI can
+  // nudge the user towards granting it (fallback alarm at peak).
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission | 'unsupported' | 'unknown'>('unknown');
+  useEffect(() => {
+    setNotifPerm(permissionStatus());
+  }, []);
+
   // Warm the HTTP cache for the 7 MB Tycho file (+ Zimmer + musica
   // principal) the moment AlarmScreen mounts. This is the iOS fix for
   // "Probar 6s" completing before the fetch even finished on cellular.
@@ -73,6 +88,24 @@ export default function AlarmScreen({
   const update = (patch: Partial<AlarmConfig>) => {
     haptics.tick();
     onChange({ ...config, ...patch });
+  };
+
+  // Arming an alarm needs two side-effects beyond the config patch:
+  //   1. Ask for Notification permission so the SW fallback at peak
+  //      is actually delivered on iOS (silent otherwise).
+  //   2. Surface the "No cierres la app" advisory exactly once.
+  // Must run inside the tap gesture on iOS — do NOT await before
+  // calling requestPermission().
+  const handleToggleEnabled = () => {
+    haptics.tick();
+    const next = !config.enabled;
+    onChange({ ...config, enabled: next });
+    if (next) {
+      if (shouldShowAppCloseWarning()) setShowCloseWarning(true);
+      // Permission prompt: fire and forget; iOS will surface the
+      // native dialog inside this gesture.
+      void requestPermission().then((p) => setNotifPerm(p));
+    }
   };
 
   return (
@@ -112,7 +145,7 @@ export default function AlarmScreen({
         </div>
         {/* Enable toggle */}
         <button
-          onClick={() => update({ enabled: !config.enabled })}
+          onClick={handleToggleEnabled}
           className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-full transition-all"
           style={{
             border: `1px solid ${config.enabled ? hexToRgba(SUNRISE.rise2, 0.45) : 'rgba(255,250,240,0.12)'}`,
@@ -527,7 +560,72 @@ export default function AlarmScreen({
             </div>
           </div>
         </div>
+
+        {/* ─── Notification permission hint ──────────
+            Only surfaces when the user armed the alarm but the OS
+            hasn't granted notifications. Gives a manual "Activar
+            notificaciones" button so the prompt can be retried
+            (requestPermission() must run inside a user gesture;
+            this button IS that gesture). */}
+        {config.enabled && (notifPerm === 'default' || notifPerm === 'denied') && (
+          <div
+            className="mt-3 rounded-2xl p-4 sunrise-fade-up flex items-start gap-3"
+            style={{
+              animationDelay: '400ms',
+              border: `1px solid ${notifPerm === 'denied'
+                ? 'rgba(255, 120, 120, 0.35)'
+                : hexToRgba(SUNRISE.rise2, 0.35)}`,
+              background: notifPerm === 'denied'
+                ? 'rgba(255, 120, 120, 0.05)'
+                : hexToRgba(SUNRISE.rise2, 0.05),
+            }}
+          >
+            <Bell size={13} strokeWidth={1.9} style={{
+              color: notifPerm === 'denied' ? '#ff7878' : SUNRISE.rise2,
+              marginTop: 2,
+            }} />
+            <div className="flex-1">
+              <div
+                className="font-ui text-[11px] font-[500] mb-1"
+                style={{ color: 'var(--sunrise-text)' }}
+              >
+                {notifPerm === 'denied'
+                  ? 'Notificaciones bloqueadas'
+                  : 'Activa las notificaciones'}
+              </div>
+              <div
+                className="font-ui text-[10px] leading-relaxed mb-2"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                {notifPerm === 'denied'
+                  ? 'iOS está bloqueando las notificaciones de esta app. Ajustes del sistema → Notificaciones → Morning Awakening → Permitir.'
+                  : 'Sin este permiso, el respaldo del sistema a la hora del peak no suena aunque la app esté cerrada.'}
+              </div>
+              {notifPerm === 'default' && (
+                <button
+                  onClick={() => {
+                    haptics.tap();
+                    void requestPermission().then((p) => setNotifPerm(p));
+                  }}
+                  className="px-3 py-1.5 rounded-full font-ui text-[11px] tracking-[0.18em] uppercase transition-transform active:scale-[0.97]"
+                  style={{
+                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
+                    background: hexToRgba(SUNRISE.rise2, 0.18),
+                    color: 'var(--sunrise-text)',
+                  }}
+                >
+                  Activar notificaciones
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* "No cierres la app" one-shot advisory */}
+      {showCloseWarning && (
+        <AppCloseWarningModal onClose={() => setShowCloseWarning(false)} />
+      )}
     </div>
   );
 }
