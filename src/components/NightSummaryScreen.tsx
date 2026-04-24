@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import MoonMascot from './MoonMascot';
+import IconosBackground from './IconosBackground';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { isHabitDone, setHabit } from '@/lib/habits';
@@ -42,10 +43,12 @@ export default function NightSummaryScreen({ mode, onEnterSlumber }: NightSummar
     <div
       className="relative w-full h-full flex flex-col items-center justify-center px-6"
       style={{
-        background: `radial-gradient(ellipse at 50% 40%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 75%)`,
+        background: NIGHT.abyss,
         color: NIGHT_TEXT.primary,
       }}
     >
+      <IconosBackground haloY={0.38} bottomGlow={1} starCount={65} />
+      <div className="relative z-10 flex flex-col items-center w-full">
       <MoonMascot size={180} breathing floating blinking />
 
       <div
@@ -116,6 +119,7 @@ export default function NightSummaryScreen({ mode, onEnterSlumber }: NightSummar
           Entregar · Slumber
         </span>
       </button>
+      </div>
     </div>
   );
 }

@@ -70,6 +70,8 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        <link rel="icon" type="image/jpeg" href="/iconos.jpeg" />
+        <link rel="shortcut icon" href="/iconos.jpeg" />
         <link rel="apple-touch-icon" href="/iconos.jpeg" />
       </head>
       <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-cinzel)]">

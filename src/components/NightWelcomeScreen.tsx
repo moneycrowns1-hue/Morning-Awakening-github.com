@@ -18,9 +18,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { X, Moon, Sun, Timer } from 'lucide-react';
-import GradientBackground from './GradientBackground';
+import IconosBackground from './IconosBackground';
 import MoonMascot from './MoonMascot';
-import { NIGHT, NIGHT_TEXT, getNightStageColors } from '@/lib/nightTheme';
+import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { totalNightDuration } from '@/lib/nightConstants';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
@@ -57,7 +57,6 @@ export default function NightWelcomeScreen({
 }: NightWelcomeScreenProps) {
   const [mode, setMode] = useState<NightMode>('full');
   const [time, setTime] = useState(() => now());
-  const welcomeColors = useMemo(() => getNightStageColors('welcome'), []);
 
   // Load persisted preference on mount.
   useEffect(() => {
@@ -103,16 +102,7 @@ export default function NightWelcomeScreen({
       className="relative w-full h-full flex flex-col overflow-hidden"
       style={{ color: NIGHT_TEXT.primary, background: NIGHT.abyss }}
     >
-      <GradientBackground stage="welcome" colors={welcomeColors} particleCount={45} />
-
-      {/* Subtle top-dark vignette for status bar area */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(10,6,20,0.55) 0%, rgba(10,6,20,0) 18%, rgba(10,6,20,0) 78%, rgba(10,6,20,0.45) 100%)',
-        }}
-      />
+      <IconosBackground haloY={0.42} />
 
       {/* ─── HUD ─────────────────────────────────────────────── */}
       <div

@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { Sun, X, BedDouble } from 'lucide-react';
 import MoonMascot from './MoonMascot';
+import IconosBackground from './IconosBackground';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
@@ -150,14 +151,16 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       onPointerLeave={onPointerUp}
       className="relative w-full h-full flex flex-col items-center justify-center select-none"
       style={{
-        background: `radial-gradient(ellipse at 50% 40%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 70%)`,
+        background: NIGHT.abyss,
         color: NIGHT_TEXT.primary,
         transition: 'filter 1.2s ease',
       }}
     >
+      <IconosBackground haloY={0.56} bottomGlow={0.7} starCount={80} />
+
       {/* Giant clock */}
       <div
-        className="font-mono tabular-nums leading-none"
+        className="relative z-10 font-mono tabular-nums leading-none"
         style={{
           fontSize: 'clamp(96px, 22vw, 140px)',
           letterSpacing: '-0.02em',
@@ -171,13 +174,13 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       </div>
 
       {/* Mascot */}
-      <div className="mt-6">
+      <div className="relative z-10 mt-6">
         <MoonMascot size={260} breathing floating blinking />
       </div>
 
       {/* Sleep gate card */}
       <div
-        className="mt-8 rounded-2xl px-5 py-4 w-[min(92%,380px)]"
+        className="relative z-10 mt-8 rounded-2xl px-5 py-4 w-[min(92%,380px)]"
         style={{
           background: hexToRgba(NIGHT.violet_2, 0.35),
           border: `1px solid ${NIGHT_TEXT.divider}`,
@@ -208,7 +211,7 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
 
       {/* Morning alarm line */}
       {alarmConfig.enabled && (
-        <div className="mt-6 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.3em] opacity-75" style={{ color: NIGHT_TEXT.muted }}>
+        <div className="relative z-10 mt-6 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.3em] opacity-75" style={{ color: NIGHT_TEXT.muted }}>
           <Sun size={12} strokeWidth={1.6} />
           <span className="font-mono tracking-wider">
             {String(alarmConfig.hour).padStart(2, '0')}:{String(alarmConfig.minute).padStart(2, '0')}
@@ -220,7 +223,7 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       {/* Long-press hint */}
       {!revealActions && (
         <div
-          className="absolute font-ui text-[9px] uppercase tracking-[0.35em]"
+          className="absolute z-10 font-ui text-[9px] uppercase tracking-[0.35em]"
           style={{
             bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
             color: NIGHT_TEXT.muted,
@@ -234,7 +237,7 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       {/* Hidden actions */}
       {revealActions && (
         <div
-          className="absolute flex gap-3"
+          className="absolute z-10 flex gap-3"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
         >
           <button

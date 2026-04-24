@@ -15,12 +15,13 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useMemo, useState } from 'react';
-import { X, Settings as SettingsIcon, Moon, AlarmClock, ChevronRight, Sparkles } from 'lucide-react';
+import { X, Settings as SettingsIcon, AlarmClock, ChevronRight, Sparkles } from 'lucide-react';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
 import { computeSleepGate, loadSleepConfig } from '@/lib/sleepGate';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
+import IconosBackground from './IconosBackground';
 
 interface WonderwakeClockScreenProps {
   alarmConfig: AlarmConfig;
@@ -119,8 +120,7 @@ export default function WonderwakeClockScreen({
         color: NIGHT_TEXT.primary,
       }}
     >
-      {/* Starfield decoration */}
-      <StarfieldBg />
+      <IconosBackground haloY={0.58} bottomGlow={0.85} starCount={55} />
 
       {/* ─── Header close button ─────────────────────────── */}
       <div
@@ -420,40 +420,3 @@ function buildArcPath(a1: number, a2: number, r: number): string {
   return `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${largeArc} 1 ${p2.x} ${p2.y}`;
 }
 
-function StarfieldBg() {
-  // Deterministic pseudo-star positions to avoid layout jumps between renders.
-  const stars = useMemo(() => {
-    const rng = mulberry32(1234);
-    return Array.from({ length: 40 }, () => ({
-      x: rng() * 100,
-      y: rng() * 100,
-      r: rng() * 1.3 + 0.2,
-      a: rng() * 0.6 + 0.15,
-    }));
-  }, []);
-  return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-      {stars.map((s, i) => (
-        <circle
-          key={i}
-          cx={`${s.x}%`}
-          cy={`${s.y}%`}
-          r={s.r}
-          fill={NIGHT.petal}
-          opacity={s.a}
-        />
-      ))}
-    </svg>
-  );
-}
-
-function mulberry32(seed: number) {
-  let a = seed;
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
