@@ -45,8 +45,10 @@ import {
 import AchievementToast from './AchievementToast';
 import AlarmScreen from './AlarmScreen';
 import AlarmRingingOverlay from './AlarmRingingOverlay';
+import NightModeScreen from './NightModeScreen';
 import { useAlarmController } from '@/lib/useAlarmController';
 import { unlockAlarmAudio } from '@/lib/alarmEngine';
+import { stopSleepEngine } from '@/lib/sleepEngine';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -82,11 +84,22 @@ export default function MorningAwakening() {
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
   const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
   const [showAlarm, setShowAlarm] = useState(false);
+  const [showNightMode, setShowNightMode] = useState(false);
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
   // lock and the ringing overlay state. Config changes persist through
   // the hook itself (saveAlarm inside setConfig).
   const alarm = useAlarmController();
+
+  // If the gentle alarm starts while Night Mode audio is playing,
+  // kill the ambient loop so the alarm ramp is clearly audible
+  // (otherwise they'd mix and the peak would sound muddy).
+  useEffect(() => {
+    if (alarm.isRinging) {
+      stopSleepEngine();
+      setShowNightMode(false);
+    }
+  }, [alarm.isRinging]);
 
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
@@ -465,6 +478,12 @@ export default function MorningAwakening() {
             onFireTest={alarm.fireTest}
             onClose={() => setShowAlarm(false)}
           />
+        ) : showNightMode ? (
+          <NightModeScreen
+            operatorName={profile.name}
+            onClose={() => setShowNightMode(false)}
+            onOpenAlarm={() => { setShowNightMode(false); setShowAlarm(true); }}
+          />
         ) : (
           <WelcomeScreen
             profile={profile}
@@ -474,6 +493,7 @@ export default function MorningAwakening() {
             onOpenSettings={() => setShowSettings(true)}
             onOpenHistory={() => setShowHistory(true)}
             onOpenAlarm={() => setShowAlarm(true)}
+            onOpenNightMode={() => setShowNightMode(true)}
             alarmArmed={alarm.config.enabled}
           />
         )}

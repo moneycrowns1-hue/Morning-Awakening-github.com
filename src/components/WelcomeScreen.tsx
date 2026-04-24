@@ -16,10 +16,13 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Flame, User, Settings as SettingsIcon, LineChart } from 'lucide-react';
+import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
+import { isNightSuggestionAppropriate, silenceNightSuggestionToday } from '@/lib/nightMode';
+import { haptics } from '@/lib/haptics';
+import { SUNRISE, hexToRgba } from '@/lib/theme';
 
 interface WelcomeScreenProps {
   profile: OperatorProfile;
@@ -29,6 +32,7 @@ interface WelcomeScreenProps {
   onOpenSettings?: () => void;
   onOpenHistory?: () => void;
   onOpenAlarm?: () => void;
+  onOpenNightMode?: () => void;
   /** True when a gentle alarm is armed — shows a subtle dot on the bell. */
   alarmArmed?: boolean;
 }
@@ -41,11 +45,26 @@ export default function WelcomeScreen({
   onOpenSettings,
   onOpenHistory,
   onOpenAlarm,
+  onOpenNightMode,
   alarmArmed,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
   const firstName = useMemo(() => profile.name.split(' ')[0] ?? profile.name, [profile.name]);
+
+  // Show the "son las 22:00, ¿modo noche?" suggestion card when it's
+  // actually night and the user hasn't silenced it today. The initial
+  // render (incl. SSR) is always `false` so hydration is stable; we
+  // flip it true in the mount-only effect once we know we're on the
+  // client and have access to localStorage.
+  const [showNightSuggestion, setShowNightSuggestion] = useState(false);
+  useEffect(() => {
+    if (!onOpenNightMode) return;
+    if (isNightSuggestionAppropriate()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowNightSuggestion(true);
+    }
+  }, [onOpenNightMode]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
@@ -84,6 +103,16 @@ export default function WelcomeScreen({
               días
             </span>
           </div>
+          {onOpenNightMode && (
+            <button
+              onClick={() => { haptics.tap(); onOpenNightMode(); }}
+              aria-label="Abrir modo noche"
+              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              <Moon size={18} strokeWidth={1.75} />
+            </button>
+          )}
           {onOpenAlarm && (
             <button
               onClick={onOpenAlarm}
@@ -174,6 +203,64 @@ export default function WelcomeScreen({
           Buenos días, <span style={{ color: 'var(--sunrise-text)' }}>{firstName}</span>.
         </div>
       </div>
+
+      {/* ─── Night-mode suggestion (>= 21:00) ──────────────── */}
+      {showNightSuggestion && onOpenNightMode && (
+        <div
+          className="relative z-10 mx-5 mb-3 rounded-2xl p-3 flex items-center gap-3 sunrise-fade-up"
+          style={{
+            animationDelay: '560ms',
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
+            background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.predawn2, 0.7)}, ${hexToRgba(SUNRISE.night, 0.8)})`,
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: hexToRgba(SUNRISE.rise2, 0.14),
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
+              color: SUNRISE.rise2,
+            }}
+          >
+            <Moon size={16} strokeWidth={1.8} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-ui text-[12px] font-[500]"
+              style={{ color: 'var(--sunrise-text)' }}
+            >
+              Son las {time} — ¿iniciamos tu rutina nocturna?
+            </div>
+            <div
+              className="font-ui text-[10px] mt-0.5"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              Sonidos ambientales, respiración 4-7-8 y una descarga mental antes de dormir.
+            </div>
+          </div>
+          <button
+            onClick={() => { haptics.tap(); onOpenNightMode(); }}
+            className="shrink-0 px-3 py-2 rounded-full font-ui text-[11px] tracking-[0.2em] uppercase"
+            style={{
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
+              background: hexToRgba(SUNRISE.rise2, 0.18),
+              color: 'var(--sunrise-text)',
+            }}
+          >
+            Entrar
+          </button>
+          <button
+            onClick={() => { haptics.tick(); silenceNightSuggestionToday(); setShowNightSuggestion(false); }}
+            aria-label="No mostrar hoy"
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ color: 'var(--sunrise-text-muted)' }}
+          >
+            <X size={14} strokeWidth={1.8} />
+          </button>
+        </div>
+      )}
 
       {/* ─── CTA ────────────────────────────────────────────── */}
       <div
