@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
+import IconosLogo from './IconosLogo';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { isHabitDone, setHabit } from '@/lib/habits';
@@ -42,20 +43,11 @@ export default function NightSummaryScreen({ mode, onEnterSlumber }: NightSummar
       className="relative w-full h-full flex flex-col items-center justify-center px-6"
       style={{
         color: NIGHT_TEXT.primary,
-        backgroundImage: 'url(/iconos.jpeg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        background: `radial-gradient(ellipse at 50% 35%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 80%)`,
       }}
     >
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(8,4,20,0.55) 0%, rgba(8,4,20,0.2) 28%, rgba(8,4,20,0.2) 62%, rgba(8,4,20,0.55) 100%)',
-        }}
-      />
       <div className="relative z-10 flex flex-col items-center w-full">
+        <IconosLogo size={180} />
 
       <div
         className="mt-8 font-ui text-[10px] uppercase tracking-[0.45em]"

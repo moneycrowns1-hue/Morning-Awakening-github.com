@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { Sun, X, BedDouble } from 'lucide-react';
+import IconosLogo from './IconosLogo';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
@@ -149,22 +150,11 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       onPointerLeave={onPointerUp}
       className="relative w-full h-full flex flex-col items-center justify-center select-none"
       style={{
+        background: `radial-gradient(ellipse at 50% 40%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 75%)`,
         color: NIGHT_TEXT.primary,
-        backgroundImage: 'url(/iconos.jpeg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
         transition: 'filter 1.2s ease',
       }}
     >
-      {/* Scrim so the clock stays legible against the photo. */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(8,4,20,0.65) 0%, rgba(8,4,20,0.3) 25%, rgba(8,4,20,0.3) 60%, rgba(8,4,20,0.55) 100%)',
-        }}
-      />
 
       {/* Giant clock */}
       <div
@@ -181,8 +171,10 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
         {mm}
       </div>
 
-      {/* (La luna está en el fondo; aquí sólo dejamos aire.) */}
-      <div className="relative z-10 h-6" />
+      {/* Logo mascot */}
+      <div className="relative z-10 mt-6">
+        <IconosLogo size={220} />
+      </div>
 
       {/* Sleep gate card */}
       <div
