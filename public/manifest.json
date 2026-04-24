@@ -2,8 +2,8 @@
   "name": "Morning Awakening",
   "short_name": "Awakening",
   "description": "Protocolo matutino guiado de 12 fases. Claridad, cuerpo, enfoque.",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "start_url": "./?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["fullscreen", "standalone"],
   "background_color": "#0a0614",
@@ -14,13 +14,13 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/icono.png",
+      "src": "icono.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icono.png",
+      "src": "icono.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "maskable"

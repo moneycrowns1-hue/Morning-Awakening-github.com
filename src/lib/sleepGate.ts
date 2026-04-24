@@ -13,6 +13,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import type { AlarmConfig } from './alarmSchedule';
+import type { HealthSnapshot } from './healthkitBridge';
 
 const SLEEP_CONFIG_KEY = 'ma-sleep-config';
 const SLEEP_ENTRIES_KEY = 'ma-night-entries';
@@ -55,6 +56,8 @@ export interface SleepGate {
   widthMin: number;
   /** Whether the adaptation period is currently active. */
   adaptive: boolean;
+  /** Where the gate parameters came from. */
+  source: 'config' | 'health';
 }
 
 export function loadSleepConfig(): SleepConfig {
@@ -113,6 +116,7 @@ export function computeSleepGate(
   alarm: AlarmConfig,
   sleep: SleepConfig,
   now: Date = new Date(),
+  health?: HealthSnapshot | null,
 ): SleepGate {
   // Find the NEXT alarm fire (tomorrow morning, or today if still ahead).
   const alarmToday = new Date(now);
@@ -121,8 +125,27 @@ export function computeSleepGate(
     ? alarmToday
     : new Date(alarmToday.getTime() + 24 * 60 * 60 * 1000);
 
-  const idealMs = nextAlarm.getTime() - sleep.sleepNeedMin * 60 * 1000;
-  const halfWidthMin = sleep.adaptationPeriod ? 60 : 30;
+  // ─── Source resolution ───────────────────────────────────
+  // If we have a fresh Health snapshot with at least 5 nights,
+  // we trust the user's actual sleep duration over the manually
+  // configured `sleepNeedMin`. This makes the gate adapt to the
+  // real chronotype without the user touching settings.
+  let effectiveNeedMin = sleep.sleepNeedMin;
+  let source: 'config' | 'health' = 'config';
+  if (health && health.nights.length >= 5) {
+    // Clamp to a sane range so an outlier export can't drag the
+    // recommendation to 4h or 12h.
+    const clamped = Math.max(360, Math.min(540, health.avgDurationMin));
+    effectiveNeedMin = clamped;
+    source = 'health';
+  }
+
+  const idealMs = nextAlarm.getTime() - effectiveNeedMin * 60 * 1000;
+  // Health-sourced gate is tighter (±20 min) because we have real
+  // data; configured-only gate keeps the looser ±30/±60 widths.
+  const halfWidthMin = source === 'health'
+    ? 20
+    : (sleep.adaptationPeriod ? 60 : 30);
 
   return {
     start: new Date(idealMs - halfWidthMin * 60 * 1000),
@@ -130,6 +153,7 @@ export function computeSleepGate(
     ideal: new Date(idealMs),
     widthMin: halfWidthMin * 2,
     adaptive: sleep.adaptationPeriod,
+    source,
   };
 }
 

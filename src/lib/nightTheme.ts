@@ -25,31 +25,33 @@ export const NIGHT_TEXT = {
   divider: 'rgba(245,230,255,0.10)',
 } as const;
 
-// ─── 8 night stages (wind-down → integration → surrender) ───
-// Progresses from "still rosy" to "pure abyss".
+// ─── 10 night stages · TÉRMINUS ───
+// Progresa de "aún rosa en el horizonte" a "abismo puro".
+//   0 CLAUSURA · 1 ÓPTICA · 2 SEQUÍA
+//   3 TERMINUS · 4 AEGIS  · 5 THERMA  · 6 HYGIENE
+//   7 KATHARSIS · 8 PARASÍMPATO
+//   9 STASIS
 const STAGES: Record<'welcome' | 'slumber' | number, StageColors> = {
   welcome:  { sky: NIGHT.violet_1, horizon: NIGHT.dusk_rose, accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
-  // tsuki — cierre del día, aún hay algo de rosa
+  // Bloque 0 · cierre metabólico — atardecer violeta cálido
   0: { sky: NIGHT.violet_1, horizon: NIGHT.dusk_rose, accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
-  // nocte — cena/integración
   1: { sky: NIGHT.violet_1, horizon: NIGHT.dusk_rose, accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
-  // terra — caminar
   2: { sky: NIGHT.violet_2, horizon: NIGHT.dusk_rose, accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
-  // thermo — ducha caliente
+  // Bloque 1 · descompresión — violeta medio
   3: { sky: NIGHT.violet_2, horizon: NIGHT.violet_1,  accent: NIGHT.moon_core, particle: NIGHT.moon_halo },
-  // stillness — respiración
-  4: { sky: NIGHT.violet_1, horizon: NIGHT.abyss,     accent: NIGHT.moon_core, particle: NIGHT.moon_halo },
-  // scribe — journal
+  4: { sky: NIGHT.violet_2, horizon: NIGHT.violet_1,  accent: NIGHT.moon_core, particle: NIGHT.moon_halo },
   5: { sky: NIGHT.violet_1, horizon: NIGHT.abyss,     accent: NIGHT.moon_core, particle: NIGHT.moon_halo },
-  // reverie — lectura
-  6: { sky: NIGHT.abyss,    horizon: NIGHT.violet_1,  accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
-  // slumber placeholder (entrance to lock screen)
-  7: { sky: NIGHT.abyss,    horizon: NIGHT.abyss,     accent: NIGHT.moon_core, particle: NIGHT.moon_core },
+  6: { sky: NIGHT.violet_1, horizon: NIGHT.abyss,     accent: NIGHT.moon_core, particle: NIGHT.moon_halo },
+  // Bloque 2 · santuario (ámbar) — abismo con luna viva
+  7: { sky: NIGHT.abyss,    horizon: NIGHT.violet_1,  accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
+  8: { sky: NIGHT.abyss,    horizon: NIGHT.violet_1,  accent: NIGHT.moon_halo, particle: NIGHT.moon_core },
+  // Bloque 3 · apagado neuronal — abismo puro
+  9: { sky: NIGHT.abyss,    horizon: NIGHT.abyss,     accent: NIGHT.moon_core, particle: NIGHT.moon_core },
   slumber: { sky: NIGHT.abyss, horizon: NIGHT.abyss,  accent: NIGHT.moon_core, particle: NIGHT.moon_core },
 };
 
 export function getNightStageColors(stage: number | 'welcome' | 'slumber'): StageColors {
   if (stage === 'welcome' || stage === 'slumber') return STAGES[stage];
-  const clamped = Math.max(0, Math.min(7, Math.floor(stage)));
+  const clamped = Math.max(0, Math.min(9, Math.floor(stage)));
   return STAGES[clamped];
 }

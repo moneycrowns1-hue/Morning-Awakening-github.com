@@ -16,8 +16,10 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X } from 'lucide-react';
+import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X, Activity } from 'lucide-react';
 import GradientBackground from './GradientBackground';
+import FitnessBridgeScreen from './FitnessBridgeScreen';
+import { getFitnessStatus, type FitnessStatus } from '@/lib/healthkitBridge';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
 import { isNightSuggestionAppropriate, silenceNightSuggestionToday } from '@/lib/nightMode';
@@ -58,6 +60,14 @@ export default function WelcomeScreen({
   // flip it true in the mount-only effect once we know we're on the
   // client and have access to localStorage.
   const [showNightSuggestion, setShowNightSuggestion] = useState(false);
+  const [fitnessStatus, setFitnessStatus] = useState<FitnessStatus>(() => ({ kind: 'missing' }));
+  const [showFitnessModal, setShowFitnessModal] = useState(false);
+
+  // Refresh fitness status whenever the modal closes (the user
+  // may have just imported new data via the shortcut).
+  useEffect(() => {
+    setFitnessStatus(getFitnessStatus());
+  }, [showFitnessModal]);
   useEffect(() => {
     if (!onOpenNightMode) return;
     if (isNightSuggestionAppropriate()) {
@@ -103,6 +113,31 @@ export default function WelcomeScreen({
               días
             </span>
           </div>
+          {/* Apple Fitness bridge */}
+          <button
+            onClick={() => { haptics.tap(); setShowFitnessModal(true); }}
+            aria-label="Apple Fitness"
+            className="relative rounded-full p-1.5 transition-colors hover:bg-white/5"
+            style={{
+              color: fitnessStatus.kind === 'connected'
+                ? 'var(--sunrise-rise-2, #f4c267)'
+                : 'var(--sunrise-text-soft)',
+            }}
+            title={fitnessStatus.kind === 'connected'
+              ? `${(fitnessStatus.fitness.today.steps).toLocaleString('es')} pasos hoy`
+              : 'Conectar Apple Fitness'}
+          >
+            <Activity size={18} strokeWidth={1.75} />
+            {fitnessStatus.kind === 'missing' && (
+              <span
+                className="absolute top-1 right-1 block w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: '#ff8a8a',
+                  boxShadow: '0 0 6px rgba(255,138,138,0.7)',
+                }}
+              />
+            )}
+          </button>
           {onOpenNightMode && (
             <button
               onClick={() => { haptics.tap(); onOpenNightMode(); }}
@@ -298,6 +333,14 @@ export default function WelcomeScreen({
           12 fases · ~1 h 45 min
         </div>
       </div>
+
+      {/* Apple Fitness bridge modal */}
+      {showFitnessModal && (
+        <FitnessBridgeScreen
+          mode={fitnessStatus.kind === 'stale' ? 'permissions' : 'connect'}
+          onClose={() => setShowFitnessModal(false)}
+        />
+      )}
     </div>
   );
 }

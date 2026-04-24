@@ -27,6 +27,7 @@ import { X, ArrowUpRight, Heart } from 'lucide-react';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
+import { withBasePath } from '@/lib/publicPath';
 
 type Mode = 'connect' | 'permissions';
 
@@ -72,7 +73,7 @@ export default function HealthBridgeScreen({ mode, onClose, onAction }: HealthBr
       window.open(SHORTCUT_ICLOUD_URL, '_blank');
     } else {
       // Fallback: open the in-repo setup guide.
-      window.open('/atajo-apple-health.html', '_blank');
+      window.open(withBasePath('/atajo-apple-health.html'), '_blank');
     }
   };
 

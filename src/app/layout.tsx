@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import { withBasePath } from "@/lib/publicPath";
 
 // ═══ Typeface system (v8 sunrise redesign) ═══
 // - Fraunces: serif display, warm/organic, for hero titles & daily quote.
@@ -38,7 +39,7 @@ const cinzelDecorative = Cinzel_Decorative({
 export const metadata: Metadata = {
   title: "Morning Awakening",
   description: "Protocolo matutino guiado de 12 fases. Claridad, cuerpo, enfoque.",
-  manifest: "/manifest.json",
+  manifest: withBasePath("/manifest.json"),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -70,9 +71,9 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
-        <link rel="icon" type="image/png" href="/icono.png" />
-        <link rel="shortcut icon" href="/icono.png" />
-        <link rel="apple-touch-icon" href="/icono.png" />
+        <link rel="icon" type="image/png" href={withBasePath("/icono.png")} />
+        <link rel="shortcut icon" href={withBasePath("/icono.png")} />
+        <link rel="apple-touch-icon" href={withBasePath("/icono.png")} />
       </head>
       <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-cinzel)]">
         {children}

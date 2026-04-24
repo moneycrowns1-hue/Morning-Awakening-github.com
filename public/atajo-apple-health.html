@@ -134,11 +134,26 @@
     <strong>Privacidad:</strong> los datos viajan solo en la URL del hash (<code>#hk=…</code>) que queda en tu navegador. No hacemos ningún request al servidor. Todo se guarda en <code>localStorage</code> de tu dispositivo.
   </div>
 
+  <h2>Agregar Fitness al mismo atajo (opcional)</h2>
+  <p>Si querés que Morning Awakening también lea tus pasos / calorías / minutos de ejercicio, sumá estas acciones <em>antes</em> de la acción <strong>Text</strong> donde armás el JSON:</p>
+  <ol>
+    <li><strong>Find Health Samples</strong> · Type: <em>Step Count</em>, Date: <em>Today</em>, sumar con <strong>Calculate Statistics → Sum</strong> → guardar como <code>steps</code>.</li>
+    <li><strong>Find Health Samples</strong> · Type: <em>Active Energy</em>, Today, Sum → <code>kcal</code>.</li>
+    <li><strong>Find Health Samples</strong> · Type: <em>Apple Exercise Time</em>, Today, Sum → <code>exMin</code>.</li>
+    <li><strong>Find Health Samples</strong> · Type: <em>Apple Stand Hours</em>, Today, Sum → <code>standH</code>.</li>
+    <li><strong>Find Health Samples</strong> · Type: <em>Walking + Running Distance</em>, Today, Sum → <code>distM</code>.</li>
+    <li>Repetí para los <strong>últimos 7 días</strong> con Type: <em>Step Count</em> y <em>Active Energy</em>, dividido por 7 → <code>avgSteps</code>, <code>avgKcal</code>.</li>
+    <li>Modificá el JSON final del atajo para incluir el bloque <code>fitness</code>:
+      <code style="display:block;margin-top:8px;word-break:break-all;">{"v":1,"exportedAt":{now},"nights":[…],"fitness":{"today":{"steps":{steps},"activeKcal":{kcal},"exerciseMin":{exMin},"standHours":{standH},"distanceM":{distM}},"last7AvgSteps":{avgSteps},"last7AvgKcal":{avgKcal}}}</code>
+    </li>
+  </ol>
+  <p>El mismo atajo te da los dos: corrés &ldquo;Morning Awakening Sync&rdquo; una vez a la mañana y la app actualiza Sleep Gate (de la noche anterior) <strong>y</strong> tus anillos de actividad de hoy.</p>
+
   <h2>Alternativa rápida (sin atajo)</h2>
   <p>Si todavía no querés armar el atajo, podés probar el puente pegando un JSON manualmente. Abrí esta URL en el navegador reemplazando <code>&lt;tu-json-base64&gt;</code>:</p>
   <p><code style="word-break:break-all;">https://tu-dominio/#hk=&lt;tu-json-base64&gt;</code></p>
 
-  <a class="back" href="/">← Volver a la app</a>
+  <a class="back" href="./">← Volver a la app</a>
 </div>
 </body>
 </html>

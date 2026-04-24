@@ -16,15 +16,29 @@
 // PWAs on iOS are VERY sticky — the only way to force them to drop
 // stale audio/JS is a new VERSION string here, which causes the
 // activate handler to delete ma-static-<old>/ma-runtime-<old>.
-const VERSION = 'v8.0-alpha15-icono-png';
+const VERSION = 'v8.0-alpha17-basepath-fix';
 const STATIC_CACHE = `ma-static-${VERSION}`;
 const RUNTIME_CACHE = `ma-runtime-${VERSION}`;
 
+// Derive the basePath from the SW's own URL. When deployed to
+// GitHub Pages the SW lives at `/<repo>/sw.js`, so basePath is
+// `/<repo>`. In local dev it lives at `/sw.js`, so basePath is
+// the empty string. This lets the same SW work in both environments
+// without bundling.
+const BASE_PATH = (() => {
+  // self.location.pathname is e.g. "/Morning-Awakening-github.com/sw.js"
+  const path = self.location.pathname;
+  const lastSlash = path.lastIndexOf('/');
+  return lastSlash > 0 ? path.slice(0, lastSlash) : '';
+})();
+
+const u = (p) => `${BASE_PATH}${p}`;
+
 // Minimal app shell cached on install so first offline launch works.
 const APP_SHELL = [
-  '/',
-  '/manifest.json',
-  '/icono.png',
+  u('/'),
+  u('/manifest.json'),
+  u('/icono.png'),
 ];
 
 self.addEventListener('install', (event) => {

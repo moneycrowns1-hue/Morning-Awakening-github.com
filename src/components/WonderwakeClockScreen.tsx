@@ -18,6 +18,7 @@ import { useMemo, useState } from 'react';
 import { X, Settings as SettingsIcon, AlarmClock, ChevronRight, Sparkles } from 'lucide-react';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
 import { computeSleepGate, loadSleepConfig } from '@/lib/sleepGate';
+import { loadHealthSnapshot } from '@/lib/healthkitBridge';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
@@ -75,7 +76,8 @@ export default function WonderwakeClockScreen({
   onClose,
 }: WonderwakeClockScreenProps) {
   const sleepCfg = useMemo(() => loadSleepConfig(), []);
-  const gate = useMemo(() => computeSleepGate(alarmConfig, sleepCfg), [alarmConfig, sleepCfg]);
+  const healthSnap = useMemo(() => loadHealthSnapshot(), []);
+  const gate = useMemo(() => computeSleepGate(alarmConfig, sleepCfg, new Date(), healthSnap), [alarmConfig, sleepCfg, healthSnap]);
 
   // Bedtime = middle of the gate. Wake = alarm time.
   const bedtime = gate.ideal;

@@ -1,15 +1,18 @@
 // ═══════════════════════════════════════════════════════════════
-// NIGHT PROTOCOL v2 — 8 Fases de Rendición
-// Cronograma sugerido: alarma − 8 h (± 30 min gate).
-// Bloque A · WIND-DOWN   (Tsuki · Nocte · Terra)   ≈ 16 min
-// Bloque B · INTEGRATION (Thermo · Stillness · Scribe) ≈ 19 min
-// Bloque C · SURRENDER   (Reverie · Slumber)       ≈ 10 min + ∞
-// Tono: íntimo/contemplativo en 2ª persona (no "Operador").
+// NIGHT PROTOCOL · TÉRMINUS (v3 — definitivo)
+// Cronograma anclado al sueño, no a la alarma.
+//
+//   BLOQUE 0 · CIERRE METABÓLICO       — CLAUSURA · ÓPTICA · SEQUÍA
+//   BLOQUE 1 · DESCOMPRESIÓN Y LIMPIEZA — TERMINUS · AEGIS · THERMA · HYGIENE
+//   BLOQUE 2 · EL SANTUARIO (ámbar)    — KATHARSIS · PARASÍMPATO
+//   BLOQUE 3 · APAGADO NEURONAL        — STASIS
+//
+// Tono: íntimo / contemplativo en 2ª persona.
 // ═══════════════════════════════════════════════════════════════
 
 import type { SubStep } from './constants';
 
-export type NightBlock = 'wind-down' | 'integration' | 'surrender';
+export type NightBlock = 'metabolic' | 'descompression' | 'sanctuary' | 'shutdown';
 
 export interface NightMission {
   id: string;
@@ -21,9 +24,9 @@ export interface NightMission {
   kanjiReading: string;
   block: NightBlock;
   blockLabel: string;
-  /** Seconds. `slumber` uses 0 (open-ended, ends when user taps or sleeps). */
+  /** Seconds. */
   duration: number;
-  /** Also included in express mode (4 fases ≈ 15 min). */
+  /** Included in express mode (~15 min). */
   express: boolean;
   /** Express-mode duration override (seconds). */
   durationExpress?: number;
@@ -39,196 +42,288 @@ export interface NightMission {
 }
 
 export const NIGHT_MISSIONS: NightMission[] = [
-  // ═══ BLOQUE A · WIND-DOWN ═══
+  // ═══ BLOQUE 0 · CIERRE METABÓLICO ═══
   {
-    id: 'tsuki',
+    id: 'clausura',
     phase: 1,
-    codename: 'TSUKI',
-    title: 'CIERRE',
+    codename: 'CLAUSURA',
+    title: 'CIERRE METABÓLICO',
     icon: '◐',
-    kanji: '月',
-    kanjiReading: 'Tsuki · Luna',
-    block: 'wind-down',
-    blockLabel: 'BLOQUE A · WIND-DOWN',
+    kanji: '閉',
+    kanjiReading: 'Tojiru · Cerrar',
+    block: 'metabolic',
+    blockLabel: 'BLOQUE 0 · CIERRE METABÓLICO',
+    duration: 120,
+    express: false,
+    directive:
+      'Última comida del día. Ingesta de suplementos: Magnesio (Treonato o Bisglicinato), L-Teanina y vitaminas liposolubles con la comida.',
+    systemLog: 'Cerrando la ventana metabólica...',
+    completionLog: 'Comida y suplementos ingresados. El motor se apaga.',
+    scienceNote:
+      'Cenar ≥3 h antes de dormir reduce reflujo y mejora la arquitectura del sueño. El magnesio modula NMDA/GABA (baja excitabilidad), la L-teanina eleva ondas alfa sin sedar, y las liposolubles (D3/K2/A/E) se absorben con grasa de la cena.',
+    voiceLineBriefing:
+      'Esta es tu última comida del día. A partir de ahora, el cuerpo deja de procesar y empieza a reparar. Toma tus suplementos con la comida: magnesio, teanina, las liposolubles. No son adornos — son las instrucciones bioquímicas que le das a tu cerebro para que suelte. Come sin pantallas, sin prisa. Mastica. Cierra.',
+    subSteps: [
+      { label: 'Última comida del día', description: 'Ligera, densa en nutrientes. Nada después de esto.' },
+      { label: 'Magnesio (Treonato o Bisglicinato)', description: 'Baja la excitabilidad neuronal y mejora SWS.' },
+      { label: 'L-Teanina', description: 'Sube ondas alfa, calma sin sedar.' },
+      { label: 'Vitaminas liposolubles', description: 'D3 · K2 · A · E — se absorben con la grasa de la cena.' },
+    ],
+    tips: [
+      'Cenar 3 h antes de acostarte da el pico de melatonina más limpio.',
+      'Evita líquidos abundantes después de esta fase — despertar nocturno por vejiga rompe el sueño.',
+    ],
+  },
+  {
+    id: 'optica',
+    phase: 2,
+    codename: 'ÓPTICA',
+    title: 'FILTRO VISUAL',
+    icon: '◑',
+    kanji: '眼',
+    kanjiReading: 'Me · Ojo',
+    block: 'metabolic',
+    blockLabel: 'BLOQUE 0 · CIERRE METABÓLICO',
+    duration: 60,
+    express: false,
+    directive:
+      'Si sigues frente al monitor, colócate las gafas bloqueadoras de luz azul. No negociable: cualquier pantalla tras esta hora pasa por el filtro.',
+    systemLog: 'Espectro azul filtrado.',
+    completionLog: 'Ojos protegidos. La melatonina ya está en camino.',
+    scienceNote:
+      'La luz azul (460–480 nm) suprime la melatonina hasta 3 h. Las gafas bloqueadoras ámbar reducen esa supresión ~70 % y adelantan la fase circadiana 30–90 min en usuarios nocturnos.',
+    voiceLineBriefing:
+      'Si aún estás frente a una pantalla, ponte las gafas. Es un acto pequeño, casi ridículo, pero es la diferencia entre que tu cerebro produzca melatonina o la bloquee tres horas más. No discutas con la física del ojo. Fíltrala.',
+    tips: [
+      'Si no usas gafas, activa los filtros cálidos del sistema (Night Shift / f.lux) al máximo.',
+      'Luz del techo: apágala. Solo lámparas bajas y cálidas de aquí en adelante.',
+    ],
+  },
+  {
+    id: 'sequia',
+    phase: 3,
+    codename: 'SEQUÍA',
+    title: 'ÚLTIMO SORBO',
+    icon: '◒',
+    kanji: '涸',
+    kanjiReading: 'Kareru · Secarse',
+    block: 'metabolic',
+    blockLabel: 'BLOQUE 0 · CIERRE METABÓLICO',
+    duration: 60,
+    express: false,
+    directive:
+      'Último sorbo de agua del día. A partir de aquí, el cuerpo entra en modo hidratación cerrada para evitar despertares por vejiga.',
+    systemLog: 'Ingesta hídrica cerrada.',
+    completionLog: 'Sequía hasta el amanecer.',
+    scienceNote:
+      'Cortar líquidos 90 min antes de dormir reduce ~40 % los despertares nocturnos por nicturia, y aumenta el tiempo continuo de sueño profundo (SWS), que es donde ocurre la consolidación glimfática.',
+    voiceLineBriefing:
+      'Este es el último sorbo. Déjalo pasar despacio. No vas a necesitar más hasta mañana — y si te despiertas a las tres de la mañana con sed, es mucho mejor que despertarte a las tres para orinar. Cada despertar rompe un ciclo de sueño profundo que no vuelves a recuperar.',
+  },
+
+  // ═══ BLOQUE 1 · DESCOMPRESIÓN FÍSICA Y LIMPIEZA ═══
+  {
+    id: 'terminus',
+    phase: 4,
+    codename: 'TERMINUS',
+    title: 'CORTE DIGITAL',
+    icon: '◓',
+    kanji: '終',
+    kanjiReading: 'Owari · Final',
+    block: 'descompression',
+    blockLabel: 'BLOQUE 1 · DESCOMPRESIÓN',
     duration: 180,
     express: true,
     durationExpress: 120,
-    directive: 'Apaga pantallas principales, atenúa las luces a ámbar cálido y cámbiate a ropa cómoda. Deja el teléfono en modo noche lejos de la cama.',
-    systemLog: 'Cerrando el día...',
-    completionLog: 'Día entregado. Este cuarto ahora es tuyo.',
-    scienceNote: 'La luz azul suprime la melatonina hasta 3 horas. Atenuar y entibiar el entorno 60–90 min antes de dormir adelanta la "señal de noche" al núcleo supraquiasmático y facilita conciliar el sueño.',
+    directive:
+      'Apagado total de monitores. Corte digital. Te quitas las gafas bloqueadoras. El trabajo del día termina aquí, aunque quede algo abierto.',
+    systemLog: 'Cortando el flujo digital...',
+    completionLog: 'Pantallas apagadas. El mundo puede esperar.',
+    scienceNote:
+      'Cerrar tareas con un límite explícito activa el "efecto Zeigarnik controlado": tu corteza prefrontal suelta la rumiación cuando hay un tope ritualizado. Sin tope, el cerebro sigue simulando escenarios laborales hasta 2 h dentro del sueño.',
     voiceLineBriefing:
-      'Este día ya no te pertenece. Déjalo aquí, sobre la mesa, y apaga lo que brilla. Atenúa la luz hasta que sea ámbar, hasta que parezca una vela. Cámbiate. Deja el teléfono lejos. No hay nada allá afuera que no pueda esperar a mañana. Este cuarto, desde ahora, es tu refugio.',
+      'Apaga los monitores. Todos. Aunque esté a la mitad, aunque falte poco. Mañana vuelve a encenderlo, y la tarea seguirá ahí, esperándote. Quítate las gafas: ya no hay nada que filtrar. El día, oficialmente, se cerró. El resto es tuyo.',
     subSteps: [
-      { label: 'Apaga pantallas principales', description: 'TV, laptop, monitor. El teléfono pasa a modo noche.' },
-      { label: 'Atenúa las luces', description: 'Solo cálidas, ámbar suave. Evita cenitales frías.' },
-      { label: 'Cámbiate a ropa cómoda', description: 'Pijama o ropa suelta. Marca la transición corporal.' },
-      { label: 'Aleja el teléfono', description: 'Fuera del alcance del brazo desde la cama.' },
-    ],
-    tips: [
-      'Deja lista ropa para mañana — evitarás fricción al levantarte.',
-      'Una bombilla ámbar de $5 cambia radicalmente la señal circadiana.',
+      { label: 'Apaga todos los monitores', description: 'Laptop, escritorio, segunda pantalla. Off, no sleep.' },
+      { label: 'Quítate las gafas bloqueadoras', description: 'Ya no las necesitas — no hay espectro azul.' },
+      { label: 'Cierra apps de trabajo', description: 'Slack, correo, Notion. El día terminó.' },
     ],
   },
   {
-    id: 'nocte',
-    phase: 2,
-    codename: 'NOCTE',
-    title: 'INTEGRAR',
-    icon: '◑',
-    kanji: '夕',
-    kanjiReading: 'Yū · Atardecer',
-    block: 'wind-down',
-    blockLabel: 'BLOQUE A · WIND-DOWN',
+    id: 'aegis',
+    phase: 5,
+    codename: 'AEGIS',
+    title: 'PREPARAR EL MAÑANA',
+    icon: '◔',
+    kanji: '盾',
+    kanjiReading: 'Tate · Escudo',
+    block: 'descompression',
+    blockLabel: 'BLOQUE 1 · DESCOMPRESIÓN',
     duration: 300,
     express: false,
-    directive: 'Si aún no cenaste: cena ligera (proteína magra + vegetales) y una infusión (manzanilla, tila o valeriana). Si ya lo hiciste: 5 min de integración sensorial lenta con el té.',
-    systemLog: 'Metabolismo calmándose...',
-    completionLog: 'Nutrido y asentado.',
-    scienceNote: 'Cenar 3 h antes de dormir reduce reflujo y mejora la arquitectura del sueño. Manzanilla y valeriana potencian GABA, el principal neurotransmisor inhibitorio: el cuerpo literalmente "baja revoluciones".',
+    directive:
+      'Dejas la ropa de deporte lista, la toalla en posición, y el escritorio inmaculado para mañana. Abres la ventana del cuarto para que la temperatura baje a 18 °C.',
+    systemLog: 'Escudo para mañana armado.',
+    completionLog: 'Mañana ya no tiene fricción. El cuarto se está enfriando.',
+    scienceNote:
+      'Eliminar fricciones matinales reduce decisiones al despertar y protege la ventana de cortisol. Dormir a 18 °C (65 °F) es la temperatura óptima para SWS — por cada grado sobre 20 °C se pierde ~5 % de sueño profundo.',
     voiceLineBriefing:
-      'Llegó el momento de alimentarte con suavidad. Si no has cenado, hazlo ligero — proteína, vegetales, nada pesado que tu digestión cargue a las dos de la mañana. Y una infusión caliente, entre tus manos. Siente la tibieza subir por los dedos. No es solo comer; es decirle al cuerpo que está a salvo, que hoy también recibió.',
-    tips: [
-      'Evita azúcar y cafeína después de las 17:00 — la vida media de la cafeína es 6 h.',
-      'La infusión caliente también ayuda a bajar la T° core al enfriarse.',
+      'Arma el escudo para la próxima versión de ti. Ropa de deporte afuera, toalla en posición, escritorio despejado. Mañana no debe decidir nada: solo moverse. Y abre la ventana. Busca los dieciocho grados. El cuerpo necesita frío para dormir profundo — es la única forma de que la melatonina trabaje.',
+    subSteps: [
+      { label: 'Ropa de deporte lista', description: 'Afuera, visible. Cero decisiones a las 5 am.' },
+      { label: 'Toalla en posición', description: 'En la ruta del entrenamiento, doblada.' },
+      { label: 'Escritorio inmaculado', description: 'Superficie despejada, mañana arrancas limpio.' },
+      { label: 'Ventana abierta · 18 °C', description: 'El frío es el disparador #1 de sueño profundo.' },
     ],
   },
   {
-    id: 'terra',
-    phase: 3,
-    codename: 'TERRA',
-    title: 'CAMINAR',
-    icon: '◒',
-    kanji: '歩',
-    kanjiReading: 'Aruku · Caminar',
-    block: 'wind-down',
-    blockLabel: 'BLOQUE A · WIND-DOWN',
-    duration: 480,
-    express: false,
-    directive: 'Caminata lenta 8 min (interior o exterior) o, si no puedes salir, movilidad suave en el piso: abrir caderas, torsión espinal, gato-camello lento.',
-    systemLog: 'Digestión en marcha...',
-    completionLog: 'Cuerpo en paz.',
-    scienceNote: 'Una caminata lenta post-cena reduce el pico de glucosa hasta 30 % y activa el sistema parasimpático (reposo-digestión). La movilidad lenta libera tensión del día sin elevar cortisol como lo haría el cardio.',
-    voiceLineBriefing:
-      'Mueve el cuerpo una última vez. No para entrenar, no para quemar nada. Solo para caminar. Lento. Observando. Si puedes salir, sal. Si no, abre las caderas en el piso, suelta la columna, respira en cada estiramiento. Le estás diciendo a tu sistema nervioso que la jornada terminó, y que puede apagarse.',
-  },
-
-  // ═══ BLOQUE B · INTEGRATION ═══
-  {
-    id: 'thermo',
-    phase: 4,
-    codename: 'THERMO',
-    title: 'AGUA CALIENTE',
-    icon: '◓',
+    id: 'therma',
+    phase: 6,
+    codename: 'THERMA',
+    title: 'DUCHA TIBIA',
+    icon: '◕',
     kanji: '湯',
     kanjiReading: 'Yu · Agua caliente',
-    block: 'integration',
-    blockLabel: 'BLOQUE B · INTEGRATION',
+    block: 'descompression',
+    blockLabel: 'BLOQUE 1 · DESCOMPRESIÓN',
     duration: 600,
-    express: false,
-    directive: 'Ducha o baño caliente de 8–10 min, 60–90 min antes de dormir. Al salir, no te seques del todo — deja que tu piel termine de enfriarse sola.',
-    systemLog: 'Vasodilatación periférica...',
-    completionLog: 'Temperatura core bajando — ventana de melatonina abierta.',
-    scienceNote: 'El agua caliente dilata los vasos de manos y pies, y al salir la temperatura core del cuerpo cae rápidamente. Esa caída es el disparador biológico #1 de la liberación de melatonina.',
+    express: true,
+    durationExpress: 360,
+    directive:
+      'Ducha tibia/caliente de 10 min. La vasodilatación periférica inicia la caída de tu temperatura central — ese descenso es el disparador biológico de la melatonina.',
+    systemLog: 'Vasodilatación periférica activa...',
+    completionLog: 'Temperatura core en descenso. Ventana de melatonina abierta.',
+    scienceNote:
+      'Una ducha tibia/caliente 60–90 min antes de dormir acelera la caída de la temperatura central ~0.5–1 °C tras salir, mejor que ningún fármaco. Ese gradiente térmico es el estímulo primario de liberación de melatonina desde la pineal.',
     voiceLineBriefing:
-      'Agua caliente, diez minutos, sin apuros. No es para limpiarte; ya estás limpio. Es para engañar al cuerpo. Sal, y no te seques del todo. La piel, al perder el calor, va a hundir tu temperatura central, y tu cerebro entenderá esa señal mejor que cualquier pastilla. Es cuando la melatonina se derrama.',
+      'Agua tibia, diez minutos, sin apuros. No es para limpiarte — ya estás limpio. Es para engañar al cuerpo. Al salir, la piel pierde calor rápido, y tu temperatura central se hunde. Ese descenso es la señal que la pineal esperaba para abrir la melatonina. No hay pastilla que haga esto mejor que un grifo.',
     tips: [
-      'Ideal: terminar la ducha 60–90 min antes de tu Sleep Gate.',
-      'Termina con 20 s de agua tibia si el contraste te gusta — no frío.',
+      'Tibia/caliente, no hirviendo — no buscas sudor, buscas vasodilatación.',
+      'Al salir, no te seques del todo. Deja que la piel termine de enfriarse sola.',
     ],
   },
   {
-    id: 'stillness',
-    phase: 5,
-    codename: 'STILLNESS',
-    title: 'RESPIRACIÓN',
-    icon: '◔',
-    kanji: '静',
-    kanjiReading: 'Sei · Quietud',
-    block: 'integration',
-    blockLabel: 'BLOQUE B · INTEGRATION',
-    duration: 240,
-    express: true,
-    durationExpress: 240,
-    directive: 'Respiración 4-7-8 × 4 ciclos con la mascota luna guiándote. Sentado cómodo o acostado. Lengua contra paladar superior.',
-    systemLog: 'Parasimpático activado.',
-    completionLog: 'Ritmo cardíaco bajo. Estás en calma.',
-    scienceNote: '4-7-8 eleva la dominancia vagal y baja la frecuencia cardíaca ~10 bpm en 4 ciclos. Una HRV alta al dormir se correlaciona con sueño más profundo y más tiempo en SWS.',
-    voiceLineBriefing:
-      'Respira conmigo. Cuatro adentro, siete quietos, ocho afuera. No hay prisa. La luna va a acompañarte: cuando ella se expande, tú inhalas; cuando se sostiene, tú sostienes; cuando se contrae, tú sueltas. Cuatro veces. Basta con cuatro. Vas a notar cómo el pulso baja solo.',
-    interaction: 'breath',
-  },
-  {
-    id: 'scribe',
-    phase: 6,
-    codename: 'SCRIBE',
-    title: 'TINTA',
-    icon: '◕',
-    kanji: '墨',
-    kanjiReading: 'Sumi · Tinta',
-    block: 'integration',
-    blockLabel: 'BLOQUE B · INTEGRATION',
+    id: 'hygiene',
+    phase: 7,
+    codename: 'HYGIENE',
+    title: 'HIGIENE · PIJAMA',
+    icon: '○',
+    kanji: '潔',
+    kanjiReading: 'Kiyoshi · Pureza',
+    block: 'descompression',
+    blockLabel: 'BLOQUE 1 · DESCOMPRESIÓN',
     duration: 300,
-    express: true,
-    durationExpress: 180,
-    directive: 'Escribe 3 agradecimientos concretos del día, y las 3 prioridades innegociables de mañana. Una frase por cosa. No edites.',
-    systemLog: 'Descarga cognitiva...',
-    completionLog: 'Mente vaciada. Mañana ya está decidido.',
-    scienceNote: 'El volcado mental pre-sueño ("worry journal") reduce el tiempo de latencia al dormir ~27 %. Escribir las prioridades de mañana le dice a tu corteza prefrontal que puede soltarlas.',
+    express: false,
+    directive:
+      'Cepillado de dientes y aplicación de cremas sobre poros abiertos. Pijama. El cuerpo entra en modo reposo.',
+    systemLog: 'Superficie corporal sellada.',
+    completionLog: 'Limpio, hidratado, en pijama. Todo listo.',
+    scienceNote:
+      'Aplicar activos (retinoides, péptidos, ceramidas) sobre piel recién duchada multiplica la absorción 2–3× por poros dilatados y piel hidratada. El cepillado nocturno previene caries porque el flujo salival baja de noche.',
     voiceLineBriefing:
-      'Saca el día de la cabeza y ponlo en papel. Tres cosas por las que estás agradecido, concretas, no genéricas. Luego tres cosas que mañana pasan sí o sí. Una frase cada una. Sin editar, sin adornar. Cuando lo escribes, tu mente deja de repetirlo en bucle. El papel recuerda por ti.',
-    interaction: 'journal',
+      'Cepíllate sin apuro. Aplica tus cremas ahora, con los poros abiertos — nunca van a absorber mejor. Ponte el pijama, o lo que uses para dormir. Cada prenda que te pones es una instrucción que le das al cuerpo: "esto ya no es el día, esto es la noche".',
+    subSteps: [
+      { label: 'Cepillado + hilo', description: 'El flujo salival baja de noche; la placa ataca más.' },
+      { label: 'Cremas sobre poros abiertos', description: 'Absorción multiplicada por la ducha previa.' },
+      { label: 'Pijama', description: 'Ropa ligera, transpirable. Marca la frontera corporal.' },
+    ],
   },
 
-  // ═══ BLOQUE C · SURRENDER ═══
+  // ═══ BLOQUE 2 · EL SANTUARIO (LUZ ROJA/ÁMBAR) ═══
   {
-    id: 'reverie',
-    phase: 7,
-    codename: 'REVERIE',
-    title: 'SUEÑO DESPIERTO',
-    icon: '○',
-    kanji: '夢',
-    kanjiReading: 'Yume · Sueño',
-    block: 'surrender',
-    blockLabel: 'BLOQUE C · SURRENDER',
-    duration: 600,
-    express: false,
-    directive: 'Lectura contemplativa en papel o e-reader sin retroiluminación: ficción, poesía, ensayo lento. Nada técnico, nada de tu trabajo, nada que exija resolver algo.',
-    systemLog: 'Ondas alfa subiendo...',
-    completionLog: 'Cerebro en modo divagación. Listo para cerrar los ojos.',
-    scienceNote: '10 min de lectura contemplativa bajan el estrés 68 % (Univ. Sussex) y deslizan el EEG hacia alfa. Evita cualquier lectura que active el circuito de resolución de problemas.',
+    id: 'katharsis',
+    phase: 8,
+    codename: 'KATHARSIS',
+    title: 'VACIADO MENTAL',
+    icon: '◐',
+    kanji: '墨',
+    kanjiReading: 'Sumi · Tinta',
+    block: 'sanctuary',
+    blockLabel: 'BLOQUE 2 · EL SANTUARIO',
+    duration: 900,
+    express: true,
+    durationExpress: 360,
+    directive:
+      'Brain Dump, Zeigarnik, Feynman, Gratitud I. En papel, en este orden. Sin editar. El objetivo es vaciar la RAM, no escribir bonito.',
+    systemLog: 'Volcando RAM al papel...',
+    completionLog: 'Mente descomprimida. Lo que había que cerrar, quedó fuera.',
+    scienceNote:
+      'El volcado mental pre-sueño reduce la latencia para dormir ~27 % (Harvey & Farrell). Escribir un problema abierto activa de forma controlada el efecto Zeigarnik — el subconsciente lo rumia durante N2/SWS y frecuentemente aparece resuelto al despertar.',
     voiceLineBriefing:
-      'Lee algo que no tengas que entender. Una historia, un poema, algo lento. Diez minutos bastan. No hay que terminar el capítulo. No hay que memorizar nada. Deja que las palabras pasen por ti, como agua. En algún momento vas a notar que los ojos pesan. Ese es el permiso para cerrar el libro.',
-    interaction: 'read',
+      'Abre el cuaderno. Primero, vacía. Todo lo que te da vueltas, escríbelo — sin jerarquía, sin editar. Luego, elige un problema técnico sin resolver, anótalo en una línea, y entrégaselo al subconsciente: él trabaja mejor que tú dormido. Después, una sola oración que resuma lo más complejo que entendiste hoy — estilo Feynman. Y cierra con tres victorias concretas del día. No "estoy agradecido por mi familia". Victorias específicas. Escríbelas.',
+    interaction: 'journal',
+    subSteps: [
+      { label: 'Brain Dump', description: 'Todo lo que te da vueltas, al papel. Sin jerarquía, sin filtro.' },
+      { label: 'Efecto Zeigarnik', description: 'Un problema técnico abierto → lo anotas → el subconsciente lo trabaja dormido.' },
+      { label: 'Feynman de cierre', description: 'Una frase resumiendo lo más complejo del día.' },
+      { label: 'Gratitud I', description: 'Tres victorias específicas del día. No genéricas.' },
+    ],
     tips: [
-      'Papel o e-reader sin retroiluminación — no tablet ni teléfono.',
-      'Si lees en cama, posición semi-acostada, luz cálida puntual.',
+      'Papel, no pantalla. El trazo manual activa otra vía de consolidación.',
+      'Si te trabas, pon un timer de 3 min por sub-paso y sigue al próximo.',
     ],
   },
   {
-    id: 'slumber',
-    phase: 8,
-    codename: 'SLUMBER',
-    title: 'ENTREGA',
+    id: 'parasimpato',
+    phase: 9,
+    codename: 'PARASÍMPATO',
+    title: 'LECTURA ANALÓGICA',
+    icon: '◑',
+    kanji: '鎮',
+    kanjiReading: 'Shizumeru · Calmar',
+    block: 'sanctuary',
+    blockLabel: 'BLOQUE 2 · EL SANTUARIO',
+    duration: 900,
+    express: true,
+    durationExpress: 240,
+    directive:
+      'Lectura analógica de alta cultura — Marco Aurelio, Séneca, historia. Programa el subconsciente en estado Theta antes de la cama. Papel o e-reader sin retroiluminación.',
+    systemLog: 'Ondas alfa subiendo — theta a la vista.',
+    completionLog: 'Subconsciente nutrido. Listo para cerrar los ojos.',
+    scienceNote:
+      'Leer alta cultura 15 min baja el estrés ~68 % (Univ. Sussex) y desplaza el EEG hacia alfa/theta. Los textos de densidad filosófica sirven como "siembra" — lo último que lee la corteza antes de dormir tiene probabilidad desproporcionada de integrarse en la consolidación.',
+    voiceLineBriefing:
+      'Toma a Marco Aurelio, a Séneca, o un libro de historia. Nada técnico, nada de tu trabajo, nada que exija resolver. Lee despacio. No importa si no terminas el capítulo. Lo último que tu corteza procesa antes de dormir es lo que se integra más profundo — siembra sabiduría antigua, no ruido moderno.',
+    interaction: 'read',
+    tips: [
+      'Papel o e-reader E-Ink. No tablet, no teléfono.',
+      'Si los ojos pesan, ese es el permiso para cerrar el libro. No lo fuerces.',
+    ],
+  },
+
+  // ═══ BLOQUE 3 · APAGADO NEURONAL ═══
+  {
+    id: 'stasis',
+    phase: 10,
+    codename: 'STASIS',
+    title: 'APAGADO NEURONAL',
     icon: '●',
     kanji: '眠',
     kanjiReading: 'Nemuri · Dormir',
-    block: 'surrender',
-    blockLabel: 'BLOQUE C · SURRENDER',
-    duration: 0,
+    block: 'shutdown',
+    blockLabel: 'BLOQUE 3 · APAGADO NEURONAL',
+    duration: 300,
     express: true,
-    durationExpress: 0,
-    directive: 'Pantalla mínima: mascota luna, hora, ventana de sueño y alarma. Cierra los ojos cuando estés listo.',
-    systemLog: 'Slumber Lock activo.',
-    completionLog: 'Protocolo completo. Dulces sueños.',
-    scienceNote: 'Una pantalla final estable y oscura, sin notificaciones, funciona como ancla anti-rumiación. El cerebro asocia esta imagen con la transición a dormir tras 7–10 repeticiones.',
+    durationExpress: 240,
+    directive:
+      'Vas a la cama. Oscuridad total. Cuarto a 18 °C. Mouth taping. Gratitud II. Respiración 4-7-8 estrictamente por la nariz.',
+    systemLog: 'Entrando en stasis...',
+    completionLog: 'Protocolo completo. El día queda entregado.',
+    scienceNote:
+      'La respiración 4-7-8 por la nariz eleva la dominancia vagal y baja la FC ~10 bpm en 4 ciclos. El mouth taping fuerza respiración nasal, que aumenta la producción de óxido nítrico, mejora la oxigenación y reduce apneas leves y ronquido en ~60 % de los casos.',
     voiceLineBriefing:
-      'Lo hiciste. Las ocho puertas están cerradas. Ahora solo queda una cosa, y no la eliges tú: la entregas. Cierra los ojos cuando quieras. La luna se queda contigo. Mañana esto se repite, pero por ahora, solo suelta.',
-    interaction: 'lock',
+      'Última puerta. Cama. Oscuridad total. Si usas cinta bucal, colócatela ahora — la respiración nasal es la única que queremos de aquí al amanecer. Una oración silenciosa de gratitud, la última del día. Y respira: cuatro adentro, siete quietos, ocho afuera. Solo por la nariz. La luna se queda contigo. Mañana esto se repite, pero por ahora, suelta.',
+    interaction: 'breath',
+    subSteps: [
+      { label: 'Cama · oscuridad total · 18 °C', description: 'Ningún LED encendido. Si hay, tápalo.' },
+      { label: 'Mouth taping', description: 'Fuerza respiración nasal → óxido nítrico → sueño más profundo.' },
+      { label: 'Gratitud II', description: 'Oración silenciosa y final. Una cosa. Una sola.' },
+      { label: 'Respiración 4-7-8 nasal', description: 'Cuatro ciclos. Solo por la nariz. Ahí se acaba el día.' },
+    ],
   },
 ];
 
-/** IDs of fases incluidas en el modo express (≈15 min). */
+/** IDs de fases incluidas en modo express (~15 min). */
 export const EXPRESS_PHASE_IDS = NIGHT_MISSIONS.filter((m) => m.express).map((m) => m.id);
 
 /** Returns the filtered mission list for the selected mode. */
@@ -237,7 +332,7 @@ export function getNightMissions(mode: 'full' | 'express'): NightMission[] {
   return NIGHT_MISSIONS.filter((m) => m.express);
 }
 
-/** Total seconds for the given mode (excluding slumber's open-ended 0). */
+/** Total seconds for the given mode. */
 export function totalNightDuration(mode: 'full' | 'express'): number {
   const list = getNightMissions(mode);
   return list.reduce((acc, m) => {

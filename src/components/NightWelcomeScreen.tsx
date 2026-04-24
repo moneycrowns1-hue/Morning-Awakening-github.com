@@ -20,10 +20,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Moon, Sun, Timer, Heart } from 'lucide-react';
 import IconosLogo from './IconosLogo';
 import HealthBridgeScreen from './HealthBridgeScreen';
-import { getHealthStatus, type HealthStatus } from '@/lib/healthkitBridge';
+import { getHealthStatus, loadHealthSnapshot, type HealthStatus } from '@/lib/healthkitBridge';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
-import { totalNightDuration } from '@/lib/nightConstants';
+import { getNightMissions, totalNightDuration } from '@/lib/nightConstants';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
 import { computeSleepGate, formatGateWindow, loadSleepConfig } from '@/lib/sleepGate';
 import { haptics } from '@/lib/haptics';
@@ -83,14 +83,17 @@ export default function NightWelcomeScreen({
 
   const gate = useMemo(() => {
     const sleepCfg = loadSleepConfig();
-    return computeSleepGate(alarmConfig, sleepCfg);
-  }, [alarmConfig]);
+    const health = loadHealthSnapshot();
+    return computeSleepGate(alarmConfig, sleepCfg, new Date(), health);
+  }, [alarmConfig, healthStatus]);
 
   const quote = useMemo(() => {
     const idx = new Date().getDate() % QUOTES.length;
     return QUOTES[idx];
   }, []);
 
+  const fullCount = getNightMissions('full').length;
+  const expressCount = getNightMissions('express').length;
   const fullMin = Math.round(totalNightDuration('full') / 60);
   const expressMin = Math.round(totalNightDuration('express') / 60);
 
@@ -222,13 +225,13 @@ export default function NightWelcomeScreen({
             active={mode === 'full'}
             onClick={() => setModeAnd('full')}
             label="Completo"
-            sub={`8 fases · ${fullMin} min`}
+            sub={`${fullCount} fases · ${fullMin} min`}
           />
           <ModePill
             active={mode === 'express'}
             onClick={() => setModeAnd('express')}
             label="Express"
-            sub={`4 fases · ${expressMin} min`}
+            sub={`${expressCount} fases · ${expressMin} min`}
           />
         </div>
 

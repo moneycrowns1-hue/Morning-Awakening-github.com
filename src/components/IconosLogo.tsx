@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import { CSSProperties } from 'react';
+import { withBasePath } from '@/lib/publicPath';
 
 interface IconosLogoProps {
   /** Displayed diameter in px. The JPEG scales by `object-fit: cover`. */
@@ -59,7 +60,7 @@ export default function IconosLogo({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/icono.png"
+          src={withBasePath('/icono.png')}
           alt=""
           draggable={false}
           style={{

@@ -28,6 +28,27 @@ export interface HealthSleepSample {
   durationMin: number;
 }
 
+export interface FitnessToday {
+  /** Pasos del día (00:00 → ahora). */
+  steps: number;
+  /** Calorías activas quemadas hoy (kcal). */
+  activeKcal: number;
+  /** Minutos de ejercicio hoy (anillo verde de Apple Fitness). */
+  exerciseMin: number;
+  /** Horas en pie con al menos 1 min de movimiento (anillo azul). */
+  standHours: number;
+  /** Distancia caminando/corriendo hoy (metros). */
+  distanceM: number;
+}
+
+export interface FitnessBlock {
+  /** Datos de hoy. */
+  today: FitnessToday;
+  /** Promedios diarios de los últimos 7 días. */
+  last7AvgSteps: number;
+  last7AvgKcal: number;
+}
+
 export interface HealthSnapshot {
   /** Versión del schema. Subir al romper compat. */
   v: 1;
@@ -43,12 +64,32 @@ export interface HealthSnapshot {
   bedtimeMedian: string;
   /** Mediana de hora de despertar, formato "HH:MM". */
   waketimeMedian: string;
+  /** Bloque opcional con datos de actividad/Fitness. */
+  fitness?: FitnessBlock;
 }
 
 export type HealthStatus =
   | { kind: 'missing' }
   | { kind: 'connected'; snapshot: HealthSnapshot }
   | { kind: 'stale'; snapshot: HealthSnapshot; ageMs: number };
+
+export type FitnessStatus =
+  | { kind: 'missing' }
+  | { kind: 'connected'; fitness: FitnessBlock; receivedAt: number }
+  | { kind: 'stale'; fitness: FitnessBlock; receivedAt: number; ageMs: number };
+
+/** Fitness data goes stale faster — it changes throughout the day. */
+const FITNESS_STALE_MS = 6 * 60 * 60 * 1000;
+
+export function getFitnessStatus(now: number = Date.now()): FitnessStatus {
+  const snap = loadHealthSnapshot();
+  if (!snap || !snap.fitness) return { kind: 'missing' };
+  const age = now - snap.receivedAt;
+  if (age > FITNESS_STALE_MS) {
+    return { kind: 'stale', fitness: snap.fitness, receivedAt: snap.receivedAt, ageMs: age };
+  }
+  return { kind: 'connected', fitness: snap.fitness, receivedAt: snap.receivedAt };
+}
 
 // ─── Persistence ──────────────────────────────────────────
 
@@ -116,7 +157,11 @@ export function consumeHealthHashIfPresent(): HealthSnapshot | null {
     const snap = validatePayload(json);
     if (!snap) return null;
 
-    const finalSnap: HealthSnapshot = { ...snap, receivedAt: Date.now() };
+    // Merge with any prior snapshot so a fitness-only export
+    // preserves the previous sleep data (and vice-versa). The
+    // freshest non-empty block from EITHER side wins.
+    const prior = loadHealthSnapshot();
+    const finalSnap: HealthSnapshot = mergeSnapshots(prior, snap);
     saveHealthSnapshot(finalSnap);
 
     // Clear hash so reloads don't reprocess.
@@ -162,9 +207,9 @@ interface IncomingNight {
 function validatePayload(obj: unknown): HealthSnapshot | null {
   if (!obj || typeof obj !== 'object') return null;
   const o = obj as Record<string, unknown>;
-  const nightsRaw = Array.isArray(o.nights) ? (o.nights as IncomingNight[]) : [];
-  if (nightsRaw.length === 0) return null;
 
+  // ─── Sleep block ────────────────────────────────────────
+  const nightsRaw = Array.isArray(o.nights) ? (o.nights as IncomingNight[]) : [];
   const nights: HealthSleepSample[] = nightsRaw
     .filter(
       (n) =>
@@ -172,7 +217,7 @@ function validatePayload(obj: unknown): HealthSnapshot | null {
         typeof n.start === 'number' &&
         typeof n.end === 'number' &&
         n.end > n.start &&
-        n.end - n.start < 18 * 60 * 60 * 1000, // sanity: < 18h
+        n.end - n.start < 18 * 60 * 60 * 1000,
     )
     .map((n) => ({
       start: n.start,
@@ -181,15 +226,19 @@ function validatePayload(obj: unknown): HealthSnapshot | null {
     }))
     .sort((a, b) => b.start - a.start);
 
-  if (nights.length === 0) return null;
-
   const durations = nights.map((n) => n.durationMin);
-  const avgDurationMin = Math.round(
-    durations.reduce((acc, d) => acc + d, 0) / durations.length,
-  );
+  const avgDurationMin = durations.length > 0
+    ? Math.round(durations.reduce((acc, d) => acc + d, 0) / durations.length)
+    : 0;
 
-  const bedtimeMedian = medianHHMM(nights.map((n) => n.start));
-  const waketimeMedian = medianHHMM(nights.map((n) => n.end));
+  const bedtimeMedian = nights.length > 0 ? medianHHMM(nights.map((n) => n.start)) : '23:00';
+  const waketimeMedian = nights.length > 0 ? medianHHMM(nights.map((n) => n.end)) : '07:00';
+
+  // ─── Fitness block (optional) ───────────────────────────
+  const fitness = parseFitnessBlock(o.fitness);
+
+  // Snapshot must have AT LEAST one of: nights[] or fitness.
+  if (nights.length === 0 && !fitness) return null;
 
   const exportedAt = typeof o.exportedAt === 'number' ? o.exportedAt : Date.now();
 
@@ -201,6 +250,55 @@ function validatePayload(obj: unknown): HealthSnapshot | null {
     avgDurationMin,
     bedtimeMedian,
     waketimeMedian,
+    fitness: fitness ?? undefined,
+  };
+}
+
+function mergeSnapshots(prior: HealthSnapshot | null, incoming: HealthSnapshot): HealthSnapshot {
+  if (!prior) return incoming;
+  // Sleep block: take whichever has data (prefer incoming if non-empty).
+  const nights = incoming.nights.length > 0 ? incoming.nights : prior.nights;
+  const avgDurationMin = incoming.nights.length > 0 ? incoming.avgDurationMin : prior.avgDurationMin;
+  const bedtimeMedian = incoming.nights.length > 0 ? incoming.bedtimeMedian : prior.bedtimeMedian;
+  const waketimeMedian = incoming.nights.length > 0 ? incoming.waketimeMedian : prior.waketimeMedian;
+  // Fitness block: same logic — incoming wins if present.
+  const fitness = incoming.fitness ?? prior.fitness;
+  return {
+    v: 1,
+    exportedAt: incoming.exportedAt,
+    receivedAt: Date.now(),
+    nights,
+    avgDurationMin,
+    bedtimeMedian,
+    waketimeMedian,
+    fitness,
+  };
+}
+
+function parseFitnessBlock(raw: unknown): FitnessBlock | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const todayRaw = (o.today ?? {}) as Record<string, unknown>;
+
+  const num = (v: unknown, fallback = 0): number =>
+    typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+
+  const today: FitnessToday = {
+    steps: Math.max(0, Math.round(num(todayRaw.steps))),
+    activeKcal: Math.max(0, Math.round(num(todayRaw.activeKcal))),
+    exerciseMin: Math.max(0, Math.round(num(todayRaw.exerciseMin))),
+    standHours: Math.max(0, Math.round(num(todayRaw.standHours))),
+    distanceM: Math.max(0, Math.round(num(todayRaw.distanceM))),
+  };
+
+  // Reject if absolutely all zero — likely a parse error in the shortcut.
+  const total = today.steps + today.activeKcal + today.exerciseMin + today.standHours;
+  if (total === 0) return null;
+
+  return {
+    today,
+    last7AvgSteps: Math.max(0, Math.round(num(o.last7AvgSteps))),
+    last7AvgKcal: Math.max(0, Math.round(num(o.last7AvgKcal))),
   };
 }
 
