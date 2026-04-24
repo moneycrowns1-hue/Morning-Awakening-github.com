@@ -45,6 +45,7 @@ import {
 import AchievementToast from './AchievementToast';
 import AlarmScreen from './AlarmScreen';
 import WonderwakeClockScreen from './WonderwakeClockScreen';
+import { consumeHealthHashIfPresent } from '@/lib/healthkitBridge';
 import AlarmRingingOverlay from './AlarmRingingOverlay';
 import NightProtocolFlow from './NightProtocolFlow';
 import { useAlarmController } from '@/lib/useAlarmController';
@@ -107,6 +108,22 @@ export default function MorningAwakening() {
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Ingest Apple Health data on mount if the URL hash carries a
+  // fresh export from the user's Apple Shortcut (see HealthBridgeScreen).
+  // This runs before anything else so the HUD badge reflects the
+  // correct status without requiring a manual refresh.
+  useEffect(() => {
+    const snap = consumeHealthHashIfPresent();
+    if (snap) {
+      // Small non-blocking feedback. The HUD health button will
+      // re-read status on next Night screen open.
+      try {
+        // Optional: could push an XP toast here.
+        console.info('[HealthKit] imported', snap.nights.length, 'nights');
+      } catch { /* ignore */ }
+    }
+  }, []);
 
   // ═══════════════ Load persisted data ═══════════════
   useEffect(() => {

@@ -17,8 +17,10 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { X, Moon, Sun, Timer } from 'lucide-react';
+import { X, Moon, Sun, Timer, Heart } from 'lucide-react';
 import IconosLogo from './IconosLogo';
+import HealthBridgeScreen from './HealthBridgeScreen';
+import { getHealthStatus, type HealthStatus } from '@/lib/healthkitBridge';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { totalNightDuration } from '@/lib/nightConstants';
@@ -56,6 +58,14 @@ export default function NightWelcomeScreen({
 }: NightWelcomeScreenProps) {
   const [mode, setMode] = useState<NightMode>('full');
   const [time, setTime] = useState(() => now());
+  const [healthStatus, setHealthStatus] = useState<HealthStatus>(() => ({ kind: 'missing' }));
+  const [showHealthModal, setShowHealthModal] = useState(false);
+
+  // Refresh health status whenever the modal closes (it may have
+  // imported new data via hash redirect in the meantime).
+  useEffect(() => {
+    setHealthStatus(getHealthStatus());
+  }, [showHealthModal]);
 
   // Load persisted preference on mount.
   useEffect(() => {
@@ -119,7 +129,7 @@ export default function NightWelcomeScreen({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full"
             style={{
@@ -134,6 +144,34 @@ export default function NightWelcomeScreen({
               {formatGateWindow(gate)}
             </span>
           </div>
+          {/* Apple Health bridge button */}
+          <button
+            onClick={() => {
+              haptics.tap();
+              setShowHealthModal(true);
+            }}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-[0.92] relative"
+            style={{
+              border: `1px solid ${healthStatus.kind === 'connected'
+                ? hexToRgba(NIGHT.moon_halo, 0.6)
+                : hexToRgba('#ff375f', 0.35)}`,
+              background: hexToRgba(NIGHT.violet_2, 0.4),
+              color: healthStatus.kind === 'connected' ? NIGHT.moon_halo : '#ff8aa5',
+            }}
+            aria-label="Apple Health"
+            title={healthStatus.kind === 'connected' ? 'Apple Health sincronizado' : 'Conectar Apple Health'}
+          >
+            <Heart size={14} strokeWidth={2} fill={healthStatus.kind === 'connected' ? 'currentColor' : 'none'} />
+            {healthStatus.kind === 'missing' && (
+              <span
+                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full"
+                style={{
+                  background: '#ff375f',
+                  border: `1.5px solid ${NIGHT.abyss}`,
+                }}
+              />
+            )}
+          </button>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-[0.92]"
@@ -235,6 +273,14 @@ export default function NightWelcomeScreen({
           )}
         </div>
       </div>
+
+      {/* Apple Health bridge modal */}
+      {showHealthModal && (
+        <HealthBridgeScreen
+          mode={healthStatus.kind === 'stale' ? 'permissions' : 'connect'}
+          onClose={() => setShowHealthModal(false)}
+        />
+      )}
     </div>
   );
 }

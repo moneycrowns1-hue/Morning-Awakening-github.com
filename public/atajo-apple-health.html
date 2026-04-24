@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Morning Awakening · Atajo Apple Health</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(180deg, #0d0828 0%, #1a1048 40%, #2e1968 100%);
+    color: #f6ecff;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 24px) 20px env(safe-area-inset-bottom, 24px);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 0 64px; }
+  h1 {
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .kicker {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #d4a8e8;
+    margin-bottom: 12px;
+  }
+  p { color: rgba(246,236,255,0.85); margin: 12px 0; font-size: 15px; }
+  h2 {
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #d4a8e8;
+    margin-top: 32px;
+    margin-bottom: 12px;
+  }
+  ol { counter-reset: step; list-style: none; padding: 0; }
+  ol li {
+    counter-increment: step;
+    padding: 14px 14px 14px 54px;
+    background: rgba(46, 25, 104, 0.35);
+    border: 1px solid rgba(212, 168, 232, 0.14);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    font-size: 14px;
+  }
+  ol li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(10, 6, 20, 0.7);
+    border: 1px solid rgba(212, 168, 232, 0.4);
+    color: #d4a8e8;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  code {
+    background: rgba(10, 6, 20, 0.7);
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    color: #ffd4e5;
+  }
+  .callout {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-left: 3px solid #d4a8e8;
+    background: rgba(46, 25, 104, 0.28);
+    border-radius: 8px;
+    font-size: 13px;
+    color: rgba(246,236,255,0.82);
+  }
+  .back {
+    display: inline-block;
+    margin-top: 32px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: #d4a8e8;
+    color: #0a0614;
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Morning Awakening</div>
+  <h1>Conectar Apple Health</h1>
+  <p>Para leer tus datos de sueño desde Apple Health, armamos un <strong>Atajo</strong> (Shortcut) de iOS que vos tenés que crear una vez en tu iPhone. Después, con un solo tap, se sincronizan las últimas noches con la app.</p>
+
+  <h2>Crear el atajo</h2>
+  <ol>
+    <li>Abrí la app <strong>Atajos</strong> (la que tiene el icono de dos flechas cruzadas azules) → tocá <code>+</code> arriba a la derecha.</li>
+    <li>Tocá el nombre del atajo (arriba) y ponele exactamente: <code>Morning Awakening Sync</code>. Es importante el nombre exacto porque la app lo invoca así.</li>
+    <li>Agregá la acción <strong>Find Health Samples</strong> → configurá <em>Type: Sleep Analysis</em>, <em>Category: Asleep</em>, <em>Limit: 30</em>, <em>Sort by: End Date (Latest first)</em>.</li>
+    <li>Agregá <strong>Repeat with each</strong> sobre el resultado anterior. Dentro del loop:
+      <ul style="margin-top:8px;padding-left:20px;font-size:13px;color:rgba(246,236,255,0.75);">
+        <li>• <strong>Get Start Date of</strong> <em>Repeat Item</em> → guardar en variable <code>s</code></li>
+        <li>• <strong>Get End Date of</strong> <em>Repeat Item</em> → guardar en variable <code>e</code></li>
+        <li>• <strong>Format Number</strong>: <code>{"start": {s en ms}, "end": {e en ms}}</code> (usa <em>Get numbers from input</em> para obtener el timestamp en ms)</li>
+      </ul>
+    </li>
+    <li>Agregá <strong>Combine Text</strong> para juntar los objetos JSON separados por coma.</li>
+    <li>Agregá <strong>Text</strong> con el JSON final:
+      <code style="display:block;margin-top:8px;word-break:break-all;">{"v":1,"exportedAt":{now en ms},"nights":[{lista}]}</code>
+    </li>
+    <li>Agregá <strong>Base64 Encode</strong> sobre ese texto (modo URL-safe si está disponible).</li>
+    <li>Agregá <strong>URL</strong>: <code>https://tu-dominio.com/#hk=</code> + <em>el resultado anterior</em>.</li>
+    <li>Agregá <strong>Open URL</strong>. Esto abre Safari / la PWA con los datos en el hash.</li>
+  </ol>
+
+  <h2>Usarlo</h2>
+  <ol>
+    <li>Volvés a Morning Awakening → en la pantalla de noche tocás el corazón ❤ arriba a la derecha → <strong>Conectar</strong>.</li>
+    <li>Si es la primera vez, Apple te va a pedir permiso para leer Sueño desde Atajos. Tocás <strong>Permitir</strong>.</li>
+    <li>El atajo corre, genera el JSON y te devuelve a la app. Ya vas a ver el corazón en verde y el estado &ldquo;Sincronizado&rdquo;.</li>
+  </ol>
+
+  <div class="callout">
+    <strong>Privacidad:</strong> los datos viajan solo en la URL del hash (<code>#hk=…</code>) que queda en tu navegador. No hacemos ningún request al servidor. Todo se guarda en <code>localStorage</code> de tu dispositivo.
+  </div>
+
+  <h2>Alternativa rápida (sin atajo)</h2>
+  <p>Si todavía no querés armar el atajo, podés probar el puente pegando un JSON manualmente. Abrí esta URL en el navegador reemplazando <code>&lt;tu-json-base64&gt;</code>:</p>
+  <p><code style="word-break:break-all;">https://tu-dominio/#hk=&lt;tu-json-base64&gt;</code></p>
+
+  <a class="back" href="/">← Volver a la app</a>
+</div>
+</body>
+</html>
