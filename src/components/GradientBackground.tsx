@@ -29,6 +29,10 @@ interface GradientBackgroundProps {
   /** Density of particles. 0 = none. Default 60. */
   particleCount?: number;
   className?: string;
+  /** When supplied, bypasses the built-in sunrise palette and uses these
+   *  colours directly. Used by the night protocol to render its own
+   *  violet→rose gradient without duplicating the canvas logic. */
+  colors?: StageColors;
 }
 
 interface Particle {
@@ -48,10 +52,14 @@ export default function GradientBackground({
   stage,
   particleCount = 60,
   className,
+  colors,
 }: GradientBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const targetColors = useMemo<StageColors>(() => getStageColors(stage), [stage]);
+  const targetColors = useMemo<StageColors>(
+    () => colors ?? getStageColors(stage),
+    [stage, colors],
+  );
 
   // Mutable animation state, kept outside React to avoid re-renders
   // on every frame (60 fps × setState would be catastrophic).

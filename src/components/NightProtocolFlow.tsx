@@ -1,0 +1,160 @@
+'use client';
+
+// ═══════════════════════════════════════════════════════════
+// NightProtocolFlow · parent state machine for the night flow
+// States: WELCOME → MISSION (n phases) → SUMMARY → LOCK → exit
+//
+// Owns the Operator instance for TTS (shared pipeline as morning),
+// the mode selection (full / express), the filtered mission list,
+// and the current phase index. Also coordinates with the parent
+// (MorningAwakening) so the alarm can still ring over the top.
+// ═══════════════════════════════════════════════════════════
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import NightWelcomeScreen, { type NightMode } from './NightWelcomeScreen';
+import NightMissionPhase from './NightMissionPhase';
+import NightSummaryScreen from './NightSummaryScreen';
+import SlumberLockScreen from './SlumberLockScreen';
+import { getNightMissions, type NightMission } from '@/lib/nightConstants';
+import type { AlarmConfig } from '@/lib/alarmSchedule';
+import { AudioEngine } from '@/lib/audioEngine';
+import { Operator } from '@/lib/operator';
+import { markHabit, isHabitDone } from '@/lib/habits';
+
+type FlowState = 'WELCOME' | 'MISSION' | 'SUMMARY' | 'LOCK';
+
+interface NightProtocolFlowProps {
+  alarmConfig: AlarmConfig;
+  voiceEnabled: boolean;
+  masterVolume: number;
+  onClose: () => void;
+}
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export default function NightProtocolFlow({
+  alarmConfig,
+  voiceEnabled,
+  masterVolume,
+  onClose,
+}: NightProtocolFlowProps) {
+  const [state, setState] = useState<FlowState>('WELCOME');
+  const [mode, setMode] = useState<NightMode>('full');
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  const audioRef = useRef<AudioEngine | null>(null);
+  const operatorRef = useRef<Operator | null>(null);
+
+  const missions = useMemo(() => getNightMissions(mode), [mode]);
+  const currentMission: NightMission | undefined = missions[phaseIdx];
+
+  const completedToday = typeof window !== 'undefined' ? isHabitDone('night_protocol') : false;
+
+  // Tear down audio when the flow unmounts.
+  useEffect(() => {
+    return () => {
+      try { operatorRef.current?.cancel(); } catch { /* ignore */ }
+      try { audioRef.current?.stopAll(); } catch { /* ignore */ }
+    };
+  }, []);
+
+  const ensureAudio = async () => {
+    if (!audioRef.current) {
+      audioRef.current = new AudioEngine();
+      audioRef.current.init();
+      audioRef.current.setMasterVolume(masterVolume);
+    }
+    if (!operatorRef.current) {
+      operatorRef.current = new Operator(audioRef.current);
+      operatorRef.current.setEnabled(voiceEnabled);
+    }
+    operatorRef.current.unlockForIOS();
+    await audioRef.current.resume();
+  };
+
+  const handleEnter = async (m: NightMode) => {
+    setMode(m);
+    setPhaseIdx(0);
+    await ensureAudio();
+    setState('MISSION');
+  };
+
+  const handleEnterSlumberDirect = async () => {
+    // Shortcut: skip protocol, go straight to lock.
+    await ensureAudio();
+    setState('LOCK');
+  };
+
+  const handleMissionComplete = () => {
+    const nextIdx = phaseIdx + 1;
+    if (nextIdx >= missions.length) {
+      // All phases done → summary. Mark night_protocol habit now
+      // (the SlumberLockScreen also marks it on mount as a safety net).
+      markHabit('night_protocol', todayISO());
+      // Track breathing / journaling habits if those phases ran.
+      if (missions.some((m) => m.interaction === 'breath')) {
+        markHabit('breathing', todayISO());
+      }
+      if (missions.some((m) => m.interaction === 'journal')) {
+        markHabit('journaling', todayISO());
+      }
+      setState('SUMMARY');
+    } else {
+      setPhaseIdx(nextIdx);
+    }
+  };
+
+  const handleSkipPhase = () => {
+    // Treat skip identically to complete for flow purposes.
+    handleMissionComplete();
+  };
+
+  if (state === 'WELCOME') {
+    return (
+      <NightWelcomeScreen
+        alarmConfig={alarmConfig}
+        onEnter={handleEnter}
+        onEnterSlumber={handleEnterSlumberDirect}
+        onClose={onClose}
+        completedToday={completedToday}
+      />
+    );
+  }
+
+  if (state === 'MISSION' && currentMission) {
+    const duration = mode === 'express'
+      ? (currentMission.durationExpress ?? currentMission.duration)
+      : currentMission.duration;
+    return (
+      <NightMissionPhase
+        key={currentMission.id}
+        mission={currentMission}
+        durationSec={duration}
+        totalPhases={missions.length}
+        phaseIndex={phaseIdx + 1}
+        onComplete={handleMissionComplete}
+        operator={operatorRef.current}
+        onSkipPhase={handleSkipPhase}
+      />
+    );
+  }
+
+  if (state === 'SUMMARY') {
+    return (
+      <NightSummaryScreen
+        mode={mode}
+        onEnterSlumber={() => setState('LOCK')}
+      />
+    );
+  }
+
+  // LOCK
+  return (
+    <SlumberLockScreen
+      alarmConfig={alarmConfig}
+      onExit={onClose}
+    />
+  );
+}

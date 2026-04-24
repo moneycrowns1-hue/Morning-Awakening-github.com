@@ -44,11 +44,13 @@ import {
 } from '@/lib/achievements';
 import AchievementToast from './AchievementToast';
 import AlarmScreen from './AlarmScreen';
+import WonderwakeClockScreen from './WonderwakeClockScreen';
 import AlarmRingingOverlay from './AlarmRingingOverlay';
-import NightModeScreen from './NightModeScreen';
+import NightProtocolFlow from './NightProtocolFlow';
 import { useAlarmController } from '@/lib/useAlarmController';
 import { unlockAlarmAudio } from '@/lib/alarmEngine';
 import { stopSleepEngine } from '@/lib/sleepEngine';
+import { markHabit } from '@/lib/habits';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -84,6 +86,7 @@ export default function MorningAwakening() {
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
   const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
   const [showAlarm, setShowAlarm] = useState(false);
+  const [showAlarmDetails, setShowAlarmDetails] = useState(false);
   const [showNightMode, setShowNightMode] = useState(false);
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
@@ -293,6 +296,9 @@ export default function MorningAwakening() {
       };
       saveStreak(newData);
 
+      // Habit tracking: morning protocol counts as a day-of-habit.
+      try { markHabit('morning_protocol', today); } catch { /* ignore */ }
+
       // Persist the session for SummaryScreen mini-chart + HistoryScreen.
       const durationSec = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
       const score = computeQualityScore({
@@ -470,19 +476,29 @@ export default function MorningAwakening() {
         ) : showHistory ? (
           <HistoryScreen onClose={() => setShowHistory(false)} />
         ) : showAlarm ? (
-          <AlarmScreen
-            config={alarm.config}
-            onChange={alarm.setConfig}
-            onPreview={alarm.preview}
-            onFireNow={alarm.fireNow}
-            onFireTest={alarm.fireTest}
-            onClose={() => setShowAlarm(false)}
-          />
+          showAlarmDetails ? (
+            <AlarmScreen
+              config={alarm.config}
+              onChange={alarm.setConfig}
+              onPreview={alarm.preview}
+              onFireNow={alarm.fireNow}
+              onFireTest={alarm.fireTest}
+              onClose={() => setShowAlarmDetails(false)}
+            />
+          ) : (
+            <WonderwakeClockScreen
+              alarmConfig={alarm.config}
+              onToggleAlarm={(enabled) => alarm.setConfig({ ...alarm.config, enabled })}
+              onOpenDetails={() => setShowAlarmDetails(true)}
+              onClose={() => { setShowAlarm(false); setShowAlarmDetails(false); }}
+            />
+          )
         ) : showNightMode ? (
-          <NightModeScreen
-            operatorName={profile.name}
+          <NightProtocolFlow
+            alarmConfig={alarm.config}
+            voiceEnabled={settings.voiceEnabled}
+            masterVolume={settings.masterVolume}
             onClose={() => setShowNightMode(false)}
-            onOpenAlarm={() => { setShowNightMode(false); setShowAlarm(true); }}
           />
         ) : (
           <WelcomeScreen

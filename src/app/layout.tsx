@@ -52,7 +52,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0b0618",
+  themeColor: "#0a0614",
 };
 
 export default function RootLayout({
@@ -70,7 +70,7 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/iconos.jpeg" />
       </head>
       <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-cinzel)]">
         {children}
