@@ -171,7 +171,7 @@ export function useAlarmController(): UseAlarmController {
   useEffect(() => {
     clearArmTimer();
 
-    if (!config.enabled) {
+    if (!config.enabled || !config.days.some(Boolean)) {
       void disarmSystemFallback();
       return;
     }
@@ -180,26 +180,58 @@ export function useAlarmController(): UseAlarmController {
     // the JS timer below survives backgrounding).
     void armSystemFallback(config);
 
-    const { msUntilRampStart, offsetSec } = nextFireInfo(config);
+    const schedule = () => {
+      const { msUntilRampStart, offsetSec } = nextFireInfo(config);
+      if (!Number.isFinite(msUntilRampStart)) return;
 
-    // If we're already inside a ramp window for the upcoming peak AND
-    // the snooze dismissal doesn't cover this peak, fire immediately
-    // at the correct offset.
-    const now = Date.now();
-    const snoozeUntilRaw = typeof window !== 'undefined' ? localStorage.getItem(SNOOZE_KEY) : null;
-    const snoozeUntil = snoozeUntilRaw ? parseInt(snoozeUntilRaw, 10) : 0;
-    const snoozed = snoozeUntil > now;
+      const now = Date.now();
+      const snoozeUntilRaw = typeof window !== 'undefined' ? localStorage.getItem(SNOOZE_KEY) : null;
+      const snoozeUntil = snoozeUntilRaw ? parseInt(snoozeUntilRaw, 10) : 0;
+      const snoozed = snoozeUntil > now;
 
-    if (msUntilRampStart === 0 && !snoozed) {
-      void fireAlarmInternal(offsetSec);
-    } else if (msUntilRampStart > 0) {
-      const delay = Math.max(0, msUntilRampStart - (snoozed ? 0 : 0));
-      armTimerRef.current = window.setTimeout(() => {
-        void fireAlarmInternal(0);
-      }, delay);
-    }
+      if (msUntilRampStart === 0 && !snoozed) {
+        void fireAlarmInternal(offsetSec);
+      } else if (msUntilRampStart > 0) {
+        // Guard against iOS' 32-bit setTimeout cap (~24.8 days).
+        // We re-arm on every visibility change anyway, so clamping
+        // here is safe.
+        const MAX_DELAY = 2 ** 31 - 1;
+        armTimerRef.current = window.setTimeout(() => {
+          void fireAlarmInternal(0);
+        }, Math.min(MAX_DELAY, msUntilRampStart));
+      }
+    };
 
-    return clearArmTimer;
+    schedule();
+
+    // ── Recovery on app resume ───────────────────────
+    // iOS discards JS timers aggressively when the PWA is
+    // backgrounded. Every time the page becomes visible again we
+    // recompute the next fire and, crucially, we detect whether
+    // we're currently INSIDE an active alarm window (ramp or
+    // reaseguro) and fire immediately at the correct offset —
+    // otherwise the user gets silence after unlocking the iPad at
+    // 5:30 AM.
+    const onVisible = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      // Re-arm the SW fallback (safe: it's idempotent).
+      void armSystemFallback(config);
+      clearArmTimer();
+      // If the engine is already running we're good.
+      if (engineRef.current) return;
+      schedule();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    // Also listen to page show (bfcache restores) and focus.
+    window.addEventListener('pageshow', onVisible);
+    window.addEventListener('focus', onVisible);
+
+    return () => {
+      clearArmTimer();
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [config, fireAlarmInternal]);
 
   // ── Dismiss / snooze ────────────────────────────────

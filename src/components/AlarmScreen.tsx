@@ -14,11 +14,13 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, BellOff, ChevronLeft, Info, Play, Sparkles, Sun } from 'lucide-react';
+import { AlertTriangle, Bell, BellOff, CalendarDays, ChevronLeft, Play, Sparkles, Sun } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { haptics } from '@/lib/haptics';
 import {
   describeAlarm,
+  describeDays,
+  hasAnyDay,
   nextFireInfo,
   type AlarmConfig,
 } from '@/lib/alarmSchedule';
@@ -26,6 +28,7 @@ import { prefetchAlarmAudio, type PreviewResult } from '@/lib/alarmEngine';
 import { SUNRISE, hexToRgba } from '@/lib/theme';
 import AppCloseWarningModal, { shouldShowAppCloseWarning } from './AppCloseWarningModal';
 import { requestPermission, permissionStatus } from '@/lib/morningReminder';
+import WeekdaySelector from './WeekdaySelector';
 
 interface AlarmScreenProps {
   config: AlarmConfig;
@@ -283,6 +286,27 @@ export default function AlarmScreen({
           )}
         </div>
 
+        {/* ─── Weekday selector ─────────────────────── */}
+        <SectionCard
+          icon={<CalendarDays size={15} strokeWidth={1.9} />}
+          title="Días activos"
+          hint={describeDays(config.days)}
+          delay={100}
+        >
+          <WeekdaySelector
+            value={config.days}
+            onChange={(days) => update({ days })}
+          />
+          {!hasAnyDay(config) && (
+            <p
+              className="font-ui text-[11px] leading-relaxed mt-3"
+              style={{ color: '#ffaaaa' }}
+            >
+              Sin días activos la alarma no sonará. Selecciona al menos uno.
+            </p>
+          )}
+        </SectionCard>
+
         {/* ─── Ramp duration ────────────────────────── */}
         <SectionCard
           icon={<Sun size={15} strokeWidth={1.9} />}
@@ -532,31 +556,52 @@ export default function AlarmScreen({
           </div>
         )}
 
-        {/* ─── iOS caveat ──────────────────────────── */}
+        {/* ─── Honesty card: why an alarm can fail on iOS ── */}
         <div
           className="mt-5 rounded-2xl p-4 sunrise-fade-up flex items-start gap-3"
           style={{
             animationDelay: '360ms',
-            border: '1px solid rgba(255,250,240,0.08)',
-            background: 'rgba(255,250,240,0.02)',
+            border: `1px solid ${hexToRgba(SUNRISE.dawn2, 0.4)}`,
+            background: hexToRgba(SUNRISE.dawn2, 0.05),
           }}
         >
-          <Info size={13} strokeWidth={1.9} style={{ color: 'var(--sunrise-text-muted)', marginTop: 2 }} />
+          <AlertTriangle size={14} strokeWidth={1.9} style={{ color: SUNRISE.dawn2, marginTop: 2 }} />
           <div>
             <div
-              className="font-ui text-[11px] font-[500] mb-1"
-              style={{ color: 'var(--sunrise-text-soft)' }}
+              className="font-ui text-[12px] font-[500] mb-2"
+              style={{ color: 'var(--sunrise-text)' }}
             >
-              Para que suene con el iPad bloqueado
+              Para que suene de verdad
             </div>
-            <div
-              className="font-ui text-[10px] leading-relaxed"
+            <ol
+              className="font-ui text-[10.5px] leading-[1.55] space-y-1 list-decimal pl-4"
               style={{ color: 'var(--sunrise-text-muted)' }}
             >
-              Instala la app al home screen (Compartir → Añadir a inicio) y
-              mantén la pantalla encendida. Como respaldo, llega una
-              notificación del sistema a la hora del peak aunque la app esté
-              cerrada.
+              <li>Instala la app al home screen (Compartir → Añadir a inicio).</li>
+              <li>Acepta el permiso de notificaciones la primera vez que armes la alarma.</li>
+              <li>
+                Deja la app <b>abierta en primer plano</b> al dormir — iOS
+                detiene el audio de cualquier PWA en segundo plano. Puedes
+                bloquear el iPad, el audio sigue sonando; solo <b>no cierres
+                la app</b> deslizándola fuera del selector.
+              </li>
+              <li>
+                Como respaldo, al llegar al peak se dispara una notificación
+                del sistema (banner + sonido corto del sistema) aunque iOS
+                haya matado el proceso durante la noche.
+              </li>
+            </ol>
+            <div
+              className="font-ui text-[10px] leading-relaxed mt-2 pt-2"
+              style={{
+                color: 'var(--sunrise-text-muted)',
+                borderTop: '1px solid rgba(255,250,240,0.06)',
+              }}
+            >
+              Si no sonó nada, lo más probable es que iOS haya descargado la
+              pestaña (PWA cerrada o iPad reiniciado). Usa el test de 1 min
+              arriba para confirmar que audio + notificación funcionan antes
+              de confiarle una noche entera.
             </div>
           </div>
         </div>

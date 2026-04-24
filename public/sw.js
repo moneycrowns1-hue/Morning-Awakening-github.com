@@ -16,7 +16,7 @@
 // PWAs on iOS are VERY sticky — the only way to force them to drop
 // stale audio/JS is a new VERSION string here, which causes the
 // activate handler to delete ma-static-<old>/ma-runtime-<old>.
-const VERSION = 'v8.0-alpha9-close-warning';
+const VERSION = 'v8.0-alpha10-weekdays';
 const STATIC_CACHE = `ma-static-${VERSION}`;
 const RUNTIME_CACHE = `ma-runtime-${VERSION}`;
 
@@ -105,6 +105,9 @@ async function staleWhileRevalidate(req) {
 
 let scheduledTimeoutId = null;
 let alarmTimeoutId = null;
+// Last weekday mask received for the alarm, mirrored so the
+// re-arm path after firing knows which day to target next.
+let alarmDays = [true, true, true, true, true, true, true];
 
 self.addEventListener('message', (event) => {
   const data = event.data || {};
@@ -113,19 +116,35 @@ self.addEventListener('message', (event) => {
   } else if (data.type === 'CANCEL_MORNING') {
     if (scheduledTimeoutId) { clearTimeout(scheduledTimeoutId); scheduledTimeoutId = null; }
   } else if (data.type === 'SCHEDULE_ALARM') {
+    if (Array.isArray(data.days) && data.days.length === 7) {
+      alarmDays = data.days.map(Boolean);
+    } else {
+      alarmDays = [true, true, true, true, true, true, true];
+    }
     scheduleAlarm(data.hour, data.minute);
   } else if (data.type === 'CANCEL_ALARM') {
     if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
   }
 });
 
+function msUntilNextActiveDay(hour, minute, days, from) {
+  if (!days.some(Boolean)) return Infinity;
+  for (let offset = 0; offset < 8; offset++) {
+    const target = new Date(from);
+    target.setDate(target.getDate() + offset);
+    target.setHours(hour, minute, 0, 0);
+    if (target.getTime() <= from.getTime()) continue;
+    if (days[target.getDay()]) return target.getTime() - from.getTime();
+  }
+  return Infinity;
+}
+
 function scheduleAlarm(hour, minute) {
   if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
+  if (!alarmDays.some(Boolean)) return;
   const now = new Date();
-  const next = new Date();
-  next.setHours(hour, minute, 0, 0);
-  if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
-  const delay = next.getTime() - now.getTime();
+  const delay = msUntilNextActiveDay(hour, minute, alarmDays, now);
+  if (!isFinite(delay)) return;
   alarmTimeoutId = setTimeout(() => {
     self.registration.showNotification('Es hora, operador.', {
       body: 'Tu alarma suave est\u00e1 sonando. Abre para despertar.',
@@ -136,8 +155,7 @@ function scheduleAlarm(hour, minute) {
       silent: false,
       data: { kind: 'alarm' },
     });
-    // Re-arm for tomorrow so the fallback keeps firing daily even if
-    // the page never reopens.
+    // Re-arm for the NEXT active weekday.
     scheduleAlarm(hour, minute);
   }, delay);
 }
