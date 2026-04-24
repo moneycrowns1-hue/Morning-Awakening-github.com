@@ -21,7 +21,6 @@ import { computeSleepGate, loadSleepConfig } from '@/lib/sleepGate';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
-import IconosBackground from './IconosBackground';
 
 interface WonderwakeClockScreenProps {
   alarmConfig: AlarmConfig;
@@ -116,11 +115,20 @@ export default function WonderwakeClockScreen({
     <div
       className="relative w-full h-full flex flex-col overflow-hidden"
       style={{
-        background: `radial-gradient(ellipse at 50% 30%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 75%)`,
         color: NIGHT_TEXT.primary,
+        backgroundImage: 'url(/iconos.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
-      <IconosBackground haloY={0.58} bottomGlow={0.85} starCount={55} />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(8,4,20,0.55) 0%, rgba(8,4,20,0.35) 30%, rgba(8,4,20,0.5) 65%, rgba(8,4,20,0.7) 100%)',
+        }}
+      />
 
       {/* ─── Header close button ─────────────────────────── */}
       <div

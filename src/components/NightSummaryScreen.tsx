@@ -11,8 +11,6 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
-import MoonMascot from './MoonMascot';
-import IconosBackground from './IconosBackground';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { isHabitDone, setHabit } from '@/lib/habits';
@@ -43,13 +41,21 @@ export default function NightSummaryScreen({ mode, onEnterSlumber }: NightSummar
     <div
       className="relative w-full h-full flex flex-col items-center justify-center px-6"
       style={{
-        background: NIGHT.abyss,
         color: NIGHT_TEXT.primary,
+        backgroundImage: 'url(/iconos.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
-      <IconosBackground haloY={0.38} bottomGlow={1} starCount={65} />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(8,4,20,0.55) 0%, rgba(8,4,20,0.2) 28%, rgba(8,4,20,0.2) 62%, rgba(8,4,20,0.55) 100%)',
+        }}
+      />
       <div className="relative z-10 flex flex-col items-center w-full">
-      <MoonMascot size={180} breathing floating blinking />
 
       <div
         className="mt-8 font-ui text-[10px] uppercase tracking-[0.45em]"

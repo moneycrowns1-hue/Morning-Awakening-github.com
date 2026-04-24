@@ -18,8 +18,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { X, Moon, Sun, Timer } from 'lucide-react';
-import IconosBackground from './IconosBackground';
-import MoonMascot from './MoonMascot';
 import { NIGHT, NIGHT_TEXT } from '@/lib/nightTheme';
 import { hexToRgba } from '@/lib/theme';
 import { totalNightDuration } from '@/lib/nightConstants';
@@ -100,9 +98,22 @@ export default function NightWelcomeScreen({
   return (
     <div
       className="relative w-full h-full flex flex-col overflow-hidden"
-      style={{ color: NIGHT_TEXT.primary, background: NIGHT.abyss }}
+      style={{
+        color: NIGHT_TEXT.primary,
+        backgroundImage: 'url(/iconos.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
     >
-      <IconosBackground haloY={0.42} />
+      {/* Soft dark scrim over the photo so text stays legible. */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(8,4,20,0.55) 0%, rgba(8,4,20,0.15) 22%, rgba(8,4,20,0.15) 60%, rgba(8,4,20,0.55) 100%)',
+        }}
+      />
 
       {/* ─── HUD ─────────────────────────────────────────────── */}
       <div
@@ -149,9 +160,10 @@ export default function NightWelcomeScreen({
       </div>
 
       {/* ─── Hero ─────────────────────────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 min-h-0">
-        <MoonMascot size={220} breathing floating blinking />
-
+      {/* The moon mascot is already baked into the background image,
+          so the hero is just text. We leave a spacer on top so the
+          photo’s moon shows through the empty area. */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-end px-6 min-h-0 pb-6">
         <div
           className="mt-7 font-ui text-[10px] uppercase tracking-[0.45em]"
           style={{ color: NIGHT_TEXT.muted }}
