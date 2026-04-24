@@ -14,15 +14,15 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/iconos.jpeg",
+      "src": "/icono.png",
       "sizes": "any",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/iconos.jpeg",
+      "src": "/icono.png",
       "sizes": "any",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]

@@ -44,26 +44,31 @@ export default function IconosLogo({
           animation: animated ? 'iconos-glow 6s ease-in-out infinite' : undefined,
         }}
       />
-      {/* The photo itself, circle-masked */}
+      {/* The PNG mascot. Its background is solid white, so we
+          zoom in so only the moon + a little glow are visible,
+          and fade the outer edge with a radial mask so the white
+          dissolves into the dark violet screen background. */}
       <div
-        className="absolute inset-0 rounded-full overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         style={{
-          boxShadow: '0 12px 48px -8px rgba(200,120,220,0.45)',
           animation: animated ? 'iconos-float 5.5s ease-in-out infinite, iconos-breath 7s ease-in-out infinite' : undefined,
+          // Radial mask: opaque in the center, transparent at the edge.
+          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, #000 42%, rgba(0,0,0,0.5) 58%, transparent 72%)',
+          maskImage: 'radial-gradient(circle at 50% 50%, #000 42%, rgba(0,0,0,0.5) 58%, transparent 72%)',
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/iconos.jpeg"
+          src="/icono.png"
           alt=""
           draggable={false}
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            // Bias a little higher because the JPEG's moon sits slightly
-            // above center of the frame.
-            objectPosition: 'center 38%',
+            // Zoom in ~2.2x and center on the moon.
+            width: '220%',
+            height: '220%',
+            marginLeft: '-60%',
+            marginTop: '-60%',
+            objectFit: 'contain',
             userSelect: 'none',
           }}
         />
