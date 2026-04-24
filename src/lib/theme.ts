@@ -4,7 +4,7 @@
 // `getStageColors(missionIndex)` helper used by
 // GradientBackground.tsx / ProtocolScreen / SummaryScreen
 // so the whole app's tint shifts from night → full dawn as
-// the user progresses through the 12 phases.
+// the user progresses through the 13 phases.
 // ═══════════════════════════════════════════════════════
 
 export const SUNRISE = {
@@ -27,7 +27,7 @@ export const SUNRISE_TEXT = {
 } as const;
 
 // ─── Stage colour pairs (top → bottom of the radial gradient) ───────
-// 12 entries for 12 missions plus a "welcome" pair used before INICIAR
+// 13 entries for 13 missions plus a "welcome" pair used before INICIAR
 // and a "fulllight" pair used on the SummaryScreen.
 // Gradient direction: top/sky colour -> bottom/horizon colour.
 
@@ -71,6 +71,7 @@ const STAGES: Record<'welcome' | 'complete' | number, StageColors> = {
   9:  { sky: SUNRISE.predawn2, horizon: SUNRISE.rise2,    accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
   10: { sky: SUNRISE.predawn2, horizon: SUNRISE.rise2,    accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
   11: { sky: SUNRISE.predawn2, horizon: SUNRISE.fulllight,accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
+  12: { sky: SUNRISE.predawn2, horizon: SUNRISE.fulllight,accent: SUNRISE.fulllight, particle: SUNRISE.fulllight },
   complete: {
     sky: SUNRISE.predawn2,
     horizon: SUNRISE.fulllight,
@@ -80,12 +81,12 @@ const STAGES: Record<'welcome' | 'complete' | number, StageColors> = {
 };
 
 /**
- * Returns the stage colours for a given mission index (0-11), or the
+ * Returns the stage colours for a given mission index (0-12), or the
  * special 'welcome' / 'complete' stages. Clamps out-of-range indices.
  */
 export function getStageColors(stage: number | 'welcome' | 'complete'): StageColors {
   if (stage === 'welcome' || stage === 'complete') return STAGES[stage];
-  const clamped = Math.max(0, Math.min(11, Math.floor(stage)));
+  const clamped = Math.max(0, Math.min(12, Math.floor(stage)));
   return STAGES[clamped];
 }
 

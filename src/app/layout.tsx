@@ -38,7 +38,7 @@ const cinzelDecorative = Cinzel_Decorative({
 
 export const metadata: Metadata = {
   title: "Morning Awakening",
-  description: "Protocolo matutino guiado de 12 fases. Claridad, cuerpo, enfoque.",
+  description: "Protocolo matutino Génesis: 13 fases guiadas. Claridad, cuerpo, enfoque.",
   manifest: withBasePath("/manifest.json"),
   appleWebApp: {
     capable: true,

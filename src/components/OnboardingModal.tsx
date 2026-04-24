@@ -135,7 +135,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
               className="font-ui text-[13px] leading-relaxed mb-2"
               style={{ color: 'var(--sunrise-text-soft)' }}
             >
-              Un protocolo matutino de 12 fases diseñado para forjar disciplina, enfoque y energía.
+              Un protocolo matutino de 13 fases diseñado para forjar disciplina, enfoque y energía.
             </p>
             <p
               className="font-ui text-[12px] leading-relaxed"

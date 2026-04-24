@@ -302,7 +302,7 @@ export default function MorningAwakening() {
 
     if (nextIndex >= MISSIONS.length) {
       audioRef.current?.playGong();
-      operatorRef.current?.speak('Protocolo completo. Doce fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.', { rate: 0.9 });
+      operatorRef.current?.speak('Protocolo Génesis completo. Trece fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.', { rate: 0.9 });
 
       const today = getToday();
       const newData: StreakData = {

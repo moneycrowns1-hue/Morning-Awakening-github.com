@@ -330,7 +330,7 @@ export default function WelcomeScreen({
           className="mt-4 font-ui text-[10px] tracking-[0.35em] uppercase"
           style={{ color: 'var(--sunrise-text-muted)' }}
         >
-          12 fases · ~1 h 45 min
+          13 fases · ~1 h 50 min
         </div>
       </div>
 

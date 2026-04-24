@@ -226,13 +226,13 @@ export default function SettingsScreen({
             </div>
             <div className="flex justify-between font-ui text-[13px]">
               <span style={{ color: 'var(--sunrise-text-soft)' }}>Protocolo</span>
-              <span className="font-mono" style={{ color: 'var(--sunrise-text)' }}>12 fases · 1h 45m</span>
+              <span className="font-mono" style={{ color: 'var(--sunrise-text)' }}>13 fases · 1h 50m</span>
             </div>
             <p
               className="mt-3 font-ui text-[11px] leading-relaxed"
               style={{ color: 'var(--sunrise-text-muted)' }}
             >
-              Un protocolo matutino de 105 minutos estructurado en tres bloques: ignición, ventana anabólica y filo cognitivo. Construido para ejecutarse entre 5:00 y 6:45 AM.
+              Protocolo Génesis: 110 minutos en tres bloques (fragua oscura · ventana anabólica · filo cognitivo) y el anclaje final. Diseñado para ejecutarse entre 5:00 y 6:50 AM.
             </p>
           </div>
         </SettingsGroup>
