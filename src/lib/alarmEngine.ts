@@ -45,6 +45,15 @@ export interface AlarmCallbacks {
   onStageChange?: (stage: AlarmStage) => void;
   /** 0..1, the "intensity" bar driver (music volume relative to peak). */
   onProgress?: (volume: number, stage: AlarmStage) => void;
+  /** Fires the moment the ramp element confirms playback (HTMLAudioElement
+   *  'playing' event). On iOS this is the truth signal that audio is
+   *  actually reaching the speakers — distinct from start() resolving. */
+  onPlaying?: () => void;
+  /** Fires if the ramp element fails to start playing within ~1.5 s of
+   *  start(). Typical cause on iPad PWA: timer-driven play() rejected
+   *  because no fresh user gesture. The UI should respond by exposing
+   *  a tap-to-wake target that re-invokes start() inside a gesture. */
+  onSilentFailure?: () => void;
 }
 
 /** Diagnostic returned by AlarmEngine.preview so the UI can show
@@ -305,10 +314,27 @@ export class AlarmEngine {
     this.ramp.target = startVol;
 
     // Kick playback — synchronous call, iOS-safe.
+    let didStartPlaying = false;
+    rampEl.addEventListener('playing', () => {
+      didStartPlaying = true;
+      try { this.cb.onPlaying?.(); } catch { /* ignore */ }
+    }, { once: true });
     const pp = rampEl.play();
     if (pp && typeof pp.then === 'function') {
-      pp.catch((err) => console.warn('[AlarmEngine] ramp play rejected', err));
+      pp.catch((err) => {
+        console.warn('[AlarmEngine] ramp play rejected', err);
+        if (!didStartPlaying) {
+          try { this.cb.onSilentFailure?.(); } catch { /* ignore */ }
+        }
+      });
     }
+    // Watchdog: if 'playing' hasn't fired in 1.5 s the audio is silent
+    // (iOS rejected the play() without throwing, or buffering stalled).
+    this.timers.push(window.setTimeout(() => {
+      if (!didStartPlaying && this.stage !== 'idle') {
+        try { this.cb.onSilentFailure?.(); } catch { /* ignore */ }
+      }
+    }, 1500));
 
     // ─── iOS priming ─────────────────────────────────
     // Create downstream stems SYNCHRONOUSLY inside this gesture so

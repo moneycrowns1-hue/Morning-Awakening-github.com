@@ -111,7 +111,7 @@ export default function NightWelcomeScreen({
 
   return (
     <div
-      className="relative w-full h-full flex flex-col overflow-hidden"
+      className="scroll-area relative w-full h-full flex flex-col"
       style={{
         color: NIGHT_TEXT.primary,
         background: `radial-gradient(ellipse at 50% 35%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 80%)`,
@@ -120,7 +120,7 @@ export default function NightWelcomeScreen({
 
       {/* ─── HUD ─────────────────────────────────────────────── */}
       <div
-        className="relative z-10 flex items-start justify-between px-5 pt-5"
+        className="relative z-10 flex items-start justify-between px-5 pt-5 shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
         <div>
@@ -191,7 +191,7 @@ export default function NightWelcomeScreen({
       </div>
 
       {/* ─── Hero ──────────────────────────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 min-h-0">
+      <div className="relative z-10 flex flex-col items-center justify-center px-6 py-10 shrink-0">
         <IconosLogo size={220} />
 
         <div
@@ -217,7 +217,7 @@ export default function NightWelcomeScreen({
 
       {/* ─── Mode selector + CTA ────────────────────────────── */}
       <div
-        className="relative z-10 px-6"
+        className="relative z-10 px-6 mt-auto shrink-0"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
       >
         <div className="flex gap-2.5 mb-4">

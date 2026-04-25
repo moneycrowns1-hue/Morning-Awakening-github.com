@@ -20,6 +20,13 @@ interface AlarmRingingOverlayProps {
   onSnooze: () => void;
   /** Whether dismissing should also chain into the protocol. */
   willChainProtocol?: boolean;
+  /** True once audio is actually playing. When false the overlay
+   *  exposes a fullscreen tap target so the user's first touch can
+   *  satisfy iOS' gesture requirement and unlock playback. */
+  audioStarted: boolean;
+  /** Invoked by the tap-to-wake fullscreen target. Should run inside
+   *  the same gesture stack — do NOT await anything before calling. */
+  onTapToWake: () => void;
 }
 
 export default function AlarmRingingOverlay({
@@ -28,6 +35,8 @@ export default function AlarmRingingOverlay({
   onDismiss,
   onSnooze,
   willChainProtocol,
+  audioStarted,
+  onTapToWake,
 }: AlarmRingingOverlayProps) {
   const [now, setNow] = useState(() => new Date());
 
@@ -54,6 +63,23 @@ export default function AlarmRingingOverlay({
       style={{ color: 'var(--sunrise-text)' }}
     >
       <GradientBackground stage="welcome" particleCount={60} />
+
+      {/* iOS gesture rescue: when audio hasn't started (timer-driven
+          play() rejected by Safari) the WHOLE screen becomes a tap
+          target. The user's first touch is the gesture that unlocks
+          audio. We render it BEHIND the action buttons (z-10 > z-5)
+          so dismiss/snooze still take precedence if the user is
+          intentional, but any other tap activates audio. */}
+      {!audioStarted && (
+        <button
+          type="button"
+          onClick={() => { haptics.tick(); onTapToWake(); }}
+          onTouchStart={() => { haptics.tick(); onTapToWake(); }}
+          aria-label="Tocar para activar la alarma"
+          className="absolute inset-0 z-[5] cursor-pointer"
+          style={{ background: 'transparent', border: 'none' }}
+        />
+      )}
       {/* Pulsing bloom that gets brighter with intensity */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -83,10 +109,12 @@ export default function AlarmRingingOverlay({
         <div
           className="font-ui text-[12px] tracking-[0.25em] mt-2"
           style={{
-            color: stage === 'reaseguro' ? SUNRISE.dawn2 : SUNRISE.rise2,
+            color: !audioStarted
+              ? SUNRISE.rise2
+              : stage === 'reaseguro' ? SUNRISE.dawn2 : SUNRISE.rise2,
           }}
         >
-          {stageLabel}
+          {!audioStarted ? 'Toca para activar' : stageLabel}
         </div>
       </div>
 

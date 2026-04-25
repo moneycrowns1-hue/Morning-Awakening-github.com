@@ -583,6 +583,8 @@ export default function MorningAwakening() {
           <AlarmRingingOverlay
             stage={alarm.stage}
             intensity={alarm.intensity}
+            audioStarted={alarm.audioStarted}
+            onTapToWake={() => { void alarm.tapToWake(); }}
             onDismiss={handleAlarmDismiss}
             onSnooze={() => alarm.snooze(9)}
             willChainProtocol={alarm.config.chainProtocol}
@@ -685,6 +687,8 @@ export default function MorningAwakening() {
         <AlarmRingingOverlay
           stage={alarm.stage}
           intensity={alarm.intensity}
+          audioStarted={alarm.audioStarted}
+          onTapToWake={() => { void alarm.tapToWake(); }}
           onDismiss={handleAlarmDismiss}
           onSnooze={() => alarm.snooze(9)}
           willChainProtocol={alarm.config.chainProtocol}

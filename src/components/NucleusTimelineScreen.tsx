@@ -130,7 +130,7 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
 
       {/* ─── Header ──────────────────────────────────────── */}
       <div
-        className="relative z-10 flex items-center gap-3 px-4 pt-4 pb-2"
+        className="relative z-10 flex items-center gap-3 px-4 md:px-8 pt-4 pb-2 max-w-4xl w-full mx-auto"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
         <button
@@ -143,13 +143,13 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
         </button>
         <div className="flex flex-col flex-1 min-w-0">
           <span
-            className="font-ui text-[10px] uppercase tracking-[0.38em]"
+            className="font-ui text-[10px] md:text-[11px] uppercase tracking-[0.38em]"
             style={{ color: NUCLEUS_TEXT.muted }}
           >
             Día · NUCLEUS
           </span>
           <span
-            className="font-display italic font-[400] text-[22px] leading-none mt-1"
+            className="font-display italic font-[400] text-[22px] md:text-[28px] leading-none mt-1"
             style={{ color: NUCLEUS_TEXT.primary }}
           >
             {formatLongDate(now)}
@@ -175,7 +175,7 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
       </div>
 
       {/* Skip-today + weekend pill */}
-      <div className="relative z-10 px-5 mt-1 mb-3 flex items-center gap-2 flex-wrap">
+      <div className="relative z-10 px-5 md:px-8 mt-1 mb-3 flex items-center gap-2 flex-wrap max-w-4xl w-full mx-auto">
         <button
           onClick={toggleSkip}
           className="font-ui text-[10px] tracking-[0.28em] uppercase rounded-full px-3 py-1.5"
@@ -202,29 +202,35 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
       </div>
 
       {/* ─── Timeline body ───────────────────────────────── */}
+      {/* Centered max-w container so on iPad/desktop the timeline
+          doesn't stretch edge to edge. On md+ the cards lay out in
+          a 2-col grid; anchors and footer span both columns. */}
       <div
         ref={containerRef}
-        className="scroll-area flex-1 relative z-10 min-h-0 px-4 flex flex-col gap-3"
+        className="scroll-area flex-1 relative z-10 min-h-0 w-full"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
       >
-        {/* Anchor: GÉNESIS (above) */}
-        <Anchor label="GÉNESIS" sub="Protocolo matutino · 5:00 – 6:50" topOrBottom="top" />
+        <div className="px-4 md:px-8 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Anchor: GÉNESIS (above) */}
+          <div className="md:col-span-2">
+            <Anchor label="GÉNESIS" sub="Protocolo matutino · 5:00 – 6:50" topOrBottom="top" />
+          </div>
 
-        {NUCLEUS_BLOCKS.map((block) => (
-          <NucleusBlockCard
-            key={block.id}
-            block={block}
-            now={now}
-            defaultExpanded={current?.id === block.id}
-            onAction={(b: NucleusBlock) => {
-              if (b.action === 'nsdr') onLaunchNSDR();
-            }}
-          />
-        ))}
+          {NUCLEUS_BLOCKS.map((block) => (
+            <NucleusBlockCard
+              key={block.id}
+              block={block}
+              now={now}
+              defaultExpanded={current?.id === block.id}
+              onAction={(b: NucleusBlock) => {
+                if (b.action === 'nsdr') onLaunchNSDR();
+              }}
+            />
+          ))}
 
-        {/* Footer · launch TÉRMINUS */}
-        <div
-          className="mt-2 rounded-2xl p-4 flex items-center justify-between gap-3"
+          {/* Footer · launch TÉRMINUS */}
+          <div
+            className="md:col-span-2 mt-2 rounded-2xl p-4 flex items-center justify-between gap-3"
           style={{
             background: nucleusRgba(NUCLEUS.sky_deep, 0.6),
             border: `1px solid ${dayDone ? nucleusRgba(NUCLEUS.sun_halo, 0.5) : nucleusRgba(NUCLEUS.cloud, 0.12)}`,
@@ -251,29 +257,32 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
               {dayDone ? 'El núcleo fue conquistado.' : `Bloques cerrados · ${completedBlocks} / 6`}
             </div>
           </div>
-          {onLaunchNight && (
-            <button
-              onClick={() => { haptics.tick(); onLaunchNight(); }}
-              disabled={!dayDone}
-              className="rounded-full px-4 py-2.5 transition-transform active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-              style={{
-                background: dayDone
-                  ? `linear-gradient(180deg, ${nucleusRgba(NUCLEUS.sun_gold, 0.18)} 0%, ${nucleusRgba(NUCLEUS.sun_gold, 0.4)} 100%)`
-                  : nucleusRgba(NUCLEUS.cloud, 0.08),
-                border: `1px solid ${dayDone ? NUCLEUS.sun_halo : nucleusRgba(NUCLEUS.cloud, 0.14)}`,
-                color: NUCLEUS_TEXT.primary,
-              }}
-            >
-              <Moon size={14} strokeWidth={1.8} />
-              <span className="font-ui font-[500] text-[11px] tracking-[0.3em] uppercase">
-                Términus
-              </span>
-            </button>
-          )}
-        </div>
+            {onLaunchNight && (
+              <button
+                onClick={() => { haptics.tick(); onLaunchNight(); }}
+                disabled={!dayDone}
+                className="rounded-full px-4 py-2.5 transition-transform active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                style={{
+                  background: dayDone
+                    ? `linear-gradient(180deg, ${nucleusRgba(NUCLEUS.sun_gold, 0.18)} 0%, ${nucleusRgba(NUCLEUS.sun_gold, 0.4)} 100%)`
+                    : nucleusRgba(NUCLEUS.cloud, 0.08),
+                  border: `1px solid ${dayDone ? NUCLEUS.sun_halo : nucleusRgba(NUCLEUS.cloud, 0.14)}`,
+                  color: NUCLEUS_TEXT.primary,
+                }}
+              >
+                <Moon size={14} strokeWidth={1.8} />
+                <span className="font-ui font-[500] text-[11px] tracking-[0.3em] uppercase">
+                  Términus
+                </span>
+              </button>
+            )}
+          </div>
 
-        {/* Anchor: TÉRMINUS marker at bottom */}
-        <Anchor label="TÉRMINUS" sub="Protocolo nocturno · 18:00 →" topOrBottom="bottom" />
+          {/* Anchor: TÉRMINUS marker at bottom */}
+          <div className="md:col-span-2">
+            <Anchor label="TÉRMINUS" sub="Protocolo nocturno · 18:00 →" topOrBottom="bottom" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -333,7 +342,7 @@ function SunArc({ now }: { now: Date }) {
     <svg
       viewBox="0 0 400 320"
       preserveAspectRatio="xMidYMin slice"
-      className="absolute inset-0 w-full h-[55%] pointer-events-none"
+      className="absolute inset-0 w-full h-[55%] md:h-[40%] pointer-events-none"
       aria-hidden="true"
       style={{ opacity: 0.85 }}
     >

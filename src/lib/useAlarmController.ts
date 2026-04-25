@@ -47,6 +47,15 @@ export interface UseAlarmController {
   stage: AlarmStage;
   /** 0..1 current audible intensity, driven by the engine. */
   intensity: number;
+  /** True once the ramp element has actually started playing audio.
+   *  False while we're still trying to start (e.g. waiting for the
+   *  user to tap to satisfy iOS' gesture requirement). The overlay
+   *  uses this to decide whether to prompt with "toca para activar". */
+  audioStarted: boolean;
+  /** Called from a user-gesture handler in the overlay to retry the
+   *  alarm after iOS rejected the timer-driven play(). Idempotent: if
+   *  audio is already playing this is a no-op. */
+  tapToWake: () => Promise<void>;
 
   /** Starts a manual preview tone for ~6 s (for "Probar" button).
    *  Resolves with a diagnostic describing whether audio actually
@@ -79,6 +88,7 @@ export function useAlarmController(): UseAlarmController {
   const [isRinging, setIsRinging] = useState(false);
   const [stage, setStage] = useState<AlarmStage>('idle');
   const [intensity, setIntensity] = useState(0);
+  const [audioStarted, setAudioStarted] = useState(false);
 
   const engineRef = useRef<AlarmEngine | null>(null);
   const armTimerRef = useRef<number | null>(null);
@@ -124,8 +134,21 @@ export function useAlarmController(): UseAlarmController {
         // onProgress already normalizes to 0..1 against peak for ramp,
         // and directly 0..1 for reaseguro/wakeup.
         onProgress: (v: number) => setIntensity(Math.min(1, Math.max(0, v))),
+        onPlaying: () => setAudioStarted(true),
+        onSilentFailure: () => {
+          // iOS rejected play() — tear the engine down and let the
+          // overlay's tap-to-wake handler retry from a real gesture.
+          // We KEEP isRinging=true so the overlay stays up and the
+          // user can rescue the alarm with one tap.
+          try { engine.stop(); } catch { /* ignore */ }
+          if (engineRef.current === engine) engineRef.current = null;
+          setAudioStarted(false);
+          setStage('idle');
+          setIntensity(0);
+        },
       });
       engineRef.current = engine;
+      setAudioStarted(false);
 
       // CRITICAL iOS ORDERING:
       // 1. Unlock shared AudioContext (must be synchronous in gesture).
@@ -243,9 +266,25 @@ export function useAlarmController(): UseAlarmController {
     setIsRinging(false);
     setStage('idle');
     setIntensity(0);
+    setAudioStarted(false);
     // Clear any stale snooze marker.
     try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
   }, [releaseWakeLock]);
+
+  // ── Tap to wake (iOS gesture rescue) ──────────────────
+  // Called from the overlay when audio failed to start automatically.
+  // The user's tap IS the gesture, so we synchronously unlock + restart
+  // the engine. Must run inside the same microtask as the React tap
+  // handler — do NOT await anything before fireAlarmInternal.
+  const tapToWake = useCallback(async () => {
+    if (engineRef.current && audioStarted) return;
+    // Hard reset any zombie engine so the next start() is clean.
+    if (engineRef.current) {
+      try { engineRef.current.stop(); } catch { /* ignore */ }
+      engineRef.current = null;
+    }
+    await fireAlarmInternal(0);
+  }, [audioStarted, fireAlarmInternal]);
 
   // ── Dismiss + play wake-up voice, then run onComplete ───
   // This is the "Despertar y empezar" path: the user tap IS the
@@ -300,6 +339,7 @@ export function useAlarmController(): UseAlarmController {
       setIsRinging(false);
       setStage('idle');
       setIntensity(0);
+      setAudioStarted(false);
       const until = Date.now() + minutes * 60 * 1000;
       try { localStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* ignore */ }
       // Schedule a one-off timer that re-fires after `minutes`.
@@ -394,6 +434,8 @@ export function useAlarmController(): UseAlarmController {
     isRinging,
     stage,
     intensity,
+    audioStarted,
+    tapToWake,
     preview,
     fireNow,
     fireTest,
