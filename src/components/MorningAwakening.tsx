@@ -55,10 +55,16 @@ import { markHabit } from '@/lib/habits';
 import NucleusTimelineScreen from './NucleusTimelineScreen';
 import NSDRPhaseScreen from './NSDRPhaseScreen';
 import CalendarScreen from './CalendarScreen';
-import WellnessHubScreen from './WellnessHubScreen';
 import BruxismExerciseScreen from './BruxismExerciseScreen';
 import DeepMeditationScreen from './DeepMeditationScreen';
 import LymphaticFacialScreen from './LymphaticFacialScreen';
+import AppDock, { type DockTab } from './AppDock';
+import ProtocolsScreen from './ProtocolsScreen';
+import ToolsScreen from './ToolsScreen';
+import ProfileTabScreen from './ProfileTabScreen';
+import FitnessBridgeScreen from './FitnessBridgeScreen';
+import { isHabitDone } from '@/lib/habits';
+import { isNucleusWindow } from '@/lib/nucleusConstants';
 import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleusPings';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
@@ -100,10 +106,12 @@ export default function MorningAwakening() {
   const [showNucleusMode, setShowNucleusMode] = useState(false);
   const [showNSDR, setShowNSDR] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showWellness, setShowWellness] = useState(false);
   const [showBruxism, setShowBruxism] = useState(false);
   const [showDeepMeditation, setShowDeepMeditation] = useState(false);
   const [showLymphatic, setShowLymphatic] = useState(false);
+  const [showFitnessModal, setShowFitnessModal] = useState(false);
+  // Active tab in the AppDock. Always starts on 'home' (no persistence).
+  const [activeTab, setActiveTab] = useState<DockTab>('home');
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
   // lock and the ringing overlay state. Config changes persist through
@@ -562,8 +570,6 @@ export default function MorningAwakening() {
             onLaunchNSDR={() => { setShowNSDR(true); }}
             onLaunchNight={() => { setShowNucleusMode(false); setShowNightMode(true); }}
           />
-        ) : showCalendar ? (
-          <CalendarScreen onClose={() => setShowCalendar(false)} />
         ) : showBruxism ? (
           <BruxismExerciseScreen
             onComplete={() => setShowBruxism(false)}
@@ -579,27 +585,71 @@ export default function MorningAwakening() {
             onComplete={() => setShowLymphatic(false)}
             onCancel={() => setShowLymphatic(false)}
           />
-        ) : showWellness ? (
-          <WellnessHubScreen
-            onClose={() => setShowWellness(false)}
-            onLaunchBruxism={() => { setShowWellness(false); setShowBruxism(true); }}
-            onLaunchDeepMeditation={() => { setShowWellness(false); setShowDeepMeditation(true); }}
-            onLaunchLymphatic={() => { setShowWellness(false); setShowLymphatic(true); }}
-          />
         ) : (
-          <WelcomeScreen
-            profile={profile}
-            streak={streakData.streak}
-            onStart={handleInitialize}
-            onOpenProfile={() => setShowProfile(true)}
-            onOpenSettings={() => setShowSettings(true)}
-            onOpenHistory={() => setShowHistory(true)}
-            onOpenAlarm={() => setShowAlarm(true)}
-            onOpenNightMode={() => setShowNightMode(true)}
-            onOpenNucleus={() => setShowNucleusMode(true)}
-            onOpenCalendar={() => setShowCalendar(true)}
-            onOpenWellness={() => setShowWellness(true)}
-            alarmArmed={alarm.config.enabled}
+          <>
+            {/* ── Tab content (the AppDock at the bottom switches it) ── */}
+            {activeTab === 'home' && (
+              <WelcomeScreen
+                profile={profile}
+                streak={streakData.streak}
+                onStart={handleInitialize}
+                onOpenNightMode={() => setShowNightMode(true)}
+                onOpenNucleus={() => setShowNucleusMode(true)}
+              />
+            )}
+            {activeTab === 'protocols' && (
+              <ProtocolsScreen
+                onLaunchMorning={() => { setActiveTab('home'); void handleInitialize(); }}
+                onLaunchNucleus={() => setShowNucleusMode(true)}
+                onLaunchNight={() => setShowNightMode(true)}
+              />
+            )}
+            {activeTab === 'tools' && (
+              <ToolsScreen
+                onLaunchBruxism={() => setShowBruxism(true)}
+                onLaunchDeepMeditation={() => setShowDeepMeditation(true)}
+                onLaunchLymphatic={() => setShowLymphatic(true)}
+                onLaunchNSDR={() => setShowNSDR(true)}
+                onOpenAlarm={() => setShowAlarm(true)}
+                onOpenFitness={() => setShowFitnessModal(true)}
+                alarmArmed={alarm.config.enabled}
+              />
+            )}
+            {activeTab === 'calendar' && (
+              <CalendarScreen onClose={() => setActiveTab('home')} />
+            )}
+            {activeTab === 'profile' && (
+              <ProfileTabScreen
+                profile={profile}
+                streak={streakData.streak}
+                onOpenHistory={() => setShowHistory(true)}
+                onOpenSettings={() => setShowSettings(true)}
+              />
+            )}
+
+            {/* ── Bottom dock (always visible on IDLE non-fullscreen) ── */}
+            <AppDock
+              active={activeTab}
+              onChange={setActiveTab}
+              protocolsBadge={
+                !isHabitDone('morning_protocol') ||
+                isNucleusWindow(new Date()) ||
+                (new Date().getHours() >= 20 && !isHabitDone('night_protocol'))
+              }
+              toolsBadge={
+                isHabitDone('bruxism_exercise') ||
+                isHabitDone('deep_meditation') ||
+                isHabitDone('lymphatic_facial')
+              }
+            />
+          </>
+        )}
+
+        {/* Apple Fitness modal (opened from Tools tab) */}
+        {showFitnessModal && (
+          <FitnessBridgeScreen
+            mode="connect"
+            onClose={() => setShowFitnessModal(false)}
           />
         )}
 

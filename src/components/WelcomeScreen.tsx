@@ -16,12 +16,9 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Calendar, Flame, Moon, Sparkles, User, Settings as SettingsIcon, LineChart, X, Activity, Sun } from 'lucide-react';
+import { Flame, Moon, X } from 'lucide-react';
 import GradientBackground from './GradientBackground';
-import FitnessBridgeScreen from './FitnessBridgeScreen';
 import NucleusCompanion from './NucleusCompanion';
-import { isNucleusWindow } from '@/lib/nucleusConstants';
-import { getFitnessStatus, type FitnessStatus } from '@/lib/healthkitBridge';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
 import { isNightSuggestionAppropriate, silenceNightSuggestionToday } from '@/lib/nightMode';
@@ -32,34 +29,18 @@ interface WelcomeScreenProps {
   profile: OperatorProfile;
   streak: number;
   onStart: () => void;
-  onOpenProfile?: () => void;
-  onOpenSettings?: () => void;
-  onOpenHistory?: () => void;
-  onOpenAlarm?: () => void;
+  /** Open the night-mode flow (used by the suggestion card). */
   onOpenNightMode?: () => void;
-  /** Open the NUCLEUS day-mode timeline screen. */
+  /** Open the NUCLEUS day-mode timeline screen (used by NucleusCompanion). */
   onOpenNucleus?: () => void;
-  /** Open the calendar screen (mensual + feriados Ecuador). */
-  onOpenCalendar?: () => void;
-  /** Open the Wellness Hub (bruxismo, meditación profunda, drenaje linfático). */
-  onOpenWellness?: () => void;
-  /** True when a gentle alarm is armed — shows a subtle dot on the bell. */
-  alarmArmed?: boolean;
 }
 
 export default function WelcomeScreen({
   profile,
   streak,
   onStart,
-  onOpenProfile,
-  onOpenSettings,
-  onOpenHistory,
-  onOpenAlarm,
   onOpenNightMode,
   onOpenNucleus,
-  onOpenCalendar,
-  onOpenWellness,
-  alarmArmed,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
@@ -71,14 +52,7 @@ export default function WelcomeScreen({
   // flip it true in the mount-only effect once we know we're on the
   // client and have access to localStorage.
   const [showNightSuggestion, setShowNightSuggestion] = useState(false);
-  const [fitnessStatus, setFitnessStatus] = useState<FitnessStatus>(() => ({ kind: 'missing' }));
-  const [showFitnessModal, setShowFitnessModal] = useState(false);
 
-  // Refresh fitness status whenever the modal closes (the user
-  // may have just imported new data via the shortcut).
-  useEffect(() => {
-    setFitnessStatus(getFitnessStatus());
-  }, [showFitnessModal]);
   useEffect(() => {
     if (!onOpenNightMode) return;
     if (isNightSuggestionAppropriate()) {
@@ -95,12 +69,11 @@ export default function WelcomeScreen({
       {/* Gentle vignette overlay for text legibility */}
       <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
 
-      {/* ─── Top HUD: time · weekday · streak ───────────────── */}
+      {/* ─── Top HUD: time · weekday · streak (read-only) ─── */}
       <div
         className="relative z-10 flex items-start justify-between px-5 pt-5 sunrise-fade-up"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
-        {/* Left: clock + weekday */}
         <div className="flex flex-col">
           <div className="font-mono text-[28px] leading-none tracking-[-0.02em]" style={{ color: 'var(--sunrise-text)' }}>
             {time}
@@ -112,129 +85,14 @@ export default function WelcomeScreen({
             {weekday}
           </div>
         </div>
-
-        {/* Right: streak + profile + settings */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <Flame size={14} strokeWidth={2} style={{ color: streak > 0 ? 'var(--sunrise-rise-2, #f4c267)' : 'var(--sunrise-text-muted)' }} />
-            <span className="font-mono text-[14px]" style={{ color: 'var(--sunrise-text)' }}>
-              {streak}
-            </span>
-            <span className="font-ui text-[10px] tracking-[0.24em] uppercase" style={{ color: 'var(--sunrise-text-muted)' }}>
-              días
-            </span>
-          </div>
-          {/* Apple Fitness bridge */}
-          <button
-            onClick={() => { haptics.tap(); setShowFitnessModal(true); }}
-            aria-label="Apple Fitness"
-            className="relative rounded-full p-1.5 transition-colors hover:bg-white/5"
-            style={{
-              color: fitnessStatus.kind === 'connected'
-                ? 'var(--sunrise-rise-2, #f4c267)'
-                : 'var(--sunrise-text-soft)',
-            }}
-            title={fitnessStatus.kind === 'connected'
-              ? `${(fitnessStatus.fitness.today.steps).toLocaleString('es')} pasos hoy`
-              : 'Conectar Apple Fitness'}
-          >
-            <Activity size={18} strokeWidth={1.75} />
-            {fitnessStatus.kind === 'missing' && (
-              <span
-                className="absolute top-1 right-1 block w-1.5 h-1.5 rounded-full"
-                style={{
-                  background: '#ff8a8a',
-                  boxShadow: '0 0 6px rgba(255,138,138,0.7)',
-                }}
-              />
-            )}
-          </button>
-          {onOpenNucleus && isNucleusWindow(new Date()) && (
-            <button
-              onClick={() => { haptics.tap(); onOpenNucleus(); }}
-              aria-label="Abrir modo día"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-rise-2, #f4c267)' }}
-            >
-              <Sun size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenNightMode && (
-            <button
-              onClick={() => { haptics.tap(); onOpenNightMode(); }}
-              aria-label="Abrir modo noche"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <Moon size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenAlarm && (
-            <button
-              onClick={onOpenAlarm}
-              aria-label="Abrir alarma"
-              className="relative rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: alarmArmed ? 'var(--sunrise-rise-2, #f4c267)' : 'var(--sunrise-text-soft)' }}
-            >
-              <Bell size={18} strokeWidth={1.75} />
-              {alarmArmed && (
-                <span
-                  className="absolute top-1 right-1 block w-1.5 h-1.5 rounded-full"
-                  style={{ background: 'var(--sunrise-rise-2, #f4c267)', boxShadow: '0 0 6px rgba(244,194,103,0.7)' }}
-                />
-              )}
-            </button>
-          )}
-          {onOpenCalendar && (
-            <button
-              onClick={() => { haptics.tap(); onOpenCalendar(); }}
-              aria-label="Abrir calendario"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <Calendar size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenWellness && (
-            <button
-              onClick={() => { haptics.tap(); onOpenWellness(); }}
-              aria-label="Abrir Hub Bienestar"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <Sparkles size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenHistory && (
-            <button
-              onClick={onOpenHistory}
-              aria-label="Abrir historial"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <LineChart size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenProfile && (
-            <button
-              onClick={onOpenProfile}
-              aria-label="Abrir perfil"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <User size={18} strokeWidth={1.75} />
-            </button>
-          )}
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              aria-label="Abrir ajustes"
-              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
-              style={{ color: 'var(--sunrise-text-soft)' }}
-            >
-              <SettingsIcon size={18} strokeWidth={1.75} />
-            </button>
-          )}
+        <div className="flex items-center gap-1.5">
+          <Flame size={14} strokeWidth={2} style={{ color: streak > 0 ? 'var(--sunrise-rise-2, #f4c267)' : 'var(--sunrise-text-muted)' }} />
+          <span className="font-mono text-[14px]" style={{ color: 'var(--sunrise-text)' }}>
+            {streak}
+          </span>
+          <span className="font-ui text-[10px] tracking-[0.24em] uppercase" style={{ color: 'var(--sunrise-text-muted)' }}>
+            días
+          </span>
         </div>
       </div>
 
@@ -348,12 +206,14 @@ export default function WelcomeScreen({
         </div>
       )}
 
-      {/* ─── CTA ────────────────────────────────────────────── */}
+      {/* ─── CTA ────────────────────────────────────────────
+           Extra bottom padding leaves room for the AppDock that
+           the parent renders fixed at the bottom. */}
       <div
         className="relative z-10 flex flex-col items-center pb-10 sunrise-fade-up"
         style={{
           animationDelay: '640ms',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2.5rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)',
         }}
       >
         <button
@@ -385,13 +245,6 @@ export default function WelcomeScreen({
         </div>
       </div>
 
-      {/* Apple Fitness bridge modal */}
-      {showFitnessModal && (
-        <FitnessBridgeScreen
-          mode={fitnessStatus.kind === 'stale' ? 'permissions' : 'connect'}
-          onClose={() => setShowFitnessModal(false)}
-        />
-      )}
     </div>
   );
 }
