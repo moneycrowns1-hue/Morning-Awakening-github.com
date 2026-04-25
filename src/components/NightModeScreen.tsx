@@ -241,7 +241,7 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
       </div>
 
       {/* ─── Scrollable body ──────────────────────── */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-5 pb-8">
+      <div className="scroll-area relative z-10 flex-1 min-h-0 px-5 pb-8">
         {/* ─── Hero: clock + greeting ───────────── */}
         <div className="flex flex-col items-center justify-center py-8 sunrise-fade-up">
           <div

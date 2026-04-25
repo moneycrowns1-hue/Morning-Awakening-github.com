@@ -283,11 +283,20 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {
         if (c.url.includes(self.location.origin)) {
-          // Send the param to the existing tab via postMessage so a
-          // refresh isn't needed.
-          try {
-            c.postMessage({ kind: 'nucleus-action', verb: action || 'open', microHabitId: data.microHabitId, blockId: data.blockId });
-          } catch {}
+          // Only forward the nucleus postMessage for NUCLEUS notifications.
+          // Alarm / morning reminder taps MUST NOT trigger the nucleus
+          // listener — otherwise tapping the morning alarm would open
+          // the day-mode timeline instead of the alarm/protocol flow.
+          if (data.kind === 'nucleus') {
+            try {
+              c.postMessage({
+                kind: 'nucleus-action',
+                verb: action || 'open',
+                microHabitId: data.microHabitId,
+                blockId: data.blockId,
+              });
+            } catch {}
+          }
           return c.focus();
         }
       }
