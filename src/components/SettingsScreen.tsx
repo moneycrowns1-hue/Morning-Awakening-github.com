@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
-import { Bell, ChevronLeft, Download, RotateCcw } from 'lucide-react';
+import { Bell, ChevronLeft, Download, RotateCcw, Sun } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import { haptics } from '@/lib/haptics';
 import { loadSessions } from '@/lib/sessionHistory';
@@ -22,6 +22,16 @@ import {
   permissionStatus,
   type ReminderConfig,
 } from '@/lib/morningReminder';
+import {
+  isNucleusEnabled,
+  setNucleusEnabled,
+  scheduleNucleusPings,
+  cancelNucleusPings,
+  requestNucleusPermission,
+  isSkippedToday,
+  setSkipToday,
+  permissionStatus as nucleusPermissionStatus,
+} from '@/lib/nucleusPings';
 
 interface SettingsScreenProps {
   voiceEnabled: boolean;
@@ -43,12 +53,43 @@ export default function SettingsScreen({
   const [hapticsOn, setHapticsOn] = useState<boolean>(haptics.isEnabled());
   const [reminder, setReminder] = useState<ReminderConfig>({ enabled: false, hour: 5, minute: 0 });
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  // NUCLEUS state
+  const [nucleusOn, setNucleusOn] = useState<boolean>(false);
+  const [nucleusPerm, setNucleusPerm] = useState<NotificationPermission | 'unsupported'>('default');
+  const [skipToday, setSkipTodayState] = useState<boolean>(false);
 
   // Hydrate reminder config + permission state on mount (client-only).
   useEffect(() => {
     setReminder(loadReminderConfig());
     setPermission(permissionStatus());
+    setNucleusOn(isNucleusEnabled());
+    setNucleusPerm(nucleusPermissionStatus());
+    setSkipTodayState(isSkippedToday());
   }, []);
+
+  const handleToggleNucleus = async (on: boolean) => {
+    haptics.tap();
+    if (on) {
+      const granted = await requestNucleusPermission();
+      setNucleusPerm(granted);
+      if (granted !== 'granted') return;
+      setNucleusEnabled(true);
+      setNucleusOn(true);
+      await scheduleNucleusPings();
+    } else {
+      setNucleusEnabled(false);
+      setNucleusOn(false);
+      await cancelNucleusPings();
+    }
+  };
+
+  const handleToggleSkip = async (on: boolean) => {
+    haptics.tap();
+    setSkipToday(on);
+    setSkipTodayState(on);
+    if (on) await cancelNucleusPings();
+    else if (nucleusOn) await scheduleNucleusPings();
+  };
 
   const handleToggleReminder = async (on: boolean) => {
     haptics.tap();
@@ -187,6 +228,37 @@ export default function SettingsScreen({
               instala la app al home screen (Compartir → Añadir a inicio) para que el aviso funcione con la pantalla bloqueada.
             </div>
           )}
+        </SettingsGroup>
+
+        {/* NUCLEUS · Día */}
+        <SettingsGroup title="NUCLEUS · Día">
+          <ToggleRow
+            label="Pings de micro-hábitos"
+            hint={
+              nucleusPerm === 'unsupported'
+                ? 'Notificaciones no soportadas en este navegador'
+                : nucleusPerm === 'denied'
+                  ? 'Permiso denegado · habilita notificaciones en el navegador'
+                  : 'Café, regla 20-20-20, retracciones, NSDR, optic flow…'
+            }
+            value={nucleusOn && nucleusPerm === 'granted'}
+            onChange={handleToggleNucleus}
+          />
+          <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
+          <ToggleRow
+            label="Pausar NUCLEUS hoy"
+            hint="Sin pings · útil para días anómalos (examen, viaje)"
+            value={skipToday}
+            onChange={handleToggleSkip}
+          />
+          <div
+            className="px-4 pb-4 -mt-1 font-ui text-[10px] leading-relaxed"
+            style={{ color: 'var(--sunrise-text-muted)' }}
+          >
+            <Sun size={12} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" style={{ color: 'var(--sunrise-rise-2, #f4c267)' }} />
+            <span style={{ color: 'var(--sunrise-text-soft)' }}>Horario: </span>
+            06:50 AM → 6:00 PM · sáb/dom: ARENA y PRE-ARENA en off automático.
+          </div>
         </SettingsGroup>
 
         {/* Dispositivo */}

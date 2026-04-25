@@ -16,7 +16,7 @@
 // PWAs on iOS are VERY sticky — the only way to force them to drop
 // stale audio/JS is a new VERSION string here, which causes the
 // activate handler to delete ma-static-<old>/ma-runtime-<old>.
-const VERSION = 'v8.0-alpha17-basepath-fix';
+const VERSION = 'v8.0-alpha18-nucleus-pings';
 const STATIC_CACHE = `ma-static-${VERSION}`;
 const RUNTIME_CACHE = `ma-runtime-${VERSION}`;
 
@@ -122,6 +122,18 @@ let alarmTimeoutId = null;
 // re-arm path after firing knows which day to target next.
 let alarmDays = [true, true, true, true, true, true, true];
 
+// NUCLEUS · day-mode micro-habit pings. Each entry is a setTimeout
+// id so we can cancel them all when the user toggles NUCLEUS off
+// or skips the day.
+let nucleusTimeouts = [];
+
+function cancelNucleusPings() {
+  for (const id of nucleusTimeouts) {
+    try { clearTimeout(id); } catch {}
+  }
+  nucleusTimeouts = [];
+}
+
 self.addEventListener('message', (event) => {
   const data = event.data || {};
   if (data.type === 'SCHEDULE_MORNING') {
@@ -137,6 +149,39 @@ self.addEventListener('message', (event) => {
     scheduleAlarm(data.hour, data.minute);
   } else if (data.type === 'CANCEL_ALARM') {
     if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
+  } else if (data.type === 'SCHEDULE_NUCLEUS_PINGS') {
+    cancelNucleusPings();
+    const pings = Array.isArray(data.pings) ? data.pings : [];
+    const now = Date.now();
+    for (const ping of pings) {
+      const delay = (ping.whenMs || 0) - now;
+      // Skip past pings and anything > 24 h away (will be re-scheduled
+      // on next page load via rehydrateNucleusPings).
+      if (delay <= 0 || delay > 24 * 3600 * 1000) continue;
+      const tid = setTimeout(() => {
+        self.registration.showNotification(ping.title || 'NUCLEUS', {
+          body: ping.body || '',
+          tag: `nucleus-${ping.microHabitId}-${ping.dayKey || ''}`,
+          icon: ping.icon || '/icon-192.png',
+          badge: '/icon-192.png',
+          requireInteraction: false,
+          silent: false,
+          data: {
+            kind: 'nucleus',
+            habitId: ping.habitId,
+            microHabitId: ping.microHabitId,
+            blockId: ping.blockId,
+          },
+          actions: [
+            { action: 'done',    title: 'Hecho' },
+            { action: 'snooze',  title: '+10 min' },
+          ],
+        });
+      }, delay);
+      nucleusTimeouts.push(tid);
+    }
+  } else if (data.type === 'CANCEL_NUCLEUS_PINGS') {
+    cancelNucleusPings();
   }
 });
 
@@ -197,13 +242,56 @@ function scheduleMorning(hour, minute) {
 }
 
 self.addEventListener('notificationclick', (event) => {
+  const data = (event.notification && event.notification.data) || {};
+  const action = event.action || '';
+
+  // ── NUCLEUS · snooze (+10 min): re-schedule the same notification
+  // ten minutes from now and leave the app closed.
+  if (data.kind === 'nucleus' && action === 'snooze') {
+    event.notification.close();
+    const tid = setTimeout(() => {
+      self.registration.showNotification(event.notification.title || 'NUCLEUS', {
+        body: event.notification.body,
+        tag: event.notification.tag,
+        icon: event.notification.icon || '/icon-192.png',
+        badge: '/icon-192.png',
+        data,
+        actions: [
+          { action: 'done',   title: 'Hecho' },
+          { action: 'snooze', title: '+10 min' },
+        ],
+      });
+    }, 10 * 60 * 1000);
+    nucleusTimeouts.push(tid);
+    return;
+  }
+
   event.notification.close();
+
+  // Build the target URL. Nucleus 'done' actions and plain clicks
+  // both forward the microHabitId so the page can auto-mark the
+  // habit on focus.
+  let path = '/?source=notification';
+  if (data.kind === 'nucleus' && data.microHabitId) {
+    const verb = action === 'done' ? 'done' : 'open';
+    path = `/?nucleus_${verb}=${encodeURIComponent(data.microHabitId)}`;
+  } else if (data.kind === 'alarm') {
+    path = '/?source=alarm';
+  }
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {
-        if (c.url.includes(self.location.origin)) return c.focus();
+        if (c.url.includes(self.location.origin)) {
+          // Send the param to the existing tab via postMessage so a
+          // refresh isn't needed.
+          try {
+            c.postMessage({ kind: 'nucleus-action', verb: action || 'open', microHabitId: data.microHabitId, blockId: data.blockId });
+          } catch {}
+          return c.focus();
+        }
       }
-      return self.clients.openWindow('/?source=notification');
+      return self.clients.openWindow(path);
     }),
   );
 });

@@ -26,6 +26,12 @@ export default function ServiceWorkerRegistrar() {
             const { rehydrateReminder } = await import('@/lib/morningReminder');
             await rehydrateReminder();
           } catch { /* ignore */ }
+          // Same idea for NUCLEUS day-mode pings: the SW timeouts get
+          // reset on every restart, so we re-arm them on every load.
+          try {
+            const { rehydrateNucleusPings } = await import('@/lib/nucleusPings');
+            await rehydrateNucleusPings();
+          } catch { /* ignore */ }
         })
         .catch((err) => {
           // eslint-disable-next-line no-console

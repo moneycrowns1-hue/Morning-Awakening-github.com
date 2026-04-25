@@ -52,6 +52,9 @@ import { useAlarmController } from '@/lib/useAlarmController';
 import { unlockAlarmAudio } from '@/lib/alarmEngine';
 import { stopSleepEngine } from '@/lib/sleepEngine';
 import { markHabit } from '@/lib/habits';
+import NucleusTimelineScreen from './NucleusTimelineScreen';
+import NSDRPhaseScreen from './NSDRPhaseScreen';
+import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleusPings';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
@@ -89,6 +92,8 @@ export default function MorningAwakening() {
   const [showAlarm, setShowAlarm] = useState(false);
   const [showAlarmDetails, setShowAlarmDetails] = useState(false);
   const [showNightMode, setShowNightMode] = useState(false);
+  const [showNucleusMode, setShowNucleusMode] = useState(false);
+  const [showNSDR, setShowNSDR] = useState(false);
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
   // lock and the ringing overlay state. Config changes persist through
@@ -123,6 +128,25 @@ export default function MorningAwakening() {
         console.info('[HealthKit] imported', snap.nights.length, 'nights');
       } catch { /* ignore */ }
     }
+  }, []);
+
+  // Consume ?nucleus_done= / ?nucleus_open= produced by SW notification
+  // taps. If the user opened the timeline from a notification, surface
+  // it automatically.
+  useEffect(() => {
+    const action = consumeNucleusUrlParam();
+    if (action?.verb === 'open') {
+      setShowNucleusMode(true);
+    }
+    // Live SW message bridge (already-open tab): same behaviour.
+    const unsubscribe = subscribeToNucleusActions((msg) => {
+      if (msg.verb === 'open' || msg.verb === 'done') {
+        // 'done' already marks the habit inside the helper; we just
+        // surface the timeline so the user gets visual confirmation.
+        setShowNucleusMode(true);
+      }
+    });
+    return unsubscribe;
   }, []);
 
   // ═══════════════ Load persisted data ═══════════════
@@ -517,6 +541,17 @@ export default function MorningAwakening() {
             masterVolume={settings.masterVolume}
             onClose={() => setShowNightMode(false)}
           />
+        ) : showNSDR ? (
+          <NSDRPhaseScreen
+            onComplete={() => setShowNSDR(false)}
+            onCancel={() => setShowNSDR(false)}
+          />
+        ) : showNucleusMode ? (
+          <NucleusTimelineScreen
+            onClose={() => setShowNucleusMode(false)}
+            onLaunchNSDR={() => { setShowNSDR(true); }}
+            onLaunchNight={() => { setShowNucleusMode(false); setShowNightMode(true); }}
+          />
         ) : (
           <WelcomeScreen
             profile={profile}
@@ -527,6 +562,7 @@ export default function MorningAwakening() {
             onOpenHistory={() => setShowHistory(true)}
             onOpenAlarm={() => setShowAlarm(true)}
             onOpenNightMode={() => setShowNightMode(true)}
+            onOpenNucleus={() => setShowNucleusMode(true)}
             alarmArmed={alarm.config.enabled}
           />
         )}

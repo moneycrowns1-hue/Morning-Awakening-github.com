@@ -16,9 +16,11 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X, Activity } from 'lucide-react';
+import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X, Activity, Sun } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import FitnessBridgeScreen from './FitnessBridgeScreen';
+import NucleusCompanion from './NucleusCompanion';
+import { isNucleusWindow } from '@/lib/nucleusConstants';
 import { getFitnessStatus, type FitnessStatus } from '@/lib/healthkitBridge';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/progression';
@@ -35,6 +37,8 @@ interface WelcomeScreenProps {
   onOpenHistory?: () => void;
   onOpenAlarm?: () => void;
   onOpenNightMode?: () => void;
+  /** Open the NUCLEUS day-mode timeline screen. */
+  onOpenNucleus?: () => void;
   /** True when a gentle alarm is armed — shows a subtle dot on the bell. */
   alarmArmed?: boolean;
 }
@@ -48,6 +52,7 @@ export default function WelcomeScreen({
   onOpenHistory,
   onOpenAlarm,
   onOpenNightMode,
+  onOpenNucleus,
   alarmArmed,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
@@ -138,6 +143,16 @@ export default function WelcomeScreen({
               />
             )}
           </button>
+          {onOpenNucleus && isNucleusWindow(new Date()) && (
+            <button
+              onClick={() => { haptics.tap(); onOpenNucleus(); }}
+              aria-label="Abrir modo día"
+              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--sunrise-rise-2, #f4c267)' }}
+            >
+              <Sun size={18} strokeWidth={1.75} />
+            </button>
+          )}
           {onOpenNightMode && (
             <button
               onClick={() => { haptics.tap(); onOpenNightMode(); }}
@@ -294,6 +309,16 @@ export default function WelcomeScreen({
           >
             <X size={14} strokeWidth={1.8} />
           </button>
+        </div>
+      )}
+
+      {/* ─── NUCLEUS companion (only inside 06:50–18:00) ─── */}
+      {onOpenNucleus && (
+        <div
+          className="relative z-10 mx-5 mb-3 sunrise-fade-up"
+          style={{ animationDelay: '600ms' }}
+        >
+          <NucleusCompanion onOpen={onOpenNucleus} />
         </div>
       )}
 

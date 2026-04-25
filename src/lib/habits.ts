@@ -13,15 +13,43 @@ export type HabitId =
   | 'breathing'
   | 'journaling'
   | 'slept_in_gate'
-  | 'no_screens_before_bed';
+  | 'no_screens_before_bed'
+  // ─── NUCLEUS · day mode ────────────────────────────────
+  | 'salt_water_morning'
+  | 'active_recall_pre_arena'
+  | 'coffee_9am'
+  | 'rule_20_20_20'
+  | 'scapular_retractions'
+  | 'lunch_clean'
+  | 'midday_brush'
+  | 'nsdr_session'
+  | 'no_caffeine_pm'
+  | 'optic_flow_walk'
+  | 'desk_closure'
+  | 'nucleus_complete';
 
-export const HABIT_META: Record<HabitId, { label: string; icon: string; track: 'morning' | 'night' | 'both' }> = {
+export type HabitTrack = 'morning' | 'day' | 'night' | 'both';
+
+export const HABIT_META: Record<HabitId, { label: string; icon: string; track: HabitTrack }> = {
   morning_protocol:      { label: 'Protocolo matutino',       icon: '☀', track: 'morning' },
   night_protocol:        { label: 'Protocolo nocturno',       icon: '☾', track: 'night'   },
   breathing:             { label: 'Respiración guiada',       icon: '◯', track: 'both'    },
   journaling:            { label: 'Diario',                   icon: '✎', track: 'both'    },
   slept_in_gate:         { label: 'Dormí dentro de la ventana', icon: '⌐', track: 'night' },
   no_screens_before_bed: { label: 'Sin pantallas antes de cama', icon: '⊘', track: 'night' },
+  // NUCLEUS day-block habits
+  salt_water_morning:      { label: 'Agua + sal · pre-arena',     icon: '◇', track: 'day' },
+  active_recall_pre_arena: { label: 'Active recall · PRE-ARENA',  icon: '◆', track: 'day' },
+  coffee_9am:              { label: 'Café 9:00 AM',               icon: '☕', track: 'day' },
+  rule_20_20_20:           { label: 'Regla 20-20-20',             icon: '◉', track: 'day' },
+  scapular_retractions:    { label: 'Retracciones escapulares',   icon: '⊞', track: 'day' },
+  lunch_clean:             { label: 'Almuerzo · proteína+grasas', icon: '◍', track: 'day' },
+  midday_brush:            { label: 'Cepillado de transición',    icon: '✦', track: 'day' },
+  nsdr_session:            { label: 'NSDR · 20 min',              icon: '◐', track: 'day' },
+  no_caffeine_pm:          { label: 'Cero café desde 14:00',      icon: '⊘', track: 'day' },
+  optic_flow_walk:         { label: 'Walk + cielo · optic flow',  icon: '◔', track: 'day' },
+  desk_closure:            { label: 'Sello del escritorio',       icon: '⊡', track: 'day' },
+  nucleus_complete:        { label: 'Día NUCLEUS completo',       icon: '☉', track: 'day' },
 };
 
 type HabitStore = Partial<Record<HabitId, Record<string, boolean>>>;
