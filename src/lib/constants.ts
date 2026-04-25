@@ -257,6 +257,7 @@ export const MISSIONS: Mission[] = [
       { label: 'Skincare · contorno de ojos', description: 'Toques con dedo anular. Zona más delgada y sensible — antes de la crema general.' },
       { label: 'Skincare · hidratante (cream) + SPF', description: 'Sella la rutina. SPF desde el amanecer es no negociable, incluso bajo techo.' },
       { label: 'Skincare · vaselina (slugging puntual)', description: 'Capa fina en labios y zonas secas (alas de la nariz, codos). Sella humedad sin obstruir si se aplica al final.' },
+      { label: 'Drenaje linfático facial · opcional (10 min)', description: 'Si tienes la cara hinchada por dormir horizontal, abre el módulo del Hub Bienestar. Movimientos direccionales hacia las cláviculas.' },
       { label: 'Enjuague bucal · solo con agua', description: 'Quita residuos sin abrasión. No cepillar todavía — el esmalte está sensible.' },
     ],
     tips: [
@@ -320,6 +321,7 @@ export const MISSIONS: Mission[] = [
     tips: [
       'Post-ducha fría = dopamina alta + mente despejada. Momento perfecto.',
       'Si la mente se va: vuelve al aire en la nariz, sin juicio.',
+      'Si notas la mandíbula tensa al aterrizar, abre el módulo Bruxismo del Hub Bienestar tras Silentium.',
     ],
   },
   {

@@ -37,6 +37,10 @@ interface NucleusBlockCardProps {
   now: Date;
   /** Open by default? Active block opens by default. */
   defaultExpanded?: boolean;
+  /** True when the day profile (rest/sat) disables this block today.
+   *  Card renders dimmed with a "En pausa hoy" badge instead of the
+   *  normal status badge, no halo, no auto-expand. */
+  pausedToday?: boolean;
   /** Optional: action handler for blocks that have a sub-screen (NSDR). */
   onAction?: (block: NucleusBlock) => void;
 }
@@ -54,9 +58,15 @@ function getStatus(block: NucleusBlock, now: Date): BlockStatus {
   return 'active';
 }
 
-export default function NucleusBlockCard({ block, now, defaultExpanded, onAction }: NucleusBlockCardProps) {
-  const status = getStatus(block, now);
-  const [expanded, setExpanded] = useState<boolean>(defaultExpanded ?? status === 'active');
+export default function NucleusBlockCard({ block, now, defaultExpanded, pausedToday, onAction }: NucleusBlockCardProps) {
+  const rawStatus = getStatus(block, now);
+  // When paused by day profile, never display as 'active' so the halo,
+  // active border and gold accents don't render even if the wall clock
+  // is inside the block's window.
+  const status: BlockStatus = pausedToday ? rawStatus === 'past' ? 'past' : 'upcoming' : rawStatus;
+  const [expanded, setExpanded] = useState<boolean>(
+    pausedToday ? false : (defaultExpanded ?? status === 'active'),
+  );
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const haloRef = useRef<HTMLDivElement | null>(null);
   const stage = useMemo(() => getNucleusStageColors(block.id), [block.id]);
@@ -128,6 +138,8 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, onAction
           status === 'active'
             ? `0 14px 40px -16px ${nucleusRgba(NUCLEUS.sun_gold, 0.55)}`
             : '0 4px 18px -10px rgba(0,0,0,0.5)',
+        opacity: pausedToday ? 0.45 : 1,
+        filter: pausedToday ? 'grayscale(0.4)' : 'none',
       }}
     >
       {/* Active halo */}
@@ -193,7 +205,7 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, onAction
             >
               {block.codename}
             </span>
-            <StatusBadge status={status} />
+            {pausedToday ? <PausedBadge /> : <StatusBadge status={status} />}
           </div>
           <div
             className="font-ui text-[11px] truncate"
@@ -335,6 +347,22 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, onAction
 }
 
 // ─── sub-components ─────────────────────────────────────────
+
+function PausedBadge() {
+  return (
+    <span
+      className="font-ui text-[8.5px] tracking-[0.32em] uppercase px-2 py-0.5 rounded-full"
+      style={{
+        background: nucleusRgba(NUCLEUS.cloud, 0.08),
+        color: NUCLEUS_TEXT.muted,
+        border: `1px solid ${nucleusRgba(NUCLEUS.cloud, 0.18)}`,
+        fontWeight: 600,
+      }}
+    >
+      En pausa hoy
+    </span>
+  );
+}
 
 function StatusBadge({ status }: { status: BlockStatus }) {
   const config = (() => {

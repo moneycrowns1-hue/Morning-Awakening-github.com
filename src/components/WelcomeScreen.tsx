@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Flame, Moon, User, Settings as SettingsIcon, LineChart, X, Activity, Sun } from 'lucide-react';
+import { Bell, Calendar, Flame, Moon, Sparkles, User, Settings as SettingsIcon, LineChart, X, Activity, Sun } from 'lucide-react';
 import GradientBackground from './GradientBackground';
 import FitnessBridgeScreen from './FitnessBridgeScreen';
 import NucleusCompanion from './NucleusCompanion';
@@ -39,6 +39,10 @@ interface WelcomeScreenProps {
   onOpenNightMode?: () => void;
   /** Open the NUCLEUS day-mode timeline screen. */
   onOpenNucleus?: () => void;
+  /** Open the calendar screen (mensual + feriados Ecuador). */
+  onOpenCalendar?: () => void;
+  /** Open the Wellness Hub (bruxismo, meditación profunda, drenaje linfático). */
+  onOpenWellness?: () => void;
   /** True when a gentle alarm is armed — shows a subtle dot on the bell. */
   alarmArmed?: boolean;
 }
@@ -53,6 +57,8 @@ export default function WelcomeScreen({
   onOpenAlarm,
   onOpenNightMode,
   onOpenNucleus,
+  onOpenCalendar,
+  onOpenWellness,
   alarmArmed,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
@@ -177,6 +183,26 @@ export default function WelcomeScreen({
                   style={{ background: 'var(--sunrise-rise-2, #f4c267)', boxShadow: '0 0 6px rgba(244,194,103,0.7)' }}
                 />
               )}
+            </button>
+          )}
+          {onOpenCalendar && (
+            <button
+              onClick={() => { haptics.tap(); onOpenCalendar(); }}
+              aria-label="Abrir calendario"
+              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              <Calendar size={18} strokeWidth={1.75} />
+            </button>
+          )}
+          {onOpenWellness && (
+            <button
+              onClick={() => { haptics.tap(); onOpenWellness(); }}
+              aria-label="Abrir Hub Bienestar"
+              className="rounded-full p-1.5 transition-colors hover:bg-white/5"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              <Sparkles size={18} strokeWidth={1.75} />
             </button>
           )}
           {onOpenHistory && (

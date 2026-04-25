@@ -54,6 +54,11 @@ import { stopSleepEngine } from '@/lib/sleepEngine';
 import { markHabit } from '@/lib/habits';
 import NucleusTimelineScreen from './NucleusTimelineScreen';
 import NSDRPhaseScreen from './NSDRPhaseScreen';
+import CalendarScreen from './CalendarScreen';
+import WellnessHubScreen from './WellnessHubScreen';
+import BruxismExerciseScreen from './BruxismExerciseScreen';
+import DeepMeditationScreen from './DeepMeditationScreen';
+import LymphaticFacialScreen from './LymphaticFacialScreen';
 import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleusPings';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
@@ -94,6 +99,11 @@ export default function MorningAwakening() {
   const [showNightMode, setShowNightMode] = useState(false);
   const [showNucleusMode, setShowNucleusMode] = useState(false);
   const [showNSDR, setShowNSDR] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showWellness, setShowWellness] = useState(false);
+  const [showBruxism, setShowBruxism] = useState(false);
+  const [showDeepMeditation, setShowDeepMeditation] = useState(false);
+  const [showLymphatic, setShowLymphatic] = useState(false);
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
   // lock and the ringing overlay state. Config changes persist through
@@ -552,6 +562,30 @@ export default function MorningAwakening() {
             onLaunchNSDR={() => { setShowNSDR(true); }}
             onLaunchNight={() => { setShowNucleusMode(false); setShowNightMode(true); }}
           />
+        ) : showCalendar ? (
+          <CalendarScreen onClose={() => setShowCalendar(false)} />
+        ) : showBruxism ? (
+          <BruxismExerciseScreen
+            onComplete={() => setShowBruxism(false)}
+            onCancel={() => setShowBruxism(false)}
+          />
+        ) : showDeepMeditation ? (
+          <DeepMeditationScreen
+            onComplete={() => setShowDeepMeditation(false)}
+            onCancel={() => setShowDeepMeditation(false)}
+          />
+        ) : showLymphatic ? (
+          <LymphaticFacialScreen
+            onComplete={() => setShowLymphatic(false)}
+            onCancel={() => setShowLymphatic(false)}
+          />
+        ) : showWellness ? (
+          <WellnessHubScreen
+            onClose={() => setShowWellness(false)}
+            onLaunchBruxism={() => { setShowWellness(false); setShowBruxism(true); }}
+            onLaunchDeepMeditation={() => { setShowWellness(false); setShowDeepMeditation(true); }}
+            onLaunchLymphatic={() => { setShowWellness(false); setShowLymphatic(true); }}
+          />
         ) : (
           <WelcomeScreen
             profile={profile}
@@ -563,6 +597,8 @@ export default function MorningAwakening() {
             onOpenAlarm={() => setShowAlarm(true)}
             onOpenNightMode={() => setShowNightMode(true)}
             onOpenNucleus={() => setShowNucleusMode(true)}
+            onOpenCalendar={() => setShowCalendar(true)}
+            onOpenWellness={() => setShowWellness(true)}
             alarmArmed={alarm.config.enabled}
           />
         )}

@@ -16,10 +16,12 @@
 import {
   NUCLEUS_BLOCKS,
   hhmmToMinutes,
-  isWeekend,
+  isBlockActiveOnProfile,
+  isMicroHabitActiveOnProfile,
   type NucleusBlock,
   type NucleusMicroHabit,
 } from './nucleusConstants';
+import { getDayProfile } from './dayProfile';
 import { markHabit, type HabitId } from './habits';
 
 const NUCLEUS_ENABLED_KEY = 'ma-nucleus-enabled';
@@ -153,7 +155,8 @@ function expandMicroHabit(
   mh: NucleusMicroHabit,
   base: Date,
 ): NucleusPingPayload[] {
-  if (mh.weekdaysOnly && isWeekend(base)) return [];
+  const profile = getDayProfile(base);
+  if (!isMicroHabitActiveOnProfile(mh, block, profile)) return [];
   const dayKey = todayKey(base);
   const pings: NucleusPingPayload[] = [];
 
@@ -195,9 +198,10 @@ function expandMicroHabit(
 /** Build today's full ping list (post-now and within 24 h). */
 export function buildTodayPings(base: Date = new Date()): NucleusPingPayload[] {
   if (isSkippedToday(base)) return [];
+  const profile = getDayProfile(base);
   const out: NucleusPingPayload[] = [];
   for (const block of NUCLEUS_BLOCKS) {
-    if (block.skipWeekend && isWeekend(base)) continue;
+    if (!isBlockActiveOnProfile(block, profile)) continue;
     for (const mh of block.microHabits) {
       out.push(...expandMicroHabit(block, mh, base));
     }

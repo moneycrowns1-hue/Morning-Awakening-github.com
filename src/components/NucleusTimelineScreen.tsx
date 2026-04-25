@@ -21,9 +21,10 @@ import {
   NUCLEUS_BLOCKS,
   getCurrentBlock,
   hhmmToMinutes,
-  isWeekend,
+  isBlockActiveOnProfile,
   type NucleusBlock,
 } from '@/lib/nucleusConstants';
+import { getDayContext, getDayProfileLabel } from '@/lib/dayProfile';
 import { NUCLEUS, NUCLEUS_TEXT, getNucleusStageColors, nucleusRgba } from '@/lib/nucleusTheme';
 import {
   isSkippedToday,
@@ -107,7 +108,8 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
     return m >= hhmmToMinutes(b.endHHMM);
   }).length;
 
-  const weekend = isWeekend(now);
+  const dayCtx = useMemo(() => getDayContext(now), [now]);
+  const profile = dayCtx.profile;
 
   return (
     <div
@@ -187,16 +189,20 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
         >
           {skipped ? '✓ NUCLEUS pausado hoy' : 'Pausar NUCLEUS hoy'}
         </button>
-        {weekend && (
+        {profile !== 'workday' && (
           <span
             className="font-ui text-[10px] tracking-[0.28em] uppercase rounded-full px-3 py-1.5"
             style={{
-              background: nucleusRgba(NUCLEUS.cloud, 0.06),
-              border: `1px solid ${nucleusRgba(NUCLEUS.cloud, 0.14)}`,
-              color: NUCLEUS_TEXT.muted,
+              background: profile === 'rest'
+                ? nucleusRgba(NUCLEUS.sun_gold, 0.18)
+                : nucleusRgba(NUCLEUS.horizon_blue, 0.22),
+              border: `1px solid ${profile === 'rest'
+                ? nucleusRgba(NUCLEUS.sun_halo, 0.5)
+                : nucleusRgba(NUCLEUS.horizon_blue, 0.45)}`,
+              color: profile === 'rest' ? NUCLEUS.sun_halo : NUCLEUS_TEXT.primary,
             }}
           >
-            Fin de semana · ARENA / PRE-ARENA en off
+            {getDayProfileLabel(dayCtx)}
           </span>
         )}
       </div>
@@ -216,17 +222,21 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
             <Anchor label="GÉNESIS" sub="Protocolo matutino · 5:00 – 6:50" topOrBottom="top" />
           </div>
 
-          {NUCLEUS_BLOCKS.map((block) => (
-            <NucleusBlockCard
-              key={block.id}
-              block={block}
-              now={now}
-              defaultExpanded={current?.id === block.id}
-              onAction={(b: NucleusBlock) => {
-                if (b.action === 'nsdr') onLaunchNSDR();
-              }}
-            />
-          ))}
+          {NUCLEUS_BLOCKS.map((block) => {
+            const active = isBlockActiveOnProfile(block, profile);
+            return (
+              <NucleusBlockCard
+                key={block.id}
+                block={block}
+                now={now}
+                defaultExpanded={active && current?.id === block.id}
+                pausedToday={!active}
+                onAction={(b: NucleusBlock) => {
+                  if (b.action === 'nsdr') onLaunchNSDR();
+                }}
+              />
+            );
+          })}
 
           {/* Footer · launch TÉRMINUS */}
           <div

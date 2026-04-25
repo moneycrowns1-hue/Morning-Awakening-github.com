@@ -26,7 +26,11 @@ export type HabitId =
   | 'no_caffeine_pm'
   | 'optic_flow_walk'
   | 'desk_closure'
-  | 'nucleus_complete';
+  | 'nucleus_complete'
+  // ─── Wellness Hub ──────────────────────────────────────
+  | 'bruxism_exercise'
+  | 'deep_meditation'
+  | 'lymphatic_facial';
 
 export type HabitTrack = 'morning' | 'day' | 'night' | 'both';
 
@@ -48,8 +52,12 @@ export const HABIT_META: Record<HabitId, { label: string; icon: string; track: H
   nsdr_session:            { label: 'NSDR · 20 min',              icon: '◐', track: 'day' },
   no_caffeine_pm:          { label: 'Cero café desde 14:00',      icon: '⊘', track: 'day' },
   optic_flow_walk:         { label: 'Walk + cielo · optic flow',  icon: '◔', track: 'day' },
-  desk_closure:            { label: 'Sello del escritorio',       icon: '⊡', track: 'day' },
+  desk_closure:            { label: 'Sello del escritorio',       icon: '⠡', track: 'day' },
   nucleus_complete:        { label: 'Día NUCLEUS completo',       icon: '☉', track: 'day' },
+  // Wellness hub
+  bruxism_exercise:        { label: 'Bruxismo · mandíbula libre',  icon: '◇', track: 'both' },
+  deep_meditation:         { label: 'Meditación profunda',         icon: '○', track: 'both' },
+  lymphatic_facial:        { label: 'Drenaje linfático facial',    icon: '◐', track: 'morning' },
 };
 
 type HabitStore = Partial<Record<HabitId, Record<string, boolean>>>;

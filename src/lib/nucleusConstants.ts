@@ -20,6 +20,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import type { HabitId } from './habits';
+import type { DayProfile } from './dayProfile';
 
 export type NucleusBlockId =
   | 'pre_arena'
@@ -44,8 +45,10 @@ export interface NucleusMicroHabit {
   notifyBody: string;
   /** Connects to the unified habit tracker. */
   habitId: HabitId;
-  /** True only weekdays (lun-vie). Default: false (any day). */
-  weekdaysOnly?: boolean;
+  /** Day profiles in which this micro-habit fires. When undefined,
+   *  inherits the parent block's activeOn (or all profiles if the
+   *  block doesn't restrict either). */
+  activeOn?: DayProfile[];
 }
 
 export interface NucleusBlock {
@@ -69,8 +72,11 @@ export interface NucleusBlock {
   /** Quick tactical tips. */
   tips: string[];
   microHabits: NucleusMicroHabit[];
-  /** When true, push pings for this block do NOT fire on Sat/Sun. */
-  skipWeekend?: boolean;
+  /** Day profiles in which this block is active. Blocks not active
+   *  on the current profile are rendered dimmed in the timeline and
+   *  produce no pings. When undefined, the block is active on every
+   *  profile (workday + saturday + rest). */
+  activeOn?: DayProfile[];
   /** Optional special action: launches an interactive sub-screen. */
   action?: 'nsdr';
 }
@@ -97,7 +103,7 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
       'Si una flashcard se siente fácil, no es active recall — sube la fricción.',
       'Pomodoro corto (25/5) si la mente se dispersa.',
     ],
-    skipWeekend: true,
+    activeOn: ['workday', 'saturday'],
     microHabits: [
       {
         id: 'salt_water_morning',
@@ -107,7 +113,6 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
         trigger: { kind: 'once', atHHMM: '06:55' },
         notifyBody: 'Bebe 250 ml de agua con una pizca de sal marina antes de empezar el active recall.',
         habitId: 'salt_water_morning',
-        weekdaysOnly: true,
       },
       {
         id: 'active_recall_pre_arena',
@@ -117,7 +122,6 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
         trigger: { kind: 'once', atHHMM: '07:00' },
         notifyBody: 'PRE-ARENA: abre Somagnus/Anki y haz active recall puro hasta las 8:00.',
         habitId: 'active_recall_pre_arena',
-        weekdaysOnly: true,
       },
     ],
   },
@@ -143,7 +147,7 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
       'Si tu profesor hace pausa, mira al horizonte 20s. No al móvil.',
       'Postura: pies al suelo, omóplatos juntos, cuello largo.',
     ],
-    skipWeekend: true,
+    activeOn: ['workday'],
     microHabits: [
       {
         id: 'coffee_9am',
@@ -153,7 +157,6 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
         trigger: { kind: 'once', atHHMM: '09:00' },
         notifyBody: 'Hora del primer café. Espera obligatoria desde el despertar — sin crash a las 14:00.',
         habitId: 'coffee_9am',
-        weekdaysOnly: true,
       },
       {
         id: 'rule_20_20_20',
@@ -163,7 +166,6 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
         trigger: { kind: 'recurring', everyMinutes: 25, fromHHMM: '08:25', untilHHMM: '12:55' },
         notifyBody: 'Mira al horizonte (6 m) durante 20 s. Relaja los ciliares.',
         habitId: 'rule_20_20_20',
-        weekdaysOnly: true,
       },
       {
         id: 'scapular_retractions',
@@ -173,7 +175,6 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
         trigger: { kind: 'recurring', everyMinutes: 50, fromHHMM: '08:50', untilHHMM: '12:50' },
         notifyBody: 'Junta los omóplatos × 10. Saca pecho. Cuello largo.',
         habitId: 'scapular_retractions',
-        weekdaysOnly: true,
       },
     ],
   },
@@ -234,6 +235,7 @@ export const NUCLEUS_BLOCKS: NucleusBlock[] = [
   // ─────────────────────────────────────────────────────────
   {
     id: 'monolito',
+    activeOn: ['workday', 'saturday'],
     codename: 'EL MONOLITO',
     title: 'Asimilación',
     kanji: '柱',
@@ -395,10 +397,33 @@ export function getBlockIndex(blockId: NucleusBlockId): number {
   return NUCLEUS_BLOCKS.findIndex((b) => b.id === blockId);
 }
 
-/** Es fin de semana (sábado o domingo). */
+/** Es fin de semana (sábado o domingo). Mantenido por compatibilidad;
+ *  el código nuevo debería usar `getDayProfile` de `dayProfile.ts`. */
 export function isWeekend(at: Date = new Date()): boolean {
   const day = at.getDay();
   return day === 0 || day === 6;
+}
+
+/** ¿Está este bloque activo en el perfil de día dado? Bloques sin
+ *  `activeOn` se consideran activos en todos los perfiles. */
+export function isBlockActiveOnProfile(
+  block: NucleusBlock,
+  profile: DayProfile,
+): boolean {
+  if (!block.activeOn) return true;
+  return block.activeOn.includes(profile);
+}
+
+/** ¿Está este micro-hábito activo en el perfil dado? Si el micro-hábito
+ *  no especifica `activeOn`, hereda del bloque padre. Si el bloque
+ *  tampoco lo especifica, se considera activo en todos los perfiles. */
+export function isMicroHabitActiveOnProfile(
+  mh: NucleusMicroHabit,
+  block: NucleusBlock,
+  profile: DayProfile,
+): boolean {
+  if (mh.activeOn) return mh.activeOn.includes(profile);
+  return isBlockActiveOnProfile(block, profile);
 }
 
 /** Resumen "08:00 – 13:00" para UI. */

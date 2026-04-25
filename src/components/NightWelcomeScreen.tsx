@@ -27,8 +27,21 @@ import { getNightMissions, totalNightDuration } from '@/lib/nightConstants';
 import type { AlarmConfig } from '@/lib/alarmSchedule';
 import { computeSleepGate, formatGateWindow, loadSleepConfig } from '@/lib/sleepGate';
 import { haptics } from '@/lib/haptics';
+import { getDayProfile } from '@/lib/dayProfile';
 
 const MODE_KEY = 'ma-night-mode-pref';
+/** Per-day override: when present, takes precedence over the global
+ *  preference. Lets us auto-default Express on rest profile without
+ *  losing the user's manual choice for that specific day. */
+const MODE_DAY_KEY_PREFIX = 'ma-night-mode-pref-';
+
+function todayKey(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 export type NightMode = 'full' | 'express';
 
@@ -67,9 +80,24 @@ export default function NightWelcomeScreen({
     setHealthStatus(getHealthStatus());
   }, [showHealthModal]);
 
-  // Load persisted preference on mount.
+  // Load persisted preference on mount. Priority:
+  //   1. Per-day explicit override (user picked Full/Express today).
+  //   2. Auto-default to Express when today's profile is 'rest'
+  //      (Sunday or Ecuadorian holiday).
+  //   3. Global persisted preference.
+  //   4. Hardcoded 'full'.
   useEffect(() => {
     try {
+      const dayKey = MODE_DAY_KEY_PREFIX + todayKey();
+      const dayPref = window.localStorage.getItem(dayKey);
+      if (dayPref === 'full' || dayPref === 'express') {
+        setMode(dayPref);
+        return;
+      }
+      if (getDayProfile() === 'rest') {
+        setMode('express');
+        return;
+      }
       const raw = window.localStorage.getItem(MODE_KEY);
       if (raw === 'full' || raw === 'express') setMode(raw);
     } catch { /* ignore */ }
@@ -100,12 +128,21 @@ export default function NightWelcomeScreen({
   const setModeAnd = (m: NightMode) => {
     haptics.tap();
     setMode(m);
-    try { window.localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ }
+    try {
+      // Persist BOTH the global preference (for next non-rest day) and
+      // the per-day override (so today's explicit pick is honored even
+      // if it contradicts the rest-profile auto-default).
+      window.localStorage.setItem(MODE_KEY, m);
+      window.localStorage.setItem(MODE_DAY_KEY_PREFIX + todayKey(), m);
+    } catch { /* ignore */ }
   };
 
   const handleEnter = () => {
     haptics.tick();
-    try { window.localStorage.setItem(MODE_KEY, mode); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(MODE_KEY, mode);
+      window.localStorage.setItem(MODE_DAY_KEY_PREFIX + todayKey(), mode);
+    } catch { /* ignore */ }
     onEnter(mode);
   };
 
