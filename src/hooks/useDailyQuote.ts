@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getQuoteForDate, getTodayIsoDate, type Quote } from '@/lib/quotes';
+import { getQuoteForDate, getTodayIsoDate, type Quote } from '@/lib/genesis/quotes';
 
 export function useDailyQuote(): Quote {
   const [today, setToday] = useState<string>(() => getTodayIsoDate());

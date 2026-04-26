@@ -9,9 +9,9 @@ import {
   getToday,
   isYesterday,
   isToday,
-} from '@/lib/constants';
-import { AudioEngine } from '@/lib/audioEngine';
-import { Operator } from '@/lib/operator';
+} from '@/lib/genesis/constants';
+import { AudioEngine } from '@/lib/common/audioEngine';
+import { Operator } from '@/lib/genesis/operator';
 import {
   loadProfile,
   saveProfile,
@@ -23,49 +23,49 @@ import {
   PROFILE_KEY,
   DEFAULT_PROFILE,
   type OperatorStats,
-} from '@/lib/progression';
-import MissionPhaseV8 from './MissionPhaseV8';
-import SummaryScreenV8 from './SummaryScreenV8';
-import XpGainToast from './XpGainToast';
-import LevelUpOverlay from './LevelUpOverlay';
-import ProfileModal from './ProfileModal';
-import SettingsScreen from './SettingsScreen';
-import HistoryScreen from './HistoryScreen';
-import OnboardingModal from './OnboardingModal';
-import WelcomeScreen from './WelcomeScreen';
-import { appendSession, computeQualityScore, loadSessions } from '@/lib/sessionHistory';
-import { startSilentKeepalive, stopSilentKeepalive } from '@/lib/silentAudioKeepalive';
-import { clearMediaSession } from '@/lib/mediaSession';
+} from '@/lib/genesis/progression';
+import MissionPhaseV8 from './genesis/MissionPhaseV8';
+import SummaryScreenV8 from './genesis/SummaryScreenV8';
+import XpGainToast from './common/XpGainToast';
+import LevelUpOverlay from './common/LevelUpOverlay';
+import ProfileModal from './profile/ProfileModal';
+import SettingsScreen from './profile/SettingsScreen';
+import HistoryScreen from './profile/HistoryScreen';
+import OnboardingModal from './profile/OnboardingModal';
+import WelcomeScreen from './home/WelcomeScreen';
+import { appendSession, computeQualityScore, loadSessions } from '@/lib/genesis/sessionHistory';
+import { startSilentKeepalive, stopSilentKeepalive } from '@/lib/common/silentAudioKeepalive';
+import { clearMediaSession } from '@/lib/common/mediaSession';
 import {
   evaluateAchievements,
   getDefinition,
   loadUnlocked,
   persistNewlyUnlocked,
-} from '@/lib/achievements';
-import AchievementToast from './AchievementToast';
-import AlarmScreen from './AlarmScreen';
-import WonderwakeClockScreen from './WonderwakeClockScreen';
-import { consumeHealthHashIfPresent } from '@/lib/healthkitBridge';
-import AlarmRingingOverlay from './AlarmRingingOverlay';
-import NightProtocolFlow from './NightProtocolFlow';
-import { useAlarmController } from '@/lib/useAlarmController';
-import { unlockAlarmAudio } from '@/lib/alarmEngine';
-import { stopSleepEngine } from '@/lib/sleepEngine';
-import { markHabit } from '@/lib/habits';
-import NucleusTimelineScreen from './NucleusTimelineScreen';
-import NSDRPhaseScreen from './NSDRPhaseScreen';
-import CalendarScreen from './CalendarScreen';
-import BruxismExerciseScreen from './BruxismExerciseScreen';
-import DeepMeditationScreen from './DeepMeditationScreen';
-import LymphaticFacialScreen from './LymphaticFacialScreen';
-import AppDock, { type DockTab } from './AppDock';
-import ProtocolsScreen from './ProtocolsScreen';
-import ToolsScreen from './ToolsScreen';
-import ProfileTabScreen from './ProfileTabScreen';
-import FitnessBridgeScreen from './FitnessBridgeScreen';
-import { isHabitDone } from '@/lib/habits';
-import { isNucleusWindow } from '@/lib/nucleusConstants';
-import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleusPings';
+} from '@/lib/genesis/achievements';
+import AchievementToast from './common/AchievementToast';
+import AlarmScreen from './alarm/AlarmScreen';
+import WonderwakeClockScreen from './alarm/WonderwakeClockScreen';
+import { consumeHealthHashIfPresent } from '@/lib/common/healthkitBridge';
+import AlarmRingingOverlay from './alarm/AlarmRingingOverlay';
+import NightProtocolFlow from './night/NightProtocolFlow';
+import { useAlarmController } from '@/lib/alarm/useAlarmController';
+import { unlockAlarmAudio } from '@/lib/alarm/alarmEngine';
+import { stopSleepEngine } from '@/lib/night/sleepEngine';
+import { markHabit } from '@/lib/common/habits';
+import NucleusTimelineScreen from './nucleus/NucleusTimelineScreen';
+import NSDRPhaseScreen from './nucleus/NSDRPhaseScreen';
+import CalendarScreen from './calendar/CalendarScreen';
+import BruxismExerciseScreen from './wellness/BruxismExerciseScreen';
+import DeepMeditationScreen from './wellness/DeepMeditationScreen';
+import LymphaticFacialScreen from './wellness/LymphaticFacialScreen';
+import AppDock, { type DockTab } from './home/AppDock';
+import ProtocolsScreen from './home/ProtocolsScreen';
+import ToolsScreen from './home/ToolsScreen';
+import ProfileTabScreen from './profile/ProfileTabScreen';
+import FitnessBridgeScreen from './profile/FitnessBridgeScreen';
+import { isHabitDone } from '@/lib/common/habits';
+import { isNucleusWindow } from '@/lib/nucleus/nucleusConstants';
+import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleus/nucleusPings';
 
 type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';

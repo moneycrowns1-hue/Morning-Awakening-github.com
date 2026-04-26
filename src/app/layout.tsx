@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
-import { withBasePath } from "@/lib/publicPath";
+import ServiceWorkerRegistrar from "@/components/common/ServiceWorkerRegistrar";
+import { withBasePath } from "@/lib/common/publicPath";
 
 // ═══ Typeface system (v8 sunrise redesign) ═══
 // - Fraunces: serif display, warm/organic, for hero titles & daily quote.
