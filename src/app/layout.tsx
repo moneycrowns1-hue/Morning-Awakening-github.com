@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistrar from "@/components/common/ServiceWorkerRegistrar";
 import { withBasePath } from "@/lib/common/publicPath";
@@ -27,6 +27,15 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
   weight: ["300", "400", "500", "700"],
+  display: "swap",
+});
+// Bricolage Grotesque: humanist sans, variable weight + width axis.
+// Used for editorial display titles in the redesigned Welcome screen.
+// Closest free analog to Adobe Antique Olive (referenced by poppr.be).
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-headline",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 const cinzelDecorative = Cinzel_Decorative({
@@ -62,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${cinzelDecorative.variable} h-full`}>
+    <html lang="es" className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${cinzelDecorative.variable} ${bricolage.variable} h-full`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

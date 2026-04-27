@@ -1,36 +1,41 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// WelcomeScreen · editorial redesign (Poppr-inspired)
+// WelcomeScreen · editorial redesign v2 (Poppr-tightened)
 //
-// Reference: poppr.be — agency aesthetic translated to the
-// sunrise palette. Key patterns adopted:
+// Refinements vs v1:
 //
-//   1. Corner-framed HUD with dotted leaders (top-left brand
-//      mark, top-right time + weekday + streak).
-//   2. Chapter index ("01 / 13") as editorial cue.
-//   3. MASSIVE lowercase italic display ("morning awakening.")
-//      stacked left-aligned.
-//   4. Quote as offset block with thin vertical rule.
-//   5. CTA: wide pill with diagonal arrow on the right (no
-//      glassmorphism halo — quieter, more architectural).
-//   6. Bottom marquee ticker with profile metadata that
-//      scrolls horizontally on loop.
-//   7. Functional widgets (NightSuggestion, CoachWidget,
-//      NucleusCompanion) stay — restyled to slot into the
-//      editorial frame instead of stacking visually.
+//   · Title now uses Bricolage Grotesque (--font-headline),
+//     the closest free analog to Adobe Antique Olive that
+//     poppr.be uses for "conversion through immersion".
+//     Non-italic, weight 600, tight tracking, lowercase.
+//   · Coach + Nucleus widgets no longer render as 80-px
+//     cards — they are folded into a single "selected
+//     entries" rail of one-line links, mirroring Poppr's
+//     footer index aesthetic. Same callbacks fire.
+//   · Night-mode suggestion is now a third entry of the
+//     same rail (instead of a heavy banner above the CTA),
+//     with the X dismiss action moved inline.
 //
 // Props interface is unchanged → no consumers break.
+// CoachWidget / NucleusCompanion components are kept intact
+// for any future consumer; this screen just stops using them.
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, Flame, Moon, X } from 'lucide-react';
+import { ArrowUpRight, Flame, X } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
-import NucleusCompanion from '../nucleus/NucleusCompanion';
-import CoachWidget from '../coach/CoachWidget';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
+import { useCoach } from '@/hooks/useCoach';
 import type { OperatorProfile } from '@/lib/genesis/progression';
 import { isNightSuggestionAppropriate, silenceNightSuggestionToday } from '@/lib/night/nightMode';
+import {
+  getCurrentBlock,
+  getNextBlock,
+  hhmmToMinutes,
+  isNucleusWindow,
+  type NucleusBlock,
+} from '@/lib/nucleus/nucleusConstants';
 import { haptics } from '@/lib/common/haptics';
 import { SUNRISE, hexToRgba } from '@/lib/common/theme';
 
@@ -88,6 +93,72 @@ export default function WelcomeScreen({
     ];
     return items.join('  ·  ');
   }, [streak, profile.level, profile.operatorClass, profile.xp, profile.phasesCompleted]);
+
+  // Rail entries: 0-3 single-line links replacing the heavy
+  // CoachWidget / NucleusCompanion / night banner. Computed each
+  // render so they react to time + briefing state.
+  const coachData = useCoach();
+  const railEntries = useMemo<RailEntryData[]>(() => {
+    const out: RailEntryData[] = [];
+
+    // Coach: render if briefing exists and has at least one action.
+    if (onOpenCoach && coachData.hydrated && coachData.briefing) {
+      const actionCount = coachData.briefing.actions.length;
+      if (actionCount > 0) {
+        out.push({
+          key: 'coach',
+          label: 'coach del día',
+          meta: `${actionCount} ${actionCount === 1 ? 'acción' : 'acciones'}`,
+          accent: coachData.briefing.mode.startsWith('flare') ? '#ff6b6b' : SUNRISE.rise2,
+          onTap: onOpenCoach,
+        });
+      }
+    }
+
+    // Nucleus: render if currently inside the day-mode window.
+    if (onOpenNucleus && isNucleusWindow(new Date())) {
+      const block: NucleusBlock | null =
+        getCurrentBlock(new Date()) ?? getNextBlock(new Date());
+      if (block) {
+        const minutesNow = new Date().getHours() * 60 + new Date().getMinutes();
+        const endMin = hhmmToMinutes(block.endHHMM);
+        const startMin = hhmmToMinutes(block.startHHMM);
+        const isLive = minutesNow >= startMin && minutesNow < endMin;
+        const remaining = isLive
+          ? Math.max(0, endMin - minutesNow)
+          : Math.max(0, startMin - minutesNow);
+        out.push({
+          key: 'nucleus',
+          label: `nucleus · ${block.codename.toLowerCase()}`,
+          meta: isLive ? `${remaining} min restantes` : `en ${remaining} min`,
+          accent: SUNRISE.rise2,
+          onTap: onOpenNucleus,
+        });
+      }
+    }
+
+    // Night: render if appropriate and not silenced.
+    if (showNightSuggestion && onOpenNightMode) {
+      out.push({
+        key: 'night',
+        label: 'ritual nocturno',
+        meta: time,
+        accent: SUNRISE.rise2,
+        onTap: onOpenNightMode,
+        onDismiss: () => {
+          haptics.tick();
+          silenceNightSuggestionToday();
+          setShowNightSuggestion(false);
+        },
+      });
+    }
+
+    return out;
+  }, [
+    onOpenCoach, onOpenNucleus, onOpenNightMode,
+    coachData.hydrated, coachData.briefing,
+    showNightSuggestion, time,
+  ]);
 
   return (
     <div
@@ -181,24 +252,25 @@ export default function WelcomeScreen({
 
       {/* ═══ HERO · editorial typography ════════════════════════ */}
       <div className="relative z-10 flex-1 flex flex-col justify-center px-6 min-h-0">
-        {/* Lowercase italic display, stacked, asymmetric */}
+        {/* Bricolage Grotesque, weight 600, lowercase, tight track.
+            Mirrors poppr.be's "conversion through immersion" hero. */}
         <div
-          className="font-display sunrise-fade-up"
+          className="font-headline sunrise-fade-up"
           style={{ animationDelay: '120ms' }}
         >
           <div
-            className="italic font-[300] leading-[0.92] tracking-[-0.025em] lowercase"
+            className="font-[600] leading-[0.88] tracking-[-0.045em] lowercase"
             style={{
-              fontSize: 'clamp(3rem, 16vw, 5.6rem)',
+              fontSize: 'clamp(3.2rem, 17vw, 6rem)',
               color: 'var(--sunrise-text)',
             }}
           >
             morning
           </div>
           <div
-            className="italic font-[300] leading-[0.92] tracking-[-0.025em] lowercase pl-[0.6em]"
+            className="font-[600] leading-[0.88] tracking-[-0.045em] lowercase"
             style={{
-              fontSize: 'clamp(3rem, 16vw, 5.6rem)',
+              fontSize: 'clamp(3.2rem, 17vw, 6rem)',
               color: 'var(--sunrise-text)',
             }}
           >
@@ -252,79 +324,26 @@ export default function WelcomeScreen({
         </div>
       </div>
 
-      {/* ═══ FUNCTIONAL WIDGETS — quiet stack above CTA ════════ */}
-      {showNightSuggestion && onOpenNightMode && (
+      {/* ═══ SECONDARY RAIL · single-line entries ══════════════
+           Replaces the bulky CoachWidget / NucleusCompanion /
+           night banner. Each entry is ~32px tall, mirroring the
+           "selected work" footer index of poppr.be. */}
+      {railEntries.length > 0 && (
         <div
-          className="relative z-10 mx-5 mb-2.5 rounded-xl p-3 flex items-center gap-3 sunrise-fade-up"
+          className="relative z-10 mx-5 mb-3 flex flex-col sunrise-fade-up"
           style={{
             animationDelay: '520ms',
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.22)}`,
-            background: hexToRgba(SUNRISE.predawn2, 0.55),
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
           }}
         >
-          <span
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-            style={{
-              background: hexToRgba(SUNRISE.rise2, 0.12),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.35)}`,
-              color: SUNRISE.rise2,
-            }}
-          >
-            <Moon size={14} strokeWidth={1.8} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div
-              className="font-ui text-[10.5px] tracking-[0.18em] uppercase"
-              style={{ color: 'var(--sunrise-text)' }}
-            >
-              {time} · ritual nocturno
-            </div>
-            <div
-              className="font-mono text-[10px] leading-snug mt-0.5"
-              style={{ color: 'var(--sunrise-text-muted)' }}
-            >
-              Respiración 4-7-8 + descarga mental antes de dormir.
-            </div>
-          </div>
-          <button
-            onClick={() => { haptics.tap(); onOpenNightMode(); }}
-            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-ui text-[9.5px] tracking-[0.28em] uppercase"
-            style={{
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
-              background: hexToRgba(SUNRISE.rise2, 0.18),
-              color: 'var(--sunrise-text)',
-            }}
-          >
-            Entrar <ArrowUpRight size={11} strokeWidth={1.85} />
-          </button>
-          <button
-            onClick={() => { haptics.tick(); silenceNightSuggestionToday(); setShowNightSuggestion(false); }}
-            aria-label="No mostrar hoy"
-            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            <X size={12} strokeWidth={1.85} />
-          </button>
-        </div>
-      )}
-
-      {onOpenCoach && (
-        <div
-          className="relative z-10 mx-5 mb-2.5 sunrise-fade-up"
-          style={{ animationDelay: '540ms' }}
-        >
-          <CoachWidget onOpen={onOpenCoach} />
-        </div>
-      )}
-
-      {onOpenNucleus && (
-        <div
-          className="relative z-10 mx-5 mb-2.5 sunrise-fade-up"
-          style={{ animationDelay: '560ms' }}
-        >
-          <NucleusCompanion onOpen={onOpenNucleus} />
+          {railEntries.map((entry, idx) => (
+            <RailEntry
+              key={entry.key}
+              index={idx + 1}
+              total={railEntries.length}
+              entry={entry}
+            />
+          ))}
         </div>
       )}
 
@@ -417,6 +436,84 @@ export default function WelcomeScreen({
           to { transform: translateX(-50%); }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ─── local types + components ────────────────────────────────
+
+interface RailEntryData {
+  key: string;
+  label: string;
+  meta: string;
+  accent: string;
+  onTap: () => void;
+  /** Optional dismiss button (used by the night entry). */
+  onDismiss?: () => void;
+}
+
+function RailEntry({
+  index,
+  total,
+  entry,
+}: {
+  index: number;
+  total: number;
+  entry: RailEntryData;
+}) {
+  const isLast = index === total;
+  return (
+    <div
+      className="flex items-center gap-3 py-2.5"
+      style={{
+        borderBottom: isLast ? 'none' : `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}`,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => { haptics.tick(); entry.onTap(); }}
+        className="group flex-1 min-w-0 flex items-center gap-3 transition-opacity active:opacity-70"
+      >
+        <span
+          className="font-mono text-[10px] tracking-wider tabular-nums shrink-0"
+          style={{ color: 'var(--sunrise-text-muted)' }}
+        >
+          {index.toString().padStart(2, '0')}
+        </span>
+        <span
+          className="font-headline font-[500] text-[14px] leading-tight lowercase tracking-[-0.01em] truncate"
+          style={{ color: 'var(--sunrise-text)' }}
+        >
+          {entry.label}
+        </span>
+        <span
+          className="flex-1 h-px min-w-[12px]"
+          style={{ background: hexToRgba(SUNRISE.rise2, 0.2) }}
+        />
+        <span
+          className="font-ui text-[9px] tracking-[0.32em] uppercase shrink-0"
+          style={{ color: 'var(--sunrise-text-muted)' }}
+        >
+          {entry.meta}
+        </span>
+        <ArrowUpRight
+          size={13}
+          strokeWidth={1.85}
+          className="shrink-0 transition-transform group-active:translate-x-0.5 group-active:-translate-y-0.5"
+          style={{ color: entry.accent }}
+        />
+      </button>
+      {entry.onDismiss && (
+        <button
+          type="button"
+          onClick={entry.onDismiss}
+          aria-label="Descartar"
+          className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ color: 'var(--sunrise-text-muted)' }}
+        >
+          <X size={11} strokeWidth={1.85} />
+        </button>
+      )}
     </div>
   );
 }

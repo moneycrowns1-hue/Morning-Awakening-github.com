@@ -48,6 +48,9 @@
   --font-serif:   var(--font-display), "Fraunces", Georgia, serif;
   --font-mono:    var(--font-mono),    "JetBrains Mono", ui-monospace, monospace;
   --font-cinzel:  var(--font-cinzel),  "Cinzel Decorative", Georgia, serif;
+  /* Bricolage Grotesque: humanist sans con peso variable y eje de ancho.
+     Usado en titulares editoriales (WelcomeScreen). Aproxima Antique Olive. */
+  --font-headline: var(--font-headline), "Bricolage Grotesque", "Inter", system-ui, sans-serif;
 }
 
 /* NOTE: this reset MUST live inside @layer base so Tailwind utility
@@ -351,9 +354,10 @@ html, body {
    screens until Sprint 2.
    ═══════════════════════════════════════════════════════ */
 
-.font-display { font-family: var(--font-display); }
-.font-ui      { font-family: var(--font-ui); }
-.font-mono    { font-family: var(--font-mono); }
+.font-display  { font-family: var(--font-display); }
+.font-headline { font-family: var(--font-headline); }
+.font-ui       { font-family: var(--font-ui); }
+.font-mono     { font-family: var(--font-mono); }
 
 /* Warm radial vignette for the Welcome / Protocol hero areas. */
 .sunrise-vignette {
