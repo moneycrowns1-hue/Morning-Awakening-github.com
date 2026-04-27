@@ -92,32 +92,28 @@ export default function AppMenu({
 
   return (
     <>
-      {/* ═══ TRIGGER (visible when overlay is closed) ═══ */}
+      {/* ═══ TRIGGER (visible when overlay is closed) ═══
+           Poppr-style: solid dorado circle, black icon, no
+           border, no label. Sits in the top-right corner. */}
       <button
         type="button"
         onClick={() => { haptics.tick(); onOpenChange(true); }}
         aria-label="Abrir menú"
         aria-expanded={open}
-        className="fixed z-50 inline-flex items-center gap-2 rounded-full transition-opacity duration-200"
+        className="fixed z-50 inline-flex items-center justify-center rounded-full transition-all duration-200 active:scale-95"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)',
           right: '1rem',
-          padding: '8px 14px',
-          background: hexToRgba(SUNRISE.night, 0.55),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.25)}`,
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          width: 52,
+          height: 52,
+          background: SUNRISE.rise2,
+          color: SUNRISE.night,
+          boxShadow: `0 8px 24px -6px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
           opacity: open ? 0 : 1,
           pointerEvents: open ? 'none' : 'auto',
         }}
       >
-        <MenuIcon size={13} strokeWidth={1.85} style={{ color: SUNRISE.rise2 }} />
-        <span
-          className="font-ui text-[10px] tracking-[0.34em] uppercase leading-none"
-          style={{ color: 'var(--sunrise-text)' }}
-        >
-          menu
-        </span>
+        <MenuIcon size={20} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
       </button>
 
       {/* ═══ OVERLAY (visible when open) ═══ */}

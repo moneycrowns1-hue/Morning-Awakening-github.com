@@ -76,42 +76,6 @@ export default function WelcomeScreen({
       <GradientBackground stage="welcome" particleCount={45} />
       <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
 
-      {/* ═══ DECORATIVE BACKDROP · tilted gradient card ═════════
-           Echoes Poppr's tilted hero photo. Soft sunrise glow,
-           ~3.4° rotation, sits behind the title at z=0. */}
-      <div
-        aria-hidden
-        className="absolute pointer-events-none sunrise-fade-up"
-        style={{
-          top: '22%',
-          left: '6%',
-          right: '6%',
-          height: '46%',
-          background: `linear-gradient(135deg, ${hexToRgba(SUNRISE.rise2, 0.10)} 0%, ${hexToRgba(SUNRISE.predawn2, 0.22)} 50%, ${hexToRgba(SUNRISE.night, 0.28)} 100%)`,
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
-          borderRadius: 28,
-          transform: 'rotate(-3.4deg)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
-          boxShadow: `0 30px 90px -20px ${hexToRgba(SUNRISE.night, 0.7)}`,
-          animationDelay: '60ms',
-        }}
-      />
-
-      {/* ═══ DECORATIVE OUTLINE CIRCLE · bottom-left ════════════
-           Mirrors the partial circle Poppr cuts off at the edge. */}
-      <div
-        aria-hidden
-        className="absolute pointer-events-none rounded-full"
-        style={{
-          left: '-3.25rem',
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
-          width: 130,
-          height: 130,
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.22)}`,
-        }}
-      />
-
       {/* ═══ HEADER · brand · time · streak (compact row) ═══════
            Single horizontal line on the left. Right corner is
            reserved for the AppMenu trigger (rendered by the
@@ -162,52 +126,65 @@ export default function WelcomeScreen({
         </div>
       </div>
 
-      {/* ═══ HERO · big title + inline CTA pill ═══════════════════ */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 min-h-0">
+      {/* ═══ HERO · 3-word title centered + inline CTA pill ═══
+           Mirrors poppr.be's "conversion / through / immersion"
+           where the yellow CTA pill sits inline next to the
+           middle (connector) word. */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 min-h-0">
         <div
-          className="font-headline sunrise-fade-up"
+          className="font-headline flex flex-col items-center sunrise-fade-up"
           style={{ animationDelay: '160ms' }}
         >
+          {/* Line 1 */}
           <div
             className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
             style={{
-              fontSize: 'clamp(3.6rem, 19vw, 7rem)',
+              fontSize: 'clamp(3.8rem, 20vw, 7.5rem)',
               color: 'var(--sunrise-text)',
             }}
           >
-            morning
+            awaken
           </div>
-          <div
-            className="relative font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
-            style={{
-              fontSize: 'clamp(3.6rem, 19vw, 7rem)',
-              color: 'var(--sunrise-text)',
-            }}
-          >
-            awakening<span style={{ color: SUNRISE.rise2 }}>.</span>
 
-            {/* Inline CTA — small dorado pill, positioned over the
-                baseline of the second line. Mirrors the way Poppr
-                drops "Discover what we do" inside its hero image. */}
+          {/* Line 2 · word + inline dorado CTA pill (wraps on narrow) */}
+          <div className="flex items-center justify-center gap-3 sm:gap-5 my-1 flex-wrap">
+            <span
+              className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
+              style={{
+                fontSize: 'clamp(3.4rem, 18vw, 7.5rem)',
+                color: 'var(--sunrise-text)',
+              }}
+            >
+              through
+            </span>
             <button
               type="button"
               onClick={() => { haptics.tap(); onStart(); }}
-              className="absolute inline-flex items-center gap-2 rounded-full transition-transform active:scale-[0.97] sunrise-fade-up"
+              className="shrink-0 inline-flex items-center gap-2 rounded-full transition-transform active:scale-[0.96] sunrise-fade-up"
               style={{
-                right: '0.25rem',
-                bottom: '-1.5rem',
-                padding: '11px 17px',
+                padding: '13px 19px',
                 background: SUNRISE.rise2,
                 color: SUNRISE.night,
                 boxShadow: `0 10px 32px -6px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
                 animationDelay: '320ms',
               }}
             >
-              <span className="font-ui font-[600] text-[11px] tracking-[0.22em] uppercase leading-none">
+              <span className="font-ui font-[600] text-[12px] tracking-[0.22em] uppercase leading-none">
                 despertar
               </span>
-              <ArrowUpRight size={13} strokeWidth={2.2} />
+              <ArrowUpRight size={14} strokeWidth={2.2} />
             </button>
+          </div>
+
+          {/* Line 3 */}
+          <div
+            className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
+            style={{
+              fontSize: 'clamp(3.8rem, 20vw, 7.5rem)',
+              color: 'var(--sunrise-text)',
+            }}
+          >
+            ritual<span style={{ color: SUNRISE.rise2 }}>.</span>
           </div>
         </div>
       </div>
@@ -221,13 +198,13 @@ export default function WelcomeScreen({
         }}
       >
         {/* Greeting line */}
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-3">
           <div
-            className="h-px w-6 shrink-0"
-            style={{ background: hexToRgba(SUNRISE.rise2, 0.5) }}
+            className="h-px w-7 shrink-0"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.55) }}
           />
           <span
-            className="font-ui text-[9.5px] tracking-[0.34em] uppercase"
+            className="font-ui text-[12px] tracking-[0.32em] uppercase"
             style={{ color: 'var(--sunrise-text-soft)' }}
           >
             buenos días,{' '}
@@ -235,13 +212,22 @@ export default function WelcomeScreen({
           </span>
         </div>
 
-        {/* Quote — single line, truncated if long */}
+        {/* Quote — italic body, allows up to ~2 lines */}
         <p
-          className="font-display italic font-[300] text-[12px] leading-snug truncate mb-3"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="font-display italic font-[300] text-[15px] leading-[1.4] mb-4"
+          style={{
+            color: 'var(--sunrise-text-soft)',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
         >
           &ldquo;{quote.text}&rdquo;
-          <span className="font-ui not-italic uppercase tracking-[0.28em] text-[9px] ml-2">
+          <span
+            className="font-ui not-italic uppercase tracking-[0.26em] text-[11px] ml-2"
+            style={{ color: 'var(--sunrise-text-muted)' }}
+          >
             — {quote.author}
           </span>
         </p>
@@ -269,23 +255,23 @@ function CalendarPreviewLine({ onOpen }: { onOpen: () => void }) {
     <button
       type="button"
       onClick={() => { haptics.tick(); onOpen(); }}
-      className="group w-full flex items-center gap-3 py-2 transition-opacity active:opacity-70"
-      style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}` }}
+      className="group w-full flex items-center gap-3 py-3 transition-opacity active:opacity-70"
+      style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}` }}
     >
       <CalendarDays
-        size={12}
+        size={15}
         strokeWidth={1.85}
         className="shrink-0"
         style={{ color: SUNRISE.rise2 }}
       />
       <span
-        className="font-ui text-[9.5px] tracking-[0.28em] uppercase shrink-0"
+        className="font-ui text-[11px] tracking-[0.26em] uppercase shrink-0"
         style={{ color: 'var(--sunrise-text-soft)' }}
       >
         {dayName}
       </span>
       <span
-        className="font-ui text-[9px] tracking-[0.28em] uppercase shrink-0"
+        className="font-ui text-[10px] tracking-[0.26em] uppercase shrink-0"
         style={{ color: 'var(--sunrise-text-muted)' }}
       >
         · {dayLabel.toLowerCase()}
@@ -296,14 +282,14 @@ function CalendarPreviewLine({ onOpen }: { onOpen: () => void }) {
       />
       {upcoming && (
         <span
-          className="font-mono text-[9px] tracking-wider tabular-nums shrink-0 truncate"
-          style={{ color: 'var(--sunrise-text-muted)', maxWidth: '40%' }}
+          className="font-mono text-[10px] tracking-wider tabular-nums shrink-0 truncate"
+          style={{ color: 'var(--sunrise-text-muted)', maxWidth: '42%' }}
         >
           +{upcoming.daysUntil}d {upcoming.name.toLowerCase()}
         </span>
       )}
       <ArrowRight
-        size={11}
+        size={13}
         strokeWidth={1.85}
         className="shrink-0 transition-transform group-active:translate-x-0.5"
         style={{ color: SUNRISE.rise2 }}
