@@ -91,17 +91,14 @@ export function useAlarmController(): UseAlarmController {
   const [audioStarted, setAudioStarted] = useState(false);
 
   const engineRef = useRef<AlarmEngine | null>(null);
-  const armTimerRef = useRef<number | null>(null);
+  const tickIntervalRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  // True for ONE useEffect re-run after the user mutated the alarm
-  // config via setConfig (typically the picker on AlarmScreen). When
-  // set, the scheduler refuses the mid-ramp catch-up branch — that
-  // branch is only correct on initial mount / visibility resume
-  // ("the user opened the app while the persisted ramp was already
-  // in progress"). For a freshly-edited alarm we must instead wait
-  // until the new peakAt arrives, otherwise dragging the time picker
-  // through "now" would fire the alarm immediately.
-  const userJustChangedConfigRef = useRef(false);
+  // Wall-clock timestamp of the last setConfig() call. Used as a
+  // debounce: the polling scheduler refuses to auto-fire within
+  // CONFIG_EDIT_DEBOUNCE_MS after a user edit so that scrolling the
+  // time picker through "now" doesn't immediately ring the alarm.
+  // 0 means "never edited in this session".
+  const lastUserChangeAtRef = useRef(0);
 
   // ── Persist config changes ─────────────────────────
   const setConfig = useCallback(
@@ -111,12 +108,12 @@ export function useAlarmController(): UseAlarmController {
           ? (updater as (p: AlarmConfig) => AlarmConfig)(prev)
           : updater;
         saveAlarm(next);
-        // Mark this transition as user-driven so the scheduler
-        // (in the upcoming useEffect run) skips the catch-up
-        // branch. Also tear down any engine that is currently
-        // ringing — if the user is editing the alarm while it
-        // sounds, they want a clean reset, not a chained re-fire.
-        userJustChangedConfigRef.current = true;
+        // Stamp the moment of the edit so the scheduler tick can
+        // honour the debounce window (no auto-fire while the user
+        // is still adjusting the picker). Also tear down any engine
+        // that is currently ringing — editing while it rings means
+        // the user wants a clean reset, not a chained re-fire.
+        lastUserChangeAtRef.current = Date.now();
         if (engineRef.current) {
           try { engineRef.current.stop(); } catch { /* ignore */ }
           engineRef.current = null;
@@ -215,21 +212,29 @@ export function useAlarmController(): UseAlarmController {
   );
 
   // ── Arm / disarm scheduling ─────────────────────────
-  const clearArmTimer = () => {
-    if (armTimerRef.current) {
-      clearTimeout(armTimerRef.current);
-      armTimerRef.current = null;
+  // We deliberately use a polling tick instead of a single
+  // setTimeout. iOS PWA timers get throttled or paused outright
+  // (native time picker open, low-power mode, app inactive but
+  // visible, etc.) and a one-shot setTimeout for "fire in 60 s"
+  // sometimes never resolves. A 500 ms wall-clock poll is robust
+  // against every flavour of throttling we've seen on iPadOS 17/18
+  // — worst case the alarm fires up to ~500 ms late.
+  const TICK_MS = 500;
+  // After the user edits the alarm config we wait this long before
+  // allowing an auto-fire. Lets the picker scroll through the
+  // current minute without ringing, and gives the user time to
+  // adjust the ramp/days/volume after setting the time.
+  const CONFIG_EDIT_DEBOUNCE_MS = 1500;
+
+  const clearTick = () => {
+    if (tickIntervalRef.current !== null) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
     }
   };
 
   useEffect(() => {
-    clearArmTimer();
-
-    // Capture and reset the user-edit flag for THIS run only. Any
-    // subsequent visibility-resume etc. will see false and use the
-    // full catch-up logic again.
-    const wasUserChange = userJustChangedConfigRef.current;
-    userJustChangedConfigRef.current = false;
+    clearTick();
 
     if (!config.enabled || !config.days.some(Boolean)) {
       void disarmSystemFallback();
@@ -240,85 +245,79 @@ export function useAlarmController(): UseAlarmController {
     // the JS timer below survives backgrounding).
     void armSystemFallback(config);
 
-    const schedule = () => {
-      const { msUntilRampStart, offsetSec, peakAt } = nextFireInfo(config);
-      if (!Number.isFinite(msUntilRampStart)) return;
+    const tick = () => {
+      // Already firing? Nothing to do.
+      if (engineRef.current) return;
 
       const now = Date.now();
+
+      // Debounce: wait until the user has been still for a beat.
+      if (now - lastUserChangeAtRef.current < CONFIG_EDIT_DEBOUNCE_MS) return;
+
+      // Snooze handling: while snoozeUntil is in the future, skip
+      // the whole fire path. Once it elapses, fire IMMEDIATELY —
+      // snooze means "ring again in N min from now", independent
+      // of the configured wake time.
       const snoozeUntilRaw = typeof window !== 'undefined' ? localStorage.getItem(SNOOZE_KEY) : null;
       const snoozeUntil = snoozeUntilRaw ? parseInt(snoozeUntilRaw, 10) : 0;
-      const snoozed = snoozeUntil > now;
-      if (snoozed) return;
-
-      const MAX_DELAY = 2 ** 31 - 1;  // iOS 32-bit setTimeout cap
-
-      if (wasUserChange) {
-        // ── User-driven path ────────────────────────
-        // The user just edited the config (picker, weekday toggle,
-        // ramp slider, etc.). NEVER catch-up mid-ramp here — that
-        // would make every picker tick that lands on the current
-        // minute fire the alarm immediately. Instead we always wait
-        // for the actual peakAt; if peakAt is closer than the full
-        // configured rampSec we just shorten the ramp to fit.
-        const rampMs = config.rampSec * 1000;
-        const peakDelay = peakAt - now;
-        if (peakDelay <= 0) return;  // already past, nothing to schedule
-        if (peakDelay > rampMs) {
-          // Far enough away — full configured ramp.
-          armTimerRef.current = window.setTimeout(() => {
-            void fireAlarmInternal(0);
-          }, Math.min(MAX_DELAY, peakDelay - rampMs));
-        } else {
-          // peakAt is within rampSec of now (e.g. user set alarm 2 min
-          // ahead but rampSec is 5 min). Fire EXACTLY at peakAt with a
-          // ramp that fits the remaining window — alarm rings at the
-          // requested HH:MM, never sooner.
-          armTimerRef.current = window.setTimeout(() => {
-            void fireAlarmInternal(0);
-          }, peakDelay);
-        }
+      if (snoozeUntil > now) return;
+      if (snoozeUntil > 0 && now >= snoozeUntil) {
+        try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
+        clearTick();
+        void fireAlarmInternal(0);
         return;
       }
 
-      // ── Initial mount / visibility resume path ───
-      // Catch-up logic: if the persisted alarm's ramp is already in
-      // progress (page just opened mid-ramp), fire immediately at the
-      // correct offset so the user doesn't miss the alarm.
-      if (msUntilRampStart === 0) {
-        void fireAlarmInternal(offsetSec);
-      } else if (msUntilRampStart > 0) {
-        armTimerRef.current = window.setTimeout(() => {
-          void fireAlarmInternal(0);
-        }, Math.min(MAX_DELAY, msUntilRampStart));
+      const { peakAt } = nextFireInfo(config, new Date(now));
+      if (!Number.isFinite(peakAt) || peakAt === 0) return;
+
+      const peakDelay = peakAt - now;
+      const rampMs = config.rampSec * 1000;
+
+      if (peakDelay <= 0) {
+        // peakAt already past — nextFireInfo() should have rolled us to
+        // the next active weekday. If not (degenerate case), skip.
+        return;
       }
+
+      // We fire when wall-clock crosses (peakAt - rampMs), i.e. the
+      // moment the gentle ramp is supposed to start. The engine then
+      // ramps from 0 to peak over rampSec, landing audibly at peakAt.
+      // For "set 2 min ahead with 5-min ramp" peakDelay (120 s) is
+      // less than rampMs (300 s) so we're already past the ideal
+      // ramp start — fire immediately with a SHORTENED ramp so peak
+      // still hits at the requested HH:MM.
+      if (peakDelay <= rampMs) {
+        // Inside the ramp window. Fire now; engine ramps for the
+        // remaining peakDelay so the audible peak lands at peakAt.
+        // Engine clamps to a 5 s minimum internally for safety.
+        clearTick();
+        void fireAlarmInternal(0, peakDelay / 1000);
+      }
+      // else: pre-ramp. Keep ticking; we'll catch the threshold cross.
     };
 
-    schedule();
+    // First check happens immediately so a freshly-mounted hook can
+    // recover an in-progress alarm without waiting for the first tick.
+    tick();
+    tickIntervalRef.current = window.setInterval(tick, TICK_MS);
 
-    // ── Recovery on app resume ───────────────────────
-    // iOS discards JS timers aggressively when the PWA is
-    // backgrounded. Every time the page becomes visible again we
-    // recompute the next fire and, crucially, we detect whether
-    // we're currently INSIDE an active alarm window (ramp or
-    // reaseguro) and fire immediately at the correct offset —
-    // otherwise the user gets silence after unlocking the iPad at
-    // 5:30 AM.
+    // ── Recovery on app resume ─────────────────────────
+    // iOS pauses setInterval too when the PWA is backgrounded. On
+    // visibility/pageshow/focus we manually re-tick so the alarm
+    // never "oversleeps" the wake threshold.
     const onVisible = () => {
       if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
       // Re-arm the SW fallback (safe: it's idempotent).
       void armSystemFallback(config);
-      clearArmTimer();
-      // If the engine is already running we're good.
-      if (engineRef.current) return;
-      schedule();
+      tick();
     };
     document.addEventListener('visibilitychange', onVisible);
-    // Also listen to page show (bfcache restores) and focus.
     window.addEventListener('pageshow', onVisible);
     window.addEventListener('focus', onVisible);
 
     return () => {
-      clearArmTimer();
+      clearTick();
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('pageshow', onVisible);
       window.removeEventListener('focus', onVisible);
@@ -410,13 +409,12 @@ export function useAlarmController(): UseAlarmController {
       setAudioStarted(false);
       const until = Date.now() + minutes * 60 * 1000;
       try { localStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* ignore */ }
-      // Schedule a one-off timer that re-fires after `minutes`.
-      armTimerRef.current = window.setTimeout(() => {
-        try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
-        void fireAlarmInternal(0);
-      }, minutes * 60 * 1000);
+      // No explicit timer here — the polling scheduler picks the
+      // SNOOZE_KEY up automatically: it skips firing while
+      // `snoozeUntil > now` and re-fires as soon as that window
+      // elapses (and we're inside the ramp window again).
     },
-    [fireAlarmInternal, releaseWakeLock],
+    [releaseWakeLock],
   );
 
   // ── Manual preview (settings "Probar" button) ───────
@@ -492,7 +490,7 @@ export function useAlarmController(): UseAlarmController {
       engineRef.current = null;
       stopSilentKeepalive();
       releaseWakeLock();
-      clearArmTimer();
+      clearTick();
     };
   }, [releaseWakeLock]);
 
