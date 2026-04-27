@@ -23,7 +23,7 @@
 import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
 
-export type DockTab = 'home' | 'protocols' | 'tools' | 'calendar' | 'profile';
+export type DockTab = 'home' | 'protocols' | 'tools' | 'profile';
 
 interface AppDockProps {
   active: DockTab;
@@ -43,7 +43,6 @@ const TABS: TabSpec[] = [
   { id: 'home',      label: 'inicio' },
   { id: 'protocols', label: 'protocolos' },
   { id: 'tools',     label: 'herramientas' },
-  { id: 'calendar',  label: 'calendario' },
   { id: 'profile',   label: 'perfil' },
 ];
 

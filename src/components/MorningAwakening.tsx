@@ -59,7 +59,8 @@ import BruxismExerciseScreen from './wellness/BruxismExerciseScreen';
 import DeepMeditationScreen from './wellness/DeepMeditationScreen';
 import LymphaticFacialScreen from './wellness/LymphaticFacialScreen';
 import CoachScreen from './coach/CoachScreen';
-import AppDock, { type DockTab } from './home/AppDock';
+import { type DockTab } from './home/AppDock';
+import AppMenu from './home/AppMenu';
 import ProtocolsScreen from './home/ProtocolsScreen';
 import ToolsScreen from './home/ToolsScreen';
 import ProfileTabScreen from './profile/ProfileTabScreen';
@@ -112,8 +113,10 @@ export default function MorningAwakening() {
   const [showLymphatic, setShowLymphatic] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
   const [showFitnessModal, setShowFitnessModal] = useState(false);
-  // Active tab in the AppDock. Always starts on 'home' (no persistence).
+  // Active tab in the AppMenu. Always starts on 'home' (no persistence).
   const [activeTab, setActiveTab] = useState<DockTab>('home');
+  // Whether the fullscreen overlay menu is open.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
   // lock and the ringing overlay state. Config changes persist through
@@ -589,6 +592,8 @@ export default function MorningAwakening() {
           />
         ) : showCoach ? (
           <CoachScreen onClose={() => setShowCoach(false)} />
+        ) : showCalendar ? (
+          <CalendarScreen onClose={() => setShowCalendar(false)} />
         ) : (
           <>
             {/* ── Tab content (the AppDock at the bottom switches it) ── */}
@@ -600,6 +605,7 @@ export default function MorningAwakening() {
                 onOpenNightMode={() => setShowNightMode(true)}
                 onOpenNucleus={() => setShowNucleusMode(true)}
                 onOpenCoach={() => setShowCoach(true)}
+                onOpenCalendar={() => setShowCalendar(true)}
               />
             )}
             {activeTab === 'protocols' && (
@@ -622,9 +628,6 @@ export default function MorningAwakening() {
                 alarmArmed={alarm.config.enabled}
               />
             )}
-            {activeTab === 'calendar' && (
-              <CalendarScreen onClose={() => setActiveTab('home')} />
-            )}
             {activeTab === 'profile' && (
               <ProfileTabScreen
                 profile={profile}
@@ -634,10 +637,14 @@ export default function MorningAwakening() {
               />
             )}
 
-            {/* ── Bottom dock (always visible on IDLE non-fullscreen) ── */}
-            <AppDock
+            {/* ── Fullscreen overlay menu (replaces the bottom dock) ── */}
+            <AppMenu
+              open={menuOpen}
               active={activeTab}
+              onOpenChange={setMenuOpen}
               onChange={setActiveTab}
+              profile={profile}
+              streak={streakData.streak}
               protocolsBadge={
                 !isHabitDone('morning_protocol') ||
                 isNucleusWindow(new Date()) ||

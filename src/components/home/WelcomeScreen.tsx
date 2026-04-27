@@ -38,6 +38,9 @@ import {
 } from '@/lib/nucleus/nucleusConstants';
 import { haptics } from '@/lib/common/haptics';
 import { SUNRISE, hexToRgba } from '@/lib/common/theme';
+import { getNextHolidays } from '@/lib/common/holidaysEC';
+import { getDayContext, getDayProfileLabel } from '@/lib/common/dayProfile';
+import { CalendarDays, ArrowRight } from 'lucide-react';
 
 interface WelcomeScreenProps {
   profile: OperatorProfile;
@@ -49,6 +52,8 @@ interface WelcomeScreenProps {
   onOpenNucleus?: () => void;
   /** Open the Coach screen (used by the briefing widget). */
   onOpenCoach?: () => void;
+  /** Open the full Calendar screen (from the footer preview). */
+  onOpenCalendar?: () => void;
 }
 
 export default function WelcomeScreen({
@@ -58,10 +63,19 @@ export default function WelcomeScreen({
   onOpenNightMode,
   onOpenNucleus,
   onOpenCoach,
+  onOpenCalendar,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
   const firstName = useMemo(() => profile.name.split(' ')[0] ?? profile.name, [profile.name]);
+
+  // SSR-safe gate. Anything that reads `new Date()` or hydrated coach
+  // state would otherwise produce a different DOM on server vs first
+  // client render → hydration mismatch. We render those parts only
+  // after mount so the SSR HTML is stable and the dynamic bits fade in
+  // post-hydration.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Show the "son las 22:00, ¿modo noche?" suggestion card when it's
   // actually night and the user hasn't silenced it today. The initial
@@ -99,6 +113,7 @@ export default function WelcomeScreen({
   // render so they react to time + briefing state.
   const coachData = useCoach();
   const railEntries = useMemo<RailEntryData[]>(() => {
+    if (!mounted) return []; // SSR-safe
     const out: RailEntryData[] = [];
 
     // Coach: render if briefing exists and has at least one action.
@@ -155,6 +170,7 @@ export default function WelcomeScreen({
 
     return out;
   }, [
+    mounted,
     onOpenCoach, onOpenNucleus, onOpenNightMode,
     coachData.hydrated, coachData.briefing,
     showNightSuggestion, time,
@@ -386,6 +402,20 @@ export default function WelcomeScreen({
         </button>
       </div>
 
+      {/* ═══ CALENDAR PREVIEW · mini contextual block ═══════════
+           Reemplaza el tab "calendario" del antiguo dock. Muestra
+           el perfil del día y los 2 próximos feriados. Tap →
+           abre el CalendarScreen completo. Gated behind `mounted`
+           porque depende de new Date() y rompe SSR si no. */}
+      {mounted && onOpenCalendar && (
+        <div
+          className="relative z-10 mx-5 mb-3 sunrise-fade-up"
+          style={{ animationDelay: '660ms' }}
+        >
+          <CalendarPreview onOpen={onOpenCalendar} />
+        </div>
+      )}
+
       {/* ═══ MARQUEE · footer ticker ════════════════════════════
            Animated with a custom inline keyframe so we don't have
            to introduce new global CSS. The track holds two copies
@@ -437,6 +467,85 @@ export default function WelcomeScreen({
         }
       `}</style>
     </div>
+  );
+}
+
+// ─── calendar preview ────────────────────────────────────
+
+function CalendarPreview({ onOpen }: { onOpen: () => void }) {
+  const today = useMemo(() => new Date(), []);
+  const ctx = useMemo(() => getDayContext(today), [today]);
+  const upcoming = useMemo(() => getNextHolidays(today, 2), [today]);
+  const dayLabel = getDayProfileLabel(ctx);
+  const dayName = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'short' });
+    return fmt.format(today);
+  }, [today]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => { haptics.tick(); onOpen(); }}
+      className="group w-full flex flex-col gap-2 py-3 transition-opacity active:opacity-70"
+      style={{
+        borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        borderBottom: `1px solid ${hexToRgba(SUNRISE.rise2, 0.08)}`,
+      }}
+    >
+      {/* Row 1 · today */}
+      <div className="flex items-center gap-3">
+        <CalendarDays
+          size={13}
+          strokeWidth={1.85}
+          className="shrink-0"
+          style={{ color: SUNRISE.rise2 }}
+        />
+        <span
+          className="font-headline font-[500] text-[13px] leading-tight lowercase tracking-[-0.01em]"
+          style={{ color: 'var(--sunrise-text)' }}
+        >
+          {dayName}
+        </span>
+        <span
+          className="flex-1 h-px min-w-[12px]"
+          style={{ background: hexToRgba(SUNRISE.rise2, 0.18) }}
+        />
+        <span
+          className="font-ui text-[9px] tracking-[0.32em] uppercase shrink-0"
+          style={{ color: 'var(--sunrise-text-muted)' }}
+        >
+          {dayLabel}
+        </span>
+        <ArrowRight
+          size={12}
+          strokeWidth={1.85}
+          className="shrink-0 transition-transform group-active:translate-x-0.5"
+          style={{ color: SUNRISE.rise2 }}
+        />
+      </div>
+
+      {/* Row 2 · next holidays (up to 2) */}
+      {upcoming.length > 0 && (
+        <div className="flex flex-col gap-1 pl-[25px]">
+          {upcoming.map((h) => (
+            <div key={h.date.toISOString()} className="flex items-center gap-2">
+              <span
+                className="font-mono text-[9.5px] tabular-nums tracking-wider shrink-0"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                {h.daysUntil === 0 ? 'hoy' : `+${h.daysUntil}d`}
+              </span>
+              <span
+                className="font-ui text-[10px] tracking-[0.18em] uppercase truncate"
+                style={{ color: 'var(--sunrise-text-soft)' }}
+              >
+                {h.name.toLowerCase()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </button>
   );
 }
 
