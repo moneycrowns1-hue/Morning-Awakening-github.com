@@ -1,15 +1,25 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════
-// AppDock · barra inferior fixed con 5 tabs.
+// AppDock · editorial bottom navigation (Poppr-aligned).
 //
-// Reemplaza la cabecera caótica de WelcomeScreen agrupando
-// la navegación en: Inicio · Protocolos · Herramientas ·
-// Calendario · Perfil. Usa safe-area-inset-bottom para iPad
-// PWA. Indicador activo: pill superior + icono lleno.
+// REDESIGN v2:
+//   · Sin pill glassmorphic flotante — sólo una regla
+//     horizontal fina sobre fondo transparente con un degradé
+//     muy suave hacia el borde inferior.
+//   · 5 columnas tipográficas: número mono (01..05) +
+//     label en font-headline lowercase. Iconos eliminados
+//     (eran redundantes con el texto).
+//   · Active state: barra fina dorada animada arriba del
+//     número + número y label en color primario. Inactive:
+//     muted.
+//   · Badges (protocolos/herramientas) = punto dorado a la
+//     derecha del número.
+//
+// Contrato sin cambios: `active`, `onChange`, `protocolsBadge`,
+// `toolsBadge`, type `DockTab` exportado.
 // ═══════════════════════════════════════════════════════════
 
-import { Home, Layers, Sparkles, Calendar, User, type LucideIcon } from 'lucide-react';
 import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
 
@@ -27,15 +37,14 @@ interface AppDockProps {
 interface TabSpec {
   id: DockTab;
   label: string;
-  Icon: LucideIcon;
 }
 
 const TABS: TabSpec[] = [
-  { id: 'home', label: 'Inicio', Icon: Home },
-  { id: 'protocols', label: 'Protocolos', Icon: Layers },
-  { id: 'tools', label: 'Herramientas', Icon: Sparkles },
-  { id: 'calendar', label: 'Calendario', Icon: Calendar },
-  { id: 'profile', label: 'Perfil', Icon: User },
+  { id: 'home',      label: 'inicio' },
+  { id: 'protocols', label: 'protocolos' },
+  { id: 'tools',     label: 'herramientas' },
+  { id: 'calendar',  label: 'calendario' },
+  { id: 'profile',   label: 'perfil' },
 ];
 
 export default function AppDock({ active, onChange, protocolsBadge, toolsBadge }: AppDockProps) {
@@ -43,28 +52,34 @@ export default function AppDock({ active, onChange, protocolsBadge, toolsBadge }
     <nav
       aria-label="Navegación principal"
       className="fixed inset-x-0 bottom-0 z-40 pointer-events-none"
-      style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
+      {/* Soft fade-up gradient behind the dock so the labels
+          remain legible without a hard pill background. */}
       <div
-        className="pointer-events-auto mx-auto max-w-3xl px-3 pb-2"
-      >
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
+        style={{
+          background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.night, 0)} 0%, ${hexToRgba(SUNRISE.night, 0.55)} 65%, ${hexToRgba(SUNRISE.night, 0.85)} 100%)`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      />
+
+      <div className="relative pointer-events-auto mx-auto max-w-3xl px-4 pb-2">
+        {/* Top hairline */}
         <div
-          className="flex items-stretch justify-between rounded-2xl px-1.5 py-1.5"
-          style={{
-            background: hexToRgba(SUNRISE.night, 0.78),
-            backdropFilter: 'blur(18px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
-            boxShadow: `0 18px 50px -22px ${hexToRgba(SUNRISE.night, 0.9)}`,
-          }}
-        >
-          {TABS.map(tab => {
+          aria-hidden
+          className="h-px w-full mb-2"
+          style={{ background: hexToRgba(SUNRISE.rise2, 0.18) }}
+        />
+
+        <div className="grid grid-cols-5 gap-1">
+          {TABS.map((tab, idx) => {
             const isActive = tab.id === active;
             const showBadge =
               (tab.id === 'protocols' && protocolsBadge) ||
               (tab.id === 'tools' && toolsBadge);
+            const numLabel = (idx + 1).toString().padStart(2, '0');
             return (
               <button
                 key={tab.id}
@@ -76,42 +91,45 @@ export default function AppDock({ active, onChange, protocolsBadge, toolsBadge }
                 }}
                 aria-label={tab.label}
                 aria-current={isActive ? 'page' : undefined}
-                className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl transition-colors"
-                style={{
-                  color: isActive ? SUNRISE.rise2 : SUNRISE_TEXT.muted,
-                  background: isActive ? hexToRgba(SUNRISE.rise2, 0.12) : 'transparent',
-                }}
+                className="relative flex flex-col items-center justify-start gap-1 py-2 transition-colors"
               >
-                {/* top pill indicator when active */}
-                {isActive && (
+                {/* Active marker — thin gold rule, animated width */}
+                <span
+                  aria-hidden
+                  className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] rounded-full transition-all duration-300"
+                  style={{
+                    width: isActive ? '60%' : '0%',
+                    background: SUNRISE.rise2,
+                    boxShadow: isActive ? `0 0 8px ${hexToRgba(SUNRISE.rise2, 0.6)}` : 'none',
+                  }}
+                />
+
+                {/* Number + optional badge dot */}
+                <span className="relative inline-flex items-center gap-1 leading-none">
                   <span
-                    aria-hidden
-                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[3px] h-[3px] w-7 rounded-full"
-                    style={{
-                      background: SUNRISE.rise2,
-                      boxShadow: `0 0 10px ${hexToRgba(SUNRISE.rise2, 0.6)}`,
-                    }}
-                  />
-                )}
-                <span className="relative">
-                  <tab.Icon
-                    size={20}
-                    strokeWidth={isActive ? 2 : 1.6}
-                    fill={isActive ? hexToRgba(SUNRISE.rise2, 0.18) : 'none'}
-                  />
+                    className="font-mono text-[10px] tabular-nums tracking-wider transition-colors"
+                    style={{ color: isActive ? SUNRISE.rise2 : SUNRISE_TEXT.muted }}
+                  >
+                    {numLabel}
+                  </span>
                   {showBadge && (
                     <span
                       aria-hidden
-                      className="absolute -top-0.5 -right-1 block w-2 h-2 rounded-full"
+                      className="block w-[5px] h-[5px] rounded-full"
                       style={{
                         background: SUNRISE.rise2,
-                        boxShadow: `0 0 6px ${hexToRgba(SUNRISE.rise2, 0.8)}`,
+                        boxShadow: `0 0 5px ${hexToRgba(SUNRISE.rise2, 0.8)}`,
                       }}
                     />
                   )}
                 </span>
+
+                {/* Label */}
                 <span
-                  className="font-ui text-[9.5px] tracking-[0.18em] uppercase leading-none"
+                  className="font-headline font-[500] text-[11px] leading-none tracking-[-0.005em] lowercase truncate max-w-full transition-colors"
+                  style={{
+                    color: isActive ? 'var(--sunrise-text)' : SUNRISE_TEXT.muted,
+                  }}
                 >
                   {tab.label}
                 </span>
