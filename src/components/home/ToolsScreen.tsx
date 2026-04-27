@@ -14,7 +14,7 @@
 import { useMemo, useState } from 'react';
 import {
   Smile, Brain, Droplet, Wind, Activity, Bell,
-  Heart, Check, Zap,
+  Heart, Check, Zap, Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
@@ -34,6 +34,7 @@ interface ToolsScreenProps {
   onLaunchDeepMeditation: () => void;
   onLaunchLymphatic: () => void;
   onLaunchNSDR: () => void;
+  onLaunchCoach: () => void;
   onOpenAlarm: () => void;
   onOpenFitness: () => void;
   alarmArmed?: boolean;
@@ -52,6 +53,7 @@ export default function ToolsScreen({
   onLaunchDeepMeditation,
   onLaunchLymphatic,
   onLaunchNSDR,
+  onLaunchCoach,
   onOpenAlarm,
   onOpenFitness,
   alarmArmed,
@@ -115,7 +117,44 @@ export default function ToolsScreen({
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}
       >
         <div className="px-5 max-w-3xl mx-auto mt-5">
-          {/* ── Wellness routines ──────────────────────────── */}
+          {/* ── Coach launcher ───────────────── */}
+          <SectionLabel>Coach</SectionLabel>
+          <button
+            type="button"
+            onClick={() => { haptics.tap(); onLaunchCoach(); }}
+            className="w-full mt-2 mb-6 text-left rounded-2xl p-4 flex items-start gap-4 transition-transform active:scale-[0.98]"
+            style={{
+              background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+            }}
+          >
+            <span
+              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
+              style={{
+                background: hexToRgba(SUNRISE.rise2, 0.18),
+                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
+                color: SUNRISE.rise2,
+              }}
+            >
+              <Sparkles size={20} strokeWidth={1.7} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <span
+                className="font-display italic font-[400] text-[18px] leading-tight"
+                style={{ color: SUNRISE_TEXT.primary }}
+              >
+                Coach de bienestar
+              </span>
+              <div
+                className="font-mono text-[10.5px] tracking-wider mt-0.5"
+                style={{ color: SUNRISE_TEXT.muted }}
+              >
+                Skincare · oral · hidratación · bruxismo · brote
+              </div>
+            </div>
+          </button>
+
+          {/* ── Wellness routines ──────────────── */}
           <SectionLabel>Bienestar</SectionLabel>
           <div className="mt-2 mb-6 flex flex-col gap-3">
             {cards.map(({ routine, onLaunch }) => {

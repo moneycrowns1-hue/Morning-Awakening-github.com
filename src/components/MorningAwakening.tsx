@@ -58,6 +58,7 @@ import CalendarScreen from './calendar/CalendarScreen';
 import BruxismExerciseScreen from './wellness/BruxismExerciseScreen';
 import DeepMeditationScreen from './wellness/DeepMeditationScreen';
 import LymphaticFacialScreen from './wellness/LymphaticFacialScreen';
+import CoachScreen from './coach/CoachScreen';
 import AppDock, { type DockTab } from './home/AppDock';
 import ProtocolsScreen from './home/ProtocolsScreen';
 import ToolsScreen from './home/ToolsScreen';
@@ -109,6 +110,7 @@ export default function MorningAwakening() {
   const [showBruxism, setShowBruxism] = useState(false);
   const [showDeepMeditation, setShowDeepMeditation] = useState(false);
   const [showLymphatic, setShowLymphatic] = useState(false);
+  const [showCoach, setShowCoach] = useState(false);
   const [showFitnessModal, setShowFitnessModal] = useState(false);
   // Active tab in the AppDock. Always starts on 'home' (no persistence).
   const [activeTab, setActiveTab] = useState<DockTab>('home');
@@ -585,6 +587,8 @@ export default function MorningAwakening() {
             onComplete={() => setShowLymphatic(false)}
             onCancel={() => setShowLymphatic(false)}
           />
+        ) : showCoach ? (
+          <CoachScreen onClose={() => setShowCoach(false)} />
         ) : (
           <>
             {/* ── Tab content (the AppDock at the bottom switches it) ── */}
@@ -610,6 +614,7 @@ export default function MorningAwakening() {
                 onLaunchDeepMeditation={() => setShowDeepMeditation(true)}
                 onLaunchLymphatic={() => setShowLymphatic(true)}
                 onLaunchNSDR={() => setShowNSDR(true)}
+                onLaunchCoach={() => setShowCoach(true)}
                 onOpenAlarm={() => setShowAlarm(true)}
                 onOpenFitness={() => setShowFitnessModal(true)}
                 alarmArmed={alarm.config.enabled}
