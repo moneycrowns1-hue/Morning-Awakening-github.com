@@ -93,6 +93,15 @@ export function useAlarmController(): UseAlarmController {
   const engineRef = useRef<AlarmEngine | null>(null);
   const armTimerRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  // True for ONE useEffect re-run after the user mutated the alarm
+  // config via setConfig (typically the picker on AlarmScreen). When
+  // set, the scheduler refuses the mid-ramp catch-up branch — that
+  // branch is only correct on initial mount / visibility resume
+  // ("the user opened the app while the persisted ramp was already
+  // in progress"). For a freshly-edited alarm we must instead wait
+  // until the new peakAt arrives, otherwise dragging the time picker
+  // through "now" would fire the alarm immediately.
+  const userJustChangedConfigRef = useRef(false);
 
   // ── Persist config changes ─────────────────────────
   const setConfig = useCallback(
@@ -102,6 +111,24 @@ export function useAlarmController(): UseAlarmController {
           ? (updater as (p: AlarmConfig) => AlarmConfig)(prev)
           : updater;
         saveAlarm(next);
+        // Mark this transition as user-driven so the scheduler
+        // (in the upcoming useEffect run) skips the catch-up
+        // branch. Also tear down any engine that is currently
+        // ringing — if the user is editing the alarm while it
+        // sounds, they want a clean reset, not a chained re-fire.
+        userJustChangedConfigRef.current = true;
+        if (engineRef.current) {
+          try { engineRef.current.stop(); } catch { /* ignore */ }
+          engineRef.current = null;
+          stopSilentKeepalive();
+          try { wakeLockRef.current?.release(); } catch { /* ignore */ }
+          wakeLockRef.current = null;
+          setIsRinging(false);
+          setStage('idle');
+          setIntensity(0);
+          setAudioStarted(false);
+          try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
+        }
         return next;
       });
     },
@@ -124,8 +151,12 @@ export function useAlarmController(): UseAlarmController {
   }, []);
 
   // ── Fire (internal) ─────────────────────────────────
+  // `rampDurationOverrideSec` lets the scheduler shorten the ramp when
+  // the user picked a peak time closer than `config.rampSec` — without
+  // it the alarm would either ring *before* the requested HH:MM (full
+  // configured ramp starting now) or skip the ramp entirely.
   const fireAlarmInternal = useCallback(
-    async (offsetSec: number) => {
+    async (offsetSec: number, rampDurationOverrideSec?: number) => {
       // Avoid double-fire.
       if (engineRef.current) return;
 
@@ -163,7 +194,7 @@ export function useAlarmController(): UseAlarmController {
         // Don't await — keeps us inside the gesture microtask so the
         // engine's internal el.play() is accepted by iOS Safari.
         const startPromise = engine.start({
-          rampDurationSec: config.rampSec,
+          rampDurationSec: rampDurationOverrideSec ?? config.rampSec,
           reaseguroDelaySec: config.reaseguroSec,
           peakVolume: config.peakVolume,
           startOffsetSec: offsetSec,
@@ -194,6 +225,12 @@ export function useAlarmController(): UseAlarmController {
   useEffect(() => {
     clearArmTimer();
 
+    // Capture and reset the user-edit flag for THIS run only. Any
+    // subsequent visibility-resume etc. will see false and use the
+    // full catch-up logic again.
+    const wasUserChange = userJustChangedConfigRef.current;
+    userJustChangedConfigRef.current = false;
+
     if (!config.enabled || !config.days.some(Boolean)) {
       void disarmSystemFallback();
       return;
@@ -204,21 +241,52 @@ export function useAlarmController(): UseAlarmController {
     void armSystemFallback(config);
 
     const schedule = () => {
-      const { msUntilRampStart, offsetSec } = nextFireInfo(config);
+      const { msUntilRampStart, offsetSec, peakAt } = nextFireInfo(config);
       if (!Number.isFinite(msUntilRampStart)) return;
 
       const now = Date.now();
       const snoozeUntilRaw = typeof window !== 'undefined' ? localStorage.getItem(SNOOZE_KEY) : null;
       const snoozeUntil = snoozeUntilRaw ? parseInt(snoozeUntilRaw, 10) : 0;
       const snoozed = snoozeUntil > now;
+      if (snoozed) return;
 
-      if (msUntilRampStart === 0 && !snoozed) {
+      const MAX_DELAY = 2 ** 31 - 1;  // iOS 32-bit setTimeout cap
+
+      if (wasUserChange) {
+        // ── User-driven path ────────────────────────
+        // The user just edited the config (picker, weekday toggle,
+        // ramp slider, etc.). NEVER catch-up mid-ramp here — that
+        // would make every picker tick that lands on the current
+        // minute fire the alarm immediately. Instead we always wait
+        // for the actual peakAt; if peakAt is closer than the full
+        // configured rampSec we just shorten the ramp to fit.
+        const rampMs = config.rampSec * 1000;
+        const peakDelay = peakAt - now;
+        if (peakDelay <= 0) return;  // already past, nothing to schedule
+        if (peakDelay > rampMs) {
+          // Far enough away — full configured ramp.
+          armTimerRef.current = window.setTimeout(() => {
+            void fireAlarmInternal(0);
+          }, Math.min(MAX_DELAY, peakDelay - rampMs));
+        } else {
+          // peakAt is within rampSec of now (e.g. user set alarm 2 min
+          // ahead but rampSec is 5 min). Fire EXACTLY at peakAt with a
+          // ramp that fits the remaining window — alarm rings at the
+          // requested HH:MM, never sooner.
+          armTimerRef.current = window.setTimeout(() => {
+            void fireAlarmInternal(0);
+          }, peakDelay);
+        }
+        return;
+      }
+
+      // ── Initial mount / visibility resume path ───
+      // Catch-up logic: if the persisted alarm's ramp is already in
+      // progress (page just opened mid-ramp), fire immediately at the
+      // correct offset so the user doesn't miss the alarm.
+      if (msUntilRampStart === 0) {
         void fireAlarmInternal(offsetSec);
       } else if (msUntilRampStart > 0) {
-        // Guard against iOS' 32-bit setTimeout cap (~24.8 days).
-        // We re-arm on every visibility change anyway, so clamping
-        // here is safe.
-        const MAX_DELAY = 2 ** 31 - 1;
         armTimerRef.current = window.setTimeout(() => {
           void fireAlarmInternal(0);
         }, Math.min(MAX_DELAY, msUntilRampStart));
