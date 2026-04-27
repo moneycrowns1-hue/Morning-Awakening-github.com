@@ -1,22 +1,30 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// WelcomeScreen · new IDLE screen (v8 sunrise redesign)
+// WelcomeScreen · editorial redesign (Poppr-inspired)
 //
-// Replaces the old washi/dōjō boot sequence. Three layers:
-//   1. Full-bleed <GradientBackground stage="welcome"/> (canvas)
-//   2. Top HUD: hora local · día de la semana · racha
-//   3. Centre: kicker ('MORNING AWAKENING'), daily quote
-//      (serif display, big, breathing float), author line.
-//   4. Big "Despertar" CTA at the bottom with halo pulse.
+// Reference: poppr.be — agency aesthetic translated to the
+// sunrise palette. Key patterns adopted:
 //
-// Every element enters with a staggered sunrise-fade-up. The
-// HUD stays restrained (quiet data) so the eye goes to the
-// quote and the CTA, not to XP or stats.
+//   1. Corner-framed HUD with dotted leaders (top-left brand
+//      mark, top-right time + weekday + streak).
+//   2. Chapter index ("01 / 13") as editorial cue.
+//   3. MASSIVE lowercase italic display ("morning awakening.")
+//      stacked left-aligned.
+//   4. Quote as offset block with thin vertical rule.
+//   5. CTA: wide pill with diagonal arrow on the right (no
+//      glassmorphism halo — quieter, more architectural).
+//   6. Bottom marquee ticker with profile metadata that
+//      scrolls horizontally on loop.
+//   7. Functional widgets (NightSuggestion, CoachWidget,
+//      NucleusCompanion) stay — restyled to slot into the
+//      editorial frame instead of stacking visually.
+//
+// Props interface is unchanged → no consumers break.
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { Flame, Moon, X } from 'lucide-react';
+import { ArrowUpRight, Flame, Moon, X } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import NucleusCompanion from '../nucleus/NucleusCompanion';
 import CoachWidget from '../coach/CoachWidget';
@@ -65,200 +73,350 @@ export default function WelcomeScreen({
     }
   }, [onOpenNightMode]);
 
+  // Año de la sesión, usado en la marca editorial superior izquierda.
+  const year = useMemo(() => new Date().getFullYear().toString().slice(-2), []);
+
+  // Marquee data: línea repetible de metadatos del operador.
+  const marqueeBlocks = useMemo(() => {
+    const items = [
+      `streak ${streak.toString().padStart(2, '0')}`,
+      `level ${profile.level.toString().padStart(2, '0')}`,
+      `class ${profile.operatorClass.toLowerCase()}`,
+      `xp ${profile.xp}`,
+      `${profile.phasesCompleted} phases done`,
+      '13 phases · 1h 50m',
+    ];
+    return items.join('  ·  ');
+  }, [streak, profile.level, profile.operatorClass, profile.xp, profile.phasesCompleted]);
+
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
+    <div
+      className="relative w-full h-full flex flex-col overflow-hidden"
+      style={{ color: 'var(--sunrise-text)' }}
+    >
       {/* Animated sunrise background */}
       <GradientBackground stage="welcome" particleCount={55} />
 
-      {/* Gentle vignette overlay for text legibility */}
+      {/* Vignette + faint editorial grain for legibility */}
       <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
 
-      {/* ─── Top HUD: time · weekday · streak (read-only) ─── */}
+      {/* ═══ TOP HUD · corner-framed ════════════════════════════ */}
       <div
-        className="relative z-10 flex items-start justify-between px-5 pt-5 sunrise-fade-up"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        className="relative z-10 px-5 sunrise-fade-up"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.9rem)' }}
       >
-        <div className="flex flex-col">
-          <div className="font-mono text-[28px] leading-none tracking-[-0.02em]" style={{ color: 'var(--sunrise-text)' }}>
-            {time}
+        <div className="flex items-start justify-between">
+          {/* Brand mark */}
+          <div className="flex flex-col gap-1">
+            <span
+              className="font-ui text-[10px] tracking-[0.42em] uppercase"
+              style={{ color: 'var(--sunrise-text)' }}
+            >
+              MA · {year}
+            </span>
+            <span
+              className="font-ui text-[8.5px] tracking-[0.38em] uppercase"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              ritual operator
+            </span>
           </div>
-          <div
-            className="font-ui text-[11px] tracking-[0.28em] mt-1 uppercase"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            {weekday}
+
+          {/* Time / weekday / streak */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-baseline gap-2">
+              <span
+                className="font-mono text-[15px] leading-none tracking-[-0.01em]"
+                style={{ color: 'var(--sunrise-text)' }}
+              >
+                {time}
+              </span>
+              <span
+                className="font-ui text-[8.5px] tracking-[0.38em] uppercase"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                / {weekday.slice(0, 3)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Flame
+                size={11}
+                strokeWidth={1.85}
+                style={{ color: streak > 0 ? SUNRISE.rise2 : 'var(--sunrise-text-muted)' }}
+              />
+              <span
+                className="font-mono text-[11px] leading-none"
+                style={{ color: 'var(--sunrise-text-soft)' }}
+              >
+                {streak.toString().padStart(2, '0')}
+              </span>
+              <span
+                className="font-ui text-[8.5px] tracking-[0.32em] uppercase"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                streak
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Flame size={14} strokeWidth={2} style={{ color: streak > 0 ? 'var(--sunrise-rise-2, #f4c267)' : 'var(--sunrise-text-muted)' }} />
-          <span className="font-mono text-[14px]" style={{ color: 'var(--sunrise-text)' }}>
-            {streak}
+
+        {/* Thin frame markers — two short rules under the HUD */}
+        <div className="mt-3 flex items-center gap-3">
+          <div
+            className="h-px flex-1"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.18) }}
+          />
+          <span
+            className="font-ui text-[8px] tracking-[0.42em] uppercase"
+            style={{ color: 'var(--sunrise-text-muted)' }}
+          >
+            chapter 01 / 13
           </span>
-          <span className="font-ui text-[10px] tracking-[0.24em] uppercase" style={{ color: 'var(--sunrise-text-muted)' }}>
-            días
+          <div
+            className="h-px w-12"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.18) }}
+          />
+        </div>
+      </div>
+
+      {/* ═══ HERO · editorial typography ════════════════════════ */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 min-h-0">
+        {/* Lowercase italic display, stacked, asymmetric */}
+        <div
+          className="font-display sunrise-fade-up"
+          style={{ animationDelay: '120ms' }}
+        >
+          <div
+            className="italic font-[300] leading-[0.92] tracking-[-0.025em] lowercase"
+            style={{
+              fontSize: 'clamp(3rem, 16vw, 5.6rem)',
+              color: 'var(--sunrise-text)',
+            }}
+          >
+            morning
+          </div>
+          <div
+            className="italic font-[300] leading-[0.92] tracking-[-0.025em] lowercase pl-[0.6em]"
+            style={{
+              fontSize: 'clamp(3rem, 16vw, 5.6rem)',
+              color: 'var(--sunrise-text)',
+            }}
+          >
+            awakening<span style={{ color: SUNRISE.rise2 }}>.</span>
+          </div>
+        </div>
+
+        {/* Quote block · offset, vertical rule */}
+        <div
+          className="mt-8 flex gap-3 sunrise-fade-up"
+          style={{ animationDelay: '300ms' }}
+        >
+          <div
+            className="w-px shrink-0 self-stretch"
+            style={{
+              background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.rise2, 0.45)} 0%, ${hexToRgba(SUNRISE.rise2, 0)} 100%)`,
+            }}
+          />
+          <div className="flex-1 min-w-0 max-w-[34ch]">
+            <p
+              className="font-display italic font-[300] text-[15px] leading-[1.45]"
+              style={{ color: 'var(--sunrise-text-soft)' }}
+            >
+              &ldquo;{quote.text}&rdquo;
+            </p>
+            <div
+              className="mt-2 font-ui text-[9.5px] tracking-[0.36em] uppercase"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              — {quote.author}
+            </div>
+          </div>
+        </div>
+
+        {/* Greeting · footnote-style */}
+        <div
+          className="mt-10 flex items-center gap-3 sunrise-fade-up"
+          style={{ animationDelay: '440ms' }}
+        >
+          <div
+            className="h-px w-6"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.5) }}
+          />
+          <span
+            className="font-ui text-[10px] tracking-[0.34em] uppercase"
+            style={{ color: 'var(--sunrise-text-soft)' }}
+          >
+            buenos días,{' '}
+            <span style={{ color: 'var(--sunrise-text)' }}>{firstName.toLowerCase()}</span>
           </span>
         </div>
       </div>
 
-      {/* ─── Hero: kicker + quote ───────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-7">
-        <div
-          className="font-ui text-[10px] tracking-[0.42em] uppercase mb-8 sunrise-fade-up"
-          style={{ animationDelay: '80ms', color: 'var(--sunrise-text-muted)' }}
-        >
-          Morning Awakening
-        </div>
-
-        <div
-          className="font-display sunrise-fade-up sunrise-float text-center max-w-[32ch]"
-          style={{ animationDelay: '220ms' }}
-        >
-          <div
-            className="font-[300] italic leading-[1.28] text-[clamp(1.55rem,6.4vw,2.35rem)]"
-            style={{ color: 'var(--sunrise-text)' }}
-          >
-            &ldquo;{quote.text}&rdquo;
-          </div>
-          <div
-            className="mt-5 font-ui not-italic text-[11px] tracking-[0.3em] uppercase"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            — {quote.author}
-          </div>
-        </div>
-
-        {/* Thin horizon divider */}
-        <div
-          className="mt-10 h-px w-40 sunrise-horizon sunrise-fade-up"
-          style={{ animationDelay: '380ms' }}
-        />
-
-        {/* Personal greeting */}
-        <div
-          className="mt-6 font-ui text-[13px] tracking-wider sunrise-fade-up"
-          style={{ animationDelay: '480ms', color: 'var(--sunrise-text-soft)' }}
-        >
-          Buenos días, <span style={{ color: 'var(--sunrise-text)' }}>{firstName}</span>.
-        </div>
-      </div>
-
-      {/* ─── Night-mode suggestion (>= 21:00) ──────────────── */}
+      {/* ═══ FUNCTIONAL WIDGETS — quiet stack above CTA ════════ */}
       {showNightSuggestion && onOpenNightMode && (
         <div
-          className="relative z-10 mx-5 mb-3 rounded-2xl p-3 flex items-center gap-3 sunrise-fade-up"
+          className="relative z-10 mx-5 mb-2.5 rounded-xl p-3 flex items-center gap-3 sunrise-fade-up"
           style={{
-            animationDelay: '560ms',
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
-            background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.predawn2, 0.7)}, ${hexToRgba(SUNRISE.night, 0.8)})`,
+            animationDelay: '520ms',
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.22)}`,
+            background: hexToRgba(SUNRISE.predawn2, 0.55),
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}
         >
           <span
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
             style={{
-              background: hexToRgba(SUNRISE.rise2, 0.14),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
+              background: hexToRgba(SUNRISE.rise2, 0.12),
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.35)}`,
               color: SUNRISE.rise2,
             }}
           >
-            <Moon size={16} strokeWidth={1.8} />
+            <Moon size={14} strokeWidth={1.8} />
           </span>
           <div className="flex-1 min-w-0">
             <div
-              className="font-ui text-[12px] font-[500]"
+              className="font-ui text-[10.5px] tracking-[0.18em] uppercase"
               style={{ color: 'var(--sunrise-text)' }}
             >
-              Son las {time} — ¿iniciamos tu rutina nocturna?
+              {time} · ritual nocturno
             </div>
             <div
-              className="font-ui text-[10px] mt-0.5"
+              className="font-mono text-[10px] leading-snug mt-0.5"
               style={{ color: 'var(--sunrise-text-muted)' }}
             >
-              Sonidos ambientales, respiración 4-7-8 y una descarga mental antes de dormir.
+              Respiración 4-7-8 + descarga mental antes de dormir.
             </div>
           </div>
           <button
             onClick={() => { haptics.tap(); onOpenNightMode(); }}
-            className="shrink-0 px-3 py-2 rounded-full font-ui text-[11px] tracking-[0.2em] uppercase"
+            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-ui text-[9.5px] tracking-[0.28em] uppercase"
             style={{
               border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
               background: hexToRgba(SUNRISE.rise2, 0.18),
               color: 'var(--sunrise-text)',
             }}
           >
-            Entrar
+            Entrar <ArrowUpRight size={11} strokeWidth={1.85} />
           </button>
           <button
             onClick={() => { haptics.tick(); silenceNightSuggestionToday(); setShowNightSuggestion(false); }}
             aria-label="No mostrar hoy"
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
             style={{ color: 'var(--sunrise-text-muted)' }}
           >
-            <X size={14} strokeWidth={1.8} />
+            <X size={12} strokeWidth={1.85} />
           </button>
         </div>
       )}
 
-      {/* ─── Coach widget (auto-hide si no hay nada crítico) ─── */}
       {onOpenCoach && (
         <div
-          className="relative z-10 mx-5 mb-3 sunrise-fade-up"
-          style={{ animationDelay: '580ms' }}
+          className="relative z-10 mx-5 mb-2.5 sunrise-fade-up"
+          style={{ animationDelay: '540ms' }}
         >
           <CoachWidget onOpen={onOpenCoach} />
         </div>
       )}
 
-      {/* ─── NUCLEUS companion (only inside 06:50–18:00) ─── */}
       {onOpenNucleus && (
         <div
-          className="relative z-10 mx-5 mb-3 sunrise-fade-up"
-          style={{ animationDelay: '600ms' }}
+          className="relative z-10 mx-5 mb-2.5 sunrise-fade-up"
+          style={{ animationDelay: '560ms' }}
         >
           <NucleusCompanion onOpen={onOpenNucleus} />
         </div>
       )}
 
-      {/* ─── CTA ────────────────────────────────────────────
-           Extra bottom padding leaves room for the AppDock that
-           the parent renders fixed at the bottom. */}
+      {/* ═══ CTA · wide, flat, with arrow ═══════════════════════ */}
       <div
-        className="relative z-10 flex flex-col items-center pb-10 sunrise-fade-up"
-        style={{
-          animationDelay: '640ms',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)',
-        }}
+        className="relative z-10 px-5 pb-3 sunrise-fade-up"
+        style={{ animationDelay: '620ms' }}
       >
         <button
-          onClick={onStart}
-          className="group relative rounded-full overflow-hidden transition-transform active:scale-[0.97]"
+          onClick={() => { haptics.tap(); onStart(); }}
+          className="group w-full flex items-center justify-between gap-3 rounded-full pl-6 pr-3 py-3 transition-transform active:scale-[0.985]"
           style={{
-            padding: '18px 48px',
-            background: 'linear-gradient(180deg, rgba(253,233,184,0.14) 0%, rgba(244,194,103,0.28) 100%)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            border: '1px solid rgba(253,233,184,0.35)',
+            background: hexToRgba(SUNRISE.rise2, 0.14),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
           }}
         >
-          {/* Halo */}
-          <span className="absolute inset-0 rounded-full sunrise-cta-halo sunrise-cta-pulse pointer-events-none" />
+          <span className="flex items-center gap-3">
+            <span
+              className="font-ui text-[8.5px] tracking-[0.42em] uppercase"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              01.
+            </span>
+            <span
+              className="font-display italic font-[300] text-[22px] leading-none lowercase"
+              style={{ color: 'var(--sunrise-text)' }}
+            >
+              despertar
+            </span>
+          </span>
           <span
-            className="relative font-ui font-[500] tracking-[0.4em] text-[15px] uppercase"
-            style={{ color: 'var(--sunrise-text)' }}
+            className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-transform group-active:translate-x-0.5 group-active:-translate-y-0.5"
+            style={{
+              background: SUNRISE.rise2,
+              color: SUNRISE.night,
+            }}
           >
-            Despertar
+            <ArrowUpRight size={18} strokeWidth={2} />
           </span>
         </button>
+      </div>
 
+      {/* ═══ MARQUEE · footer ticker ════════════════════════════
+           Animated with a custom inline keyframe so we don't have
+           to introduce new global CSS. The track holds two copies
+           of the data so the loop is seamless. */}
+      <div
+        className="relative z-10 sunrise-fade-up"
+        style={{
+          animationDelay: '700ms',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
+        }}
+      >
         <div
-          className="mt-4 font-ui text-[10px] tracking-[0.35em] uppercase"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="overflow-hidden border-t border-b"
+          style={{
+            borderColor: hexToRgba(SUNRISE.rise2, 0.16),
+            background: hexToRgba(SUNRISE.predawn2, 0.35),
+          }}
         >
-          13 fases · ~1 h 50 min
+          <div
+            className="flex whitespace-nowrap"
+            style={{
+              animation: 'ma-marquee 28s linear infinite',
+              willChange: 'transform',
+            }}
+          >
+            {[0, 1].map(i => (
+              <span
+                key={i}
+                className="inline-flex items-center font-ui text-[9.5px] tracking-[0.42em] uppercase py-2 px-6"
+                style={{ color: 'var(--sunrise-text-muted)' }}
+              >
+                {marqueeBlocks}
+                <span className="mx-6" style={{ color: SUNRISE.rise2 }}>
+                  ◆
+                </span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Inline keyframes for the marquee (scoped via styled-jsx
+          would be cleaner but the project uses plain CSS modules).
+          Defining here keeps the redesign self-contained. */}
+      <style jsx>{`
+        @keyframes ma-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }
