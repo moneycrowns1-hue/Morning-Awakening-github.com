@@ -30,7 +30,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { type Mission, formatTime, MISSIONS } from '@/lib/genesis/constants';
 import type { Operator } from '@/lib/genesis/operator';
-import { Pause, Play, SkipForward, Plus, Check, ChevronDown } from 'lucide-react';
+import { Pause, Play, SkipForward, Plus, Check, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import TimerRing from '../common/TimerRing';
 import BreathingGuide from '../common/BreathingGuide';
@@ -44,6 +44,8 @@ import { clearMediaSession, setMediaSessionHandlers, setPlaybackState, updateMed
 interface MissionPhaseV8Props {
   mission: Mission;
   onComplete: () => void;
+  /** Open the Coach screen with the relevant context (skincare AM, brushing, hydration). */
+  onOpenCoach?: () => void;
   /** Called when a sub-step toggles or the skip button fires, so the
    *  parent can play its SFX (strike). */
   onStrike?: () => void;
@@ -59,6 +61,7 @@ interface MissionPhaseV8Props {
 export default function MissionPhaseV8({
   mission,
   onComplete,
+  onOpenCoach,
   onStrike,
   operator,
   audioTransition,
@@ -539,6 +542,15 @@ export default function MissionPhaseV8({
           </section>
         )}
 
+        {/* Coach contextual card — only on phases where the engine adds value */}
+        {onOpenCoach && COACH_RELEVANT_PHASES[mission.id] && (
+          <MissionCoachCard
+            phaseId={mission.id}
+            accent={stageColors.accent}
+            onOpen={onOpenCoach}
+          />
+        )}
+
         {/* Special feature blocks */}
         {mission.hasJournaling && <JournalingPrompt />}
         {mission.hasDailyInsight && <DailyInsight />}
@@ -675,4 +687,89 @@ function toTitleCase(s: string): string {
   // "DESPERTAR" → "Despertar"
   if (!s) return s;
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// ─── Coach contextual card ───────────────────────────────────
+//
+// Mapeo de fases del Génesis a contextos donde el Coach aporta
+// valor real (skincare AM, hidratación, cepillado nocturno, etc).
+// Esto NO toca los `subSteps` originales — añade un puente
+// opcional para abrir el Coach con la información personalizada
+// del día (modo brote / Deriva-C / condiciones activas).
+
+const COACH_RELEVANT_PHASES: Record<string, { kicker: string; lead: string }> = {
+  aqua: {
+    kicker: 'Hidratación · target diario',
+    lead: 'Mira tu progreso de los 3 L y registra el vaso de ahora mismo.',
+  },
+  refuel: {
+    kicker: 'Skincare AM · rutina personalizada',
+    lead: 'Tu rutina de hoy se adapta a brote, Deriva-C y condiciones activas.',
+  },
+  sigillum: {
+    kicker: 'Cepillado · plan vacacional 3×',
+    lead: 'Marca el slot que acabas de cumplir y revisa tu adherencia.',
+  },
+};
+
+function MissionCoachCard({
+  phaseId,
+  accent,
+  onOpen,
+}: {
+  phaseId: string;
+  accent: string;
+  onOpen: () => void;
+}) {
+  const meta = COACH_RELEVANT_PHASES[phaseId];
+  if (!meta) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => { haptics.tap(); onOpen(); }}
+      className="w-full text-left rounded-2xl p-4 flex items-start gap-3 transition-transform active:scale-[0.985] sunrise-fade-up"
+      style={{
+        animationDelay: '320ms',
+        background: `linear-gradient(160deg, ${hexToRgba(accent, 0.12)} 0%, ${hexToRgba(accent, 0.04)} 100%)`,
+        border: `1px solid ${hexToRgba(accent, 0.4)}`,
+        boxShadow: `0 14px 40px -22px ${hexToRgba(accent, 0.5)}`,
+      }}
+    >
+      <span
+        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        style={{
+          background: hexToRgba(accent, 0.2),
+          border: `1px solid ${hexToRgba(accent, 0.5)}`,
+          color: accent,
+        }}
+      >
+        <Sparkles size={16} strokeWidth={1.85} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div
+          className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
+          style={{ color: hexToRgba(accent, 0.95) }}
+        >
+          {meta.kicker}
+        </div>
+        <div
+          className="font-display italic font-[400] text-[15px] leading-tight mt-0.5"
+          style={{ color: 'var(--sunrise-text)' }}
+        >
+          Abrir Coach
+        </div>
+        <p
+          className="font-mono text-[11px] leading-snug mt-1"
+          style={{ color: 'var(--sunrise-text-muted)' }}
+        >
+          {meta.lead}
+        </p>
+      </div>
+      <ChevronRight
+        size={16}
+        strokeWidth={1.85}
+        style={{ color: hexToRgba(accent, 0.7), marginTop: 4, flexShrink: 0 }}
+      />
+    </button>
+  );
 }

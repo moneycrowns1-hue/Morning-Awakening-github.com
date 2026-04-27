@@ -14,18 +14,20 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useMemo } from 'react';
-import { Sun, Moon, Layers, Check } from 'lucide-react';
+import { Sun, Moon, Layers, Check, Sparkles } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
 import { isHabitDone } from '@/lib/common/habits';
 import { isNucleusWindow, getCurrentBlock } from '@/lib/nucleus/nucleusConstants';
 import { getDayContext, getDayProfileLabel } from '@/lib/common/dayProfile';
+import { useCoach } from '@/hooks/useCoach';
 
 interface ProtocolsScreenProps {
   onLaunchMorning: () => void;
   onLaunchNucleus: () => void;
   onLaunchNight: () => void;
+  onLaunchCoach: () => void;
 }
 
 type Status = 'now' | 'done' | 'pending' | 'window-closed';
@@ -44,9 +46,11 @@ export default function ProtocolsScreen({
   onLaunchMorning,
   onLaunchNucleus,
   onLaunchNight,
+  onLaunchCoach,
 }: ProtocolsScreenProps) {
   const dayCtx = useMemo(() => getDayContext(), []);
   const dayLabel = getDayProfileLabel(dayCtx);
+  const { briefing } = useCoach();
 
   const cards: ProtocolCardData[] = useMemo(() => {
     const now = new Date();
@@ -164,6 +168,18 @@ export default function ProtocolsScreen({
           {cards.map(card => (
             <ProtocolCard key={card.id} {...card} />
           ))}
+
+          {/* Coach del bienestar — alimentado por el engine */}
+          {briefing && (
+            <CoachProtocolCard
+              mode={briefing.mode}
+              modeReason={briefing.modeReason}
+              actionsCount={briefing.actions.length}
+              criticalCount={briefing.actions.filter(a => a.priority === 'critical').length}
+              warningsCount={briefing.warnings.length}
+              onLaunch={onLaunchCoach}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -305,5 +321,117 @@ function StatusPill({ status }: { status: Status }) {
     >
       Pendiente
     </span>
+  );
+}
+
+// ─── Coach card driven by engine briefing ────────────────────
+
+const COACH_MODE_LABEL: Record<string, string> = {
+  normal: 'Normal',
+  acne_treatment: 'Tratamiento Deriva-C',
+  flare_strong: 'Brote severo',
+  flare_mild: 'Brote leve',
+  recovery: 'Recovery',
+};
+
+function CoachProtocolCard({
+  mode,
+  modeReason,
+  actionsCount,
+  criticalCount,
+  warningsCount,
+  onLaunch,
+}: {
+  mode: string;
+  modeReason: string;
+  actionsCount: number;
+  criticalCount: number;
+  warningsCount: number;
+  onLaunch: () => void;
+}) {
+  const isFlare = mode.startsWith('flare');
+  const accent = isFlare ? '#ff6b6b' : SUNRISE.rise2;
+  const label = COACH_MODE_LABEL[mode] ?? mode;
+
+  return (
+    <button
+      type="button"
+      onClick={() => { haptics.tap(); onLaunch(); }}
+      className="text-left rounded-2xl p-5 flex items-start gap-4 transition-transform active:scale-[0.98] sunrise-fade-up"
+      style={{
+        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.65)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
+        border: `1px solid ${hexToRgba(accent, isFlare ? 0.5 : 0.25)}`,
+        boxShadow: isFlare
+          ? `0 14px 40px -18px ${hexToRgba(accent, 0.5)}`
+          : `0 14px 40px -22px ${hexToRgba(SUNRISE.night, 0.7)}`,
+      }}
+    >
+      <span
+        className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+        style={{
+          background: hexToRgba(accent, 0.16),
+          border: `1px solid ${hexToRgba(accent, 0.45)}`,
+          color: accent,
+        }}
+      >
+        <Sparkles size={22} strokeWidth={1.7} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+          <span
+            className="font-display italic font-[400] text-[20px] leading-tight"
+            style={{ color: SUNRISE_TEXT.primary }}
+          >
+            Coach
+          </span>
+          <span
+            className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
+            style={{
+              background: hexToRgba(accent, 0.2),
+              color: accent,
+              border: `1px solid ${hexToRgba(accent, 0.45)}`,
+            }}
+          >
+            {label}
+          </span>
+          {criticalCount > 0 && (
+            <span
+              className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
+              style={{
+                background: hexToRgba('#ff6b6b', 0.2),
+                color: '#ff6b6b',
+                border: `1px solid ${hexToRgba('#ff6b6b', 0.45)}`,
+              }}
+            >
+              {criticalCount} crítico{criticalCount === 1 ? '' : 's'}
+            </span>
+          )}
+          {warningsCount > 0 && (
+            <span
+              className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
+              style={{
+                background: hexToRgba('#ffb44d', 0.2),
+                color: '#ffb44d',
+                border: `1px solid ${hexToRgba('#ffb44d', 0.45)}`,
+              }}
+            >
+              {warningsCount} aviso{warningsCount === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+        <div
+          className="font-mono text-[10.5px] tracking-wider mb-1.5"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          Skincare · oral · hidratación · {actionsCount} acción{actionsCount === 1 ? '' : 'es'}
+        </div>
+        <p
+          className="font-ui text-[12.5px] leading-[1.5]"
+          style={{ color: SUNRISE_TEXT.soft }}
+        >
+          {modeReason}
+        </p>
+      </div>
+    </button>
   );
 }

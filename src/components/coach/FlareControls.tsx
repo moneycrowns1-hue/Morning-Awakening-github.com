@@ -168,15 +168,87 @@ export default function FlareControls({ coach }: FlareControlsProps) {
           {derivaC.active ? 'Detener curso' : 'Iniciar curso'}
         </button>
         {derivaC.active && derivaC.startedAt && (
-          <p
-            className="font-mono text-[10px] tracking-wider mt-2"
-            style={{ color: SUNRISE_TEXT.muted }}
-          >
-            Inicio: {derivaC.startedAt.slice(0, 10)}
-            {derivaC.plannedEndAt && ` · fin previsto: ${derivaC.plannedEndAt.slice(0, 10)}`}
-          </p>
+          <DerivaCProgress
+            startedAt={derivaC.startedAt}
+            plannedEndAt={derivaC.plannedEndAt}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Progreso del curso Deriva-C ─────────────────────────────
+
+const DERIVA_C_MILESTONES: { weekFrom: number; weekTo: number; label: string }[] = [
+  { weekFrom: 1, weekTo: 2,  label: 'Adaptación · puede haber retinización (descamación, tirantez).' },
+  { weekFrom: 3, weekTo: 6,  label: 'Reducción de comedones; mantén SPF 50+ todos los días.' },
+  { weekFrom: 7, weekTo: 10, label: 'Mejora visible. No subir frecuencia sin indicación médica.' },
+  { weekFrom: 11, weekTo: 12, label: 'Cierre del curso · valoración con dermatóloga.' },
+];
+
+function DerivaCProgress({
+  startedAt,
+  plannedEndAt,
+}: {
+  startedAt: string;
+  plannedEndAt: string | null;
+}) {
+  const start = new Date(startedAt);
+  const now = new Date();
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const elapsedDays = Math.max(0, Math.floor((now.getTime() - start.getTime()) / msPerDay));
+  const week = Math.min(12, Math.floor(elapsedDays / 7) + 1);
+  const totalDays = 84;
+  const daysRemaining = Math.max(0, totalDays - elapsedDays);
+  const progress = Math.min(1, elapsedDays / totalDays);
+
+  const milestone = DERIVA_C_MILESTONES.find(m => week >= m.weekFrom && week <= m.weekTo);
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <span
+          className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          Semana {week} / 12
+        </span>
+        <span
+          className="font-mono text-[10px] tracking-wider"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          {daysRemaining} días restantes
+        </span>
+      </div>
+      <div
+        className="h-1.5 rounded-full overflow-hidden"
+        style={{ background: hexToRgba(SUNRISE.rise2, 0.14) }}
+      >
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${Math.round(progress * 100)}%`,
+            background: SUNRISE.rise2,
+            boxShadow: `0 0 8px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+          }}
+        />
+      </div>
+      {milestone && (
+        <p
+          className="font-mono text-[10.5px] leading-snug mt-2"
+          style={{ color: SUNRISE_TEXT.soft }}
+        >
+          <span style={{ color: SUNRISE.rise2 }}>•</span> {milestone.label}
+        </p>
+      )}
+      <p
+        className="font-mono text-[10px] tracking-wider mt-1.5"
+        style={{ color: SUNRISE_TEXT.muted }}
+      >
+        Inicio: {startedAt.slice(0, 10)}
+        {plannedEndAt && ` · fin previsto: ${plannedEndAt.slice(0, 10)}`}
+      </p>
     </div>
   );
 }

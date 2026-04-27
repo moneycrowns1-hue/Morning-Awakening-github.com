@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Flame, Moon, X } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import NucleusCompanion from '../nucleus/NucleusCompanion';
+import CoachWidget from '../coach/CoachWidget';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/genesis/progression';
 import { isNightSuggestionAppropriate, silenceNightSuggestionToday } from '@/lib/night/nightMode';
@@ -33,6 +34,8 @@ interface WelcomeScreenProps {
   onOpenNightMode?: () => void;
   /** Open the NUCLEUS day-mode timeline screen (used by NucleusCompanion). */
   onOpenNucleus?: () => void;
+  /** Open the Coach screen (used by the briefing widget). */
+  onOpenCoach?: () => void;
 }
 
 export default function WelcomeScreen({
@@ -41,6 +44,7 @@ export default function WelcomeScreen({
   onStart,
   onOpenNightMode,
   onOpenNucleus,
+  onOpenCoach,
 }: WelcomeScreenProps) {
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
@@ -193,6 +197,16 @@ export default function WelcomeScreen({
           >
             <X size={14} strokeWidth={1.8} />
           </button>
+        </div>
+      )}
+
+      {/* ─── Coach widget (auto-hide si no hay nada crítico) ─── */}
+      {onOpenCoach && (
+        <div
+          className="relative z-10 mx-5 mb-3 sunrise-fade-up"
+          style={{ animationDelay: '580ms' }}
+        >
+          <CoachWidget onOpen={onOpenCoach} />
         </div>
       )}
 

@@ -33,9 +33,12 @@ import type { Routine } from '@/lib/coach/routines';
 import type { CoachAction, StatusCard, Briefing } from '@/lib/coach/coachEngine';
 import type { BrushingSlot } from '@/lib/coach/brushing';
 import { CURRENT_PLAN } from '@/lib/coach/brushing';
-import ConditionsPanel from './ConditionsPanel';
+import ConditionsSheet from './ConditionsSheet';
+import ProductDetailSheet from './ProductDetailSheet';
 import QuickLogPanel from './QuickLogPanel';
 import FlareControls from './FlareControls';
+import RemindersPanel from './RemindersPanel';
+import { useCoachReminders } from '@/hooks/useCoachReminders';
 
 interface CoachScreenProps {
   onClose: () => void;
@@ -44,8 +47,20 @@ interface CoachScreenProps {
 export default function CoachScreen({ onClose }: CoachScreenProps) {
   const coach = useCoach();
   const { briefing, state, hydrated } = coach;
+  const {
+    reminders,
+    permission: notifPermission,
+    requestPermission: requestNotifPermission,
+    firedIds: firedReminderIds,
+    snooze: snoozeReminder,
+    dismiss: dismissReminder,
+  } = useCoachReminders(state, hydrated);
 
-  const [openSection, setOpenSection] = useState<'am' | 'pm' | 'controls' | 'conditions' | null>(null);
+  const [openSection, setOpenSection] = useState<'am' | 'pm' | 'controls' | null>(null);
+  const [conditionsOpen, setConditionsOpen] = useState(false);
+  const [activeProductId, setActiveProductId] = useState<string | null>(null);
+
+  const openProduct = (id: string) => { haptics.tap(); setActiveProductId(id); };
 
   const toggle = (s: typeof openSection) => {
     haptics.tick();
@@ -125,13 +140,31 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 ))}
               </div>
 
+              {/* Recordatorios programados */}
+              {(reminders.length > 0 || notifPermission === 'default') && (
+                <div className="mt-6">
+                  <RemindersPanel
+                    reminders={reminders}
+                    permission={notifPermission}
+                    firedIds={firedReminderIds}
+                    onRequestPermission={() => { void requestNotifPermission(); }}
+                    onSnooze={snoozeReminder}
+                    onDismiss={dismissReminder}
+                  />
+                </div>
+              )}
+
               {/* Acciones prioritarias */}
               {briefing.actions.length > 0 && (
                 <>
                   <SectionLabel className="mt-6">Próximas acciones</SectionLabel>
                   <div className="mt-2 flex flex-col gap-2">
                     {briefing.actions.map(a => (
-                      <ActionRow key={a.id} action={a} />
+                      <ActionRow
+                        key={a.id}
+                        action={a}
+                        onSelectProduct={openProduct}
+                      />
                     ))}
                   </div>
                 </>
@@ -145,12 +178,14 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                   routine={briefing.routine.am}
                   open={openSection === 'am'}
                   onToggle={() => toggle('am')}
+                  onSelectProduct={openProduct}
                 />
                 <RoutineSection
                   slot="pm"
                   routine={briefing.routine.pm}
                   open={openSection === 'pm'}
                   onToggle={() => toggle('pm')}
+                  onSelectProduct={openProduct}
                 />
               </div>
 
@@ -169,25 +204,58 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 <FlareControls coach={coach} />
               </CollapsibleSection>
 
-              {/* Condiciones activas */}
-              <CollapsibleSection
-                label="Mis condiciones"
-                icon={Activity}
-                kicker={`${state.conditions.length} activa${state.conditions.length === 1 ? '' : 's'}`}
-                open={openSection === 'conditions'}
-                onToggle={() => toggle('conditions')}
+              {/* Condiciones activas — abre bottom sheet GSAP */}
+              <button
+                type="button"
+                onClick={() => { haptics.tap(); setConditionsOpen(true); }}
+                className="w-full mt-4 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
+                style={{
+                  background: hexToRgba(SUNRISE.predawn2, 0.5),
+                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+                }}
               >
-                <ConditionsPanel
-                  active={state.conditions}
-                  onToggle={coach.toggleCondition}
-                />
-              </CollapsibleSection>
+                <span
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{
+                    background: hexToRgba(SUNRISE.rise2, 0.16),
+                    color: SUNRISE.rise2,
+                  }}
+                >
+                  <Activity size={16} strokeWidth={1.85} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="font-display italic font-[400] text-[16px] leading-tight"
+                    style={{ color: SUNRISE_TEXT.primary }}
+                  >
+                    Mis condiciones
+                  </div>
+                  <div
+                    className="font-mono text-[10.5px] tracking-wider mt-0.5"
+                    style={{ color: SUNRISE_TEXT.muted }}
+                  >
+                    {state.conditions.length} activa{state.conditions.length === 1 ? '' : 's'} · toca para ajustar
+                  </div>
+                </div>
+              </button>
 
               <div className="h-12" />
             </>
           )}
         </div>
       </div>
+
+      {/* Bottom sheets con animación GSAP */}
+      <ConditionsSheet
+        open={conditionsOpen}
+        active={state.conditions}
+        onToggle={coach.toggleCondition}
+        onClose={() => setConditionsOpen(false)}
+      />
+      <ProductDetailSheet
+        productId={activeProductId}
+        onClose={() => setActiveProductId(null)}
+      />
     </div>
   );
 }
@@ -328,14 +396,25 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   flare: Flame,
 };
 
-function ActionRow({ action }: { action: CoachAction }) {
+function ActionRow({
+  action,
+  onSelectProduct,
+}: {
+  action: CoachAction;
+  onSelectProduct: (id: string) => void;
+}) {
   const Icon = ACTION_ICON[action.kind] ?? Activity;
   const isCritical = action.priority === 'critical';
   const isOverdue = action.urgency === 'overdue';
   const accent = isOverdue ? '#ff6b6b' : isCritical ? SUNRISE.rise2 : SUNRISE_TEXT.soft as unknown as string;
+  const firstProductId = action.productIds?.[0];
+  const tappable = !!firstProductId;
+  const Tag = tappable ? 'button' : 'div';
   return (
-    <div
-      className="rounded-xl px-3.5 py-3 flex items-start gap-3"
+    <Tag
+      type={tappable ? 'button' : undefined}
+      onClick={tappable ? () => onSelectProduct(firstProductId!) : undefined}
+      className={`rounded-xl px-3.5 py-3 flex items-start gap-3 text-left w-full ${tappable ? 'transition-transform active:scale-[0.99]' : ''}`}
       style={{
         background: hexToRgba(SUNRISE.predawn2, 0.5),
         border: `1px solid ${hexToRgba(isOverdue ? '#ff6b6b' : SUNRISE.rise2, isCritical ? 0.32 : 0.16)}`,
@@ -389,8 +468,16 @@ function ActionRow({ action }: { action: CoachAction }) {
         >
           {action.reason}
         </p>
+        {tappable && (
+          <span
+            className="font-ui text-[9px] tracking-[0.28em] uppercase mt-1.5 inline-block"
+            style={{ color: SUNRISE.rise2 }}
+          >
+            Toca para detalle →
+          </span>
+        )}
       </div>
-    </div>
+    </Tag>
   );
 }
 
@@ -411,11 +498,13 @@ function RoutineSection({
   routine,
   open,
   onToggle,
+  onSelectProduct,
 }: {
   slot: 'am' | 'pm';
   routine: Routine;
   open: boolean;
   onToggle: () => void;
+  onSelectProduct: (id: string) => void;
 }) {
   const Icon = slot === 'am' ? Sun : Moon;
   const label = slot === 'am' ? 'Mañana' : 'Noche';
@@ -482,10 +571,20 @@ function RoutineSection({
           )}
           {routine.steps.map((step, idx) => {
             const product = step.productId ? findTopical(step.productId) : null;
+            const stepTappable = !!step.productId;
             return (
-              <div
+              <button
                 key={idx}
-                className="flex items-start gap-3 px-1"
+                type="button"
+                onClick={stepTappable ? () => onSelectProduct(step.productId!) : undefined}
+                disabled={!stepTappable}
+                className={`flex items-start gap-3 px-1 py-1 rounded-lg text-left ${stepTappable ? 'transition-transform active:scale-[0.99]' : ''}`}
+                style={{
+                  background: stepTappable ? hexToRgba(SUNRISE.rise2, 0.04) : 'transparent',
+                  border: stepTappable
+                    ? `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}`
+                    : '1px solid transparent',
+                }}
               >
                 <span
                   className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px]"
@@ -523,7 +622,7 @@ function RoutineSection({
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

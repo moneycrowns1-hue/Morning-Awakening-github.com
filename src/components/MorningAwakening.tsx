@@ -599,6 +599,7 @@ export default function MorningAwakening() {
                 onStart={handleInitialize}
                 onOpenNightMode={() => setShowNightMode(true)}
                 onOpenNucleus={() => setShowNucleusMode(true)}
+                onOpenCoach={() => setShowCoach(true)}
               />
             )}
             {activeTab === 'protocols' && (
@@ -606,6 +607,7 @@ export default function MorningAwakening() {
                 onLaunchMorning={() => { setActiveTab('home'); void handleInitialize(); }}
                 onLaunchNucleus={() => setShowNucleusMode(true)}
                 onLaunchNight={() => setShowNightMode(true)}
+                onLaunchCoach={() => setShowCoach(true)}
               />
             )}
             {activeTab === 'tools' && (
@@ -704,6 +706,7 @@ export default function MorningAwakening() {
             operator={operatorRef.current}
             onStrike={() => audioRef.current?.playStrike(0.5)}
             onSkipPhase={() => setSkippedPhases((prev) => [...prev, missionIndex])}
+            onOpenCoach={() => setShowCoach(true)}
           />
         )}
 
