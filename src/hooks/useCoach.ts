@@ -23,6 +23,8 @@ import {
   saveDerivaC,
   saveConditions,
   logOralTake as persistOralTake,
+  setOralScheduleEntry as persistOralScheduleEntry,
+  clearOralScheduleEntry as persistClearOralScheduleEntry,
   logBrushing as persistBrushing,
   addWater as persistWater,
   logBruxism as persistBruxism,
@@ -30,6 +32,7 @@ import {
   type CoachState,
   type DerivaCState,
   type BruxismDayEntry,
+  type OralScheduleEntry,
   type Todo,
 } from '@/lib/coach/state';
 import { buildBriefing, type Briefing } from '@/lib/coach/coachEngine';
@@ -43,6 +46,7 @@ const EMPTY_STATE: CoachState = {
   flare: { severity: null, phase: 'resolved', startedAt: null },
   derivaC: { active: false, startedAt: null, plannedEndAt: null },
   oral: {},
+  oralSchedule: {},
   brushing: {},
   water: {},
   conditions: [],
@@ -99,6 +103,8 @@ export interface UseCoachReturn {
   setFlare: (state: FlareState) => void;
   setDerivaC: (state: DerivaCState) => void;
   logOral: (productId: string) => void;
+  setOralSchedule: (productId: string, entry: OralScheduleEntry) => void;
+  clearOralSchedule: (productId: string) => void;
   logBrushing: (slot: BrushingSlot) => void;
   addWater: (ml: number) => void;
   logBruxism: (entry: Partial<BruxismDayEntry>) => void;
@@ -147,6 +153,16 @@ export function useCoach(): UseCoachReturn {
     refreshFromDisk();
   }, []);
 
+  const setOralSchedule = useCallback((productId: string, entry: OralScheduleEntry) => {
+    persistOralScheduleEntry(productId, entry);
+    refreshFromDisk();
+  }, []);
+
+  const clearOralSchedule = useCallback((productId: string) => {
+    persistClearOralScheduleEntry(productId);
+    refreshFromDisk();
+  }, []);
+
   const logBrushing = useCallback((slot: BrushingSlot) => {
     persistBrushing(slot);
     refreshFromDisk();
@@ -188,6 +204,8 @@ export function useCoach(): UseCoachReturn {
     setFlare,
     setDerivaC,
     logOral,
+    setOralSchedule,
+    clearOralSchedule,
     logBrushing,
     addWater,
     logBruxism,

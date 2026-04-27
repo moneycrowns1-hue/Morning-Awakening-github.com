@@ -38,6 +38,7 @@ import ProductDetailSheet from './ProductDetailSheet';
 import QuickLogPanel from './QuickLogPanel';
 import FlareControls from './FlareControls';
 import RemindersPanel from './RemindersPanel';
+import PillSchedulePanel from './PillSchedulePanel';
 import { useCoachReminders } from '@/hooks/useCoachReminders';
 
 interface CoachScreenProps {
@@ -153,6 +154,15 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                   />
                 </div>
               )}
+
+              {/* Pastillas programadas */}
+              <div className="mt-6">
+                <PillSchedulePanel
+                  schedule={state.oralSchedule}
+                  onSet={coach.setOralSchedule}
+                  onClear={coach.clearOralSchedule}
+                />
+              </div>
 
               {/* Acciones prioritarias */}
               {briefing.actions.length > 0 && (

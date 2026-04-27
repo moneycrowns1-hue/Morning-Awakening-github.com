@@ -24,6 +24,7 @@ const KEYS = {
   flare: 'ma-coach-flare',
   derivaC: 'ma-coach-deriva-c',
   oral: 'ma-coach-oral',
+  oralSchedule: 'ma-coach-oral-schedule',
   brushing: 'ma-coach-brushing',
   water: 'ma-coach-water',
   conditions: 'ma-coach-conditions',
@@ -79,6 +80,19 @@ export interface OralEntry {
 /** Por producto → fecha YYYY-MM-DD → array de tomas en ese día. */
 export type OralLog = Record<string, Record<string, OralEntry[]>>;
 
+/** Configuración de un horario diario para una pastilla.
+ *  Si `daysOfWeek` está ausente, aplica todos los días (0=domingo, 6=sáb). */
+export interface OralScheduleEntry {
+  hour: number;     // 0–23
+  minute: number;   // 0–59
+  daysOfWeek?: number[];
+}
+
+/** productId → entrada de horario. Una sola toma diaria por producto
+ *  por simplicidad; si en el futuro hace falta multi-toma, esto puede
+ *  pasar a `Record<productId, OralScheduleEntry[]>`. */
+export type OralSchedule = Record<string, OralScheduleEntry>;
+
 /** Por fecha → slot → ISO datetime de cuándo se cepilló. */
 export type BrushingLog = Record<string, Partial<Record<BrushingSlot, string>>>;
 
@@ -112,6 +126,7 @@ export interface CoachState {
   flare: FlareState;
   derivaC: DerivaCState;
   oral: OralLog;
+  oralSchedule: OralSchedule;
   brushing: BrushingLog;
   water: WaterLog;
   conditions: ConditionId[];
@@ -141,6 +156,10 @@ export function loadOralLog(): OralLog {
   return read(KEYS.oral, {});
 }
 
+export function loadOralSchedule(): OralSchedule {
+  return read(KEYS.oralSchedule, {});
+}
+
 export function loadBrushingLog(): BrushingLog {
   return read(KEYS.brushing, {});
 }
@@ -167,6 +186,7 @@ export function loadCoachState(): CoachState {
     flare: loadFlare(),
     derivaC: loadDerivaC(),
     oral: loadOralLog(),
+    oralSchedule: loadOralSchedule(),
     brushing: loadBrushingLog(),
     water: loadWaterLog(),
     conditions: loadConditions(),
@@ -189,6 +209,20 @@ export function saveDerivaC(state: DerivaCState): void {
 
 export function saveConditions(ids: ConditionId[]): void {
   write(KEYS.conditions, ids);
+}
+
+/** Programa o actualiza el horario diario de una pastilla. */
+export function setOralScheduleEntry(productId: string, entry: OralScheduleEntry): void {
+  const sched = loadOralSchedule();
+  sched[productId] = entry;
+  write(KEYS.oralSchedule, sched);
+}
+
+/** Quita el horario de una pastilla. */
+export function clearOralScheduleEntry(productId: string): void {
+  const sched = loadOralSchedule();
+  delete sched[productId];
+  write(KEYS.oralSchedule, sched);
 }
 
 /** Registra una toma de un producto oral en la fecha indicada. */

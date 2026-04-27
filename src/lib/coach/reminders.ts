@@ -23,6 +23,7 @@ import {
 } from '@/lib/common/notifications';
 import type { CoachState } from './state';
 import { CURRENT_PLAN, type BrushingSlot } from './brushing';
+import { ORAL } from './catalog';
 
 // ─── PERSISTENCIA DE META (fired / dismissed / snoozed) ──────
 
@@ -290,6 +291,27 @@ export function generateReminders(state: CoachState, now: Date = new Date()): Co
         : isStrong
           ? 'Sello oclusivo: Cicaplast Baume B5 + vaselina sobre zonas más afectadas. Cero activos.'
           : 'Limpieza, Cicaplast B5 generoso, oclusivo en parches secos.',
+    });
+  }
+
+  // ── 6. Pastillas programadas: lee `state.oralSchedule` y, para
+  //      cada una, crea un recordatorio único por día. Si ya hay una
+  //      toma loggeada en `state.oral[productId][hoy]`, se omite.
+  const dow = now.getDay(); // 0..6
+  for (const [productId, sched] of Object.entries(state.oralSchedule)) {
+    if (sched.daysOfWeek && !sched.daysOfWeek.includes(dow)) continue;
+    const takenToday = state.oral[productId]?.[today]?.length ?? 0;
+    if (takenToday > 0) continue;
+    const product = ORAL.find(p => p.id === productId);
+    if (!product) continue;
+    const due = atHourToday(sched.hour, sched.minute, now);
+    push({
+      id: `pill_${productId}_${today}`,
+      kind: 'pill',
+      dueAt: due.getTime(),
+      productId,
+      title: `Tomar ${product.name}`,
+      body: `${product.dose} · ${product.uses[0] ?? ''}`,
     });
   }
 
