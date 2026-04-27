@@ -149,6 +149,46 @@ interface Stem {
   rafHandle: number | null;
 }
 
+/**
+ * Hidden host element that keeps every alarm <audio> attached to the
+ * live document. CRITICAL for iOS standalone PWAs: a `new Audio(url)`
+ * that is never appended to the DOM emits the `playing` event and
+ * advances `currentTime` but produces NO actual audio output. This
+ * is reproduced consistently on iPadOS 17/18 in Home-Screen mode and
+ * was the root cause of the user-reported "barra sube pero no suena"
+ * bug. Attaching the element to a positioned, non-visible host inside
+ * `<body>` makes WebKit route the buffer to the actual audio device.
+ *
+ * The host is created lazily once and reused across stems / engines.
+ * It MUST stay in the document (no aria-hidden tricks): WebKit
+ * specifically checks for an attached, rendered media element when
+ * deciding whether to allocate a real audio output session.
+ */
+let audioHost: HTMLDivElement | null = null;
+function getAudioHost(): HTMLDivElement | null {
+  if (typeof document === 'undefined') return null;
+  if (audioHost && audioHost.isConnected) return audioHost;
+  const host = document.createElement('div');
+  host.setAttribute('data-alarm-audio-host', '');
+  // Keep it in the layout but invisible. width:1px / height:1px is
+  // important — display:none, visibility:hidden, or detached parents
+  // re-introduce the silent-output bug on iOS PWA.
+  host.style.cssText = [
+    'position:fixed',
+    'left:-1px',
+    'top:-1px',
+    'width:1px',
+    'height:1px',
+    'opacity:0',
+    'pointer-events:none',
+    'overflow:hidden',
+    'z-index:-1',
+  ].join(';');
+  document.body.appendChild(host);
+  audioHost = host;
+  return host;
+}
+
 function makeStemEl(url: string, loop: boolean): HTMLAudioElement {
   // encodeURI handles spaces/accents in paths.
   const el = new Audio(encodeURI(url));
@@ -160,7 +200,21 @@ function makeStemEl(url: string, loop: boolean): HTMLAudioElement {
   // Do NOT set crossOrigin — same-origin /public assets don't need it
   // and setting 'anonymous' can trigger CORS preflight on some hosts.
   el.volume = 0;
+  // Anchor to the live document. See `getAudioHost` for why this is
+  // mandatory for iOS PWA audio output to actually reach the speakers.
+  const host = getAudioHost();
+  if (host) {
+    try { host.appendChild(el); } catch { /* ignore */ }
+  }
   return el;
+}
+
+/** Detach + dispose a stem element from the audio host. Called by
+ *  `teardown()` so we don't leak <audio> nodes across alarm cycles. */
+function disposeStemEl(el: HTMLAudioElement): void {
+  try { el.pause(); } catch { /* ignore */ }
+  try { el.removeAttribute('src'); el.load(); } catch { /* ignore */ }
+  try { el.parentNode?.removeChild(el); } catch { /* ignore */ }
 }
 
 function cancelRamp(stem: Stem): void {
@@ -742,10 +796,12 @@ export class AlarmEngine {
     for (const s of [this.ramp, this.reaseguro, this.wakeup]) {
       if (!s) continue;
       cancelRamp(s);
-      try { s.el.pause(); s.el.src = ''; s.el.load(); } catch { /* ignore */ }
+      // Detach from the audio host so we don't accumulate dead <audio>
+      // nodes across alarm fire/dismiss cycles. See `disposeStemEl`.
+      disposeStemEl(s.el);
     }
     if (this.coachPrimedEl) {
-      try { this.coachPrimedEl.pause(); this.coachPrimedEl.src = ''; this.coachPrimedEl.load(); } catch { /* ignore */ }
+      disposeStemEl(this.coachPrimedEl);
       this.coachPrimedEl = null;
     }
     this.ramp = null;

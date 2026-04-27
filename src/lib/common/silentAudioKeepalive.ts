@@ -80,6 +80,20 @@ export function startSilentKeepalive(): void {
     // Volume is irrelevant (samples are zero) but set high so iOS
     // doesn't classify the audio as "silent" and ignore it.
     audioEl.volume = 1;
+    // Attach to the live document. Without this, iOS standalone PWAs
+    // never actually allocate an audio output session for the element
+    // so the keepalive trick fails silently — and worse, the alarm
+    // stems that depend on that session being warm also stay mute.
+    if (typeof document !== 'undefined') {
+      try {
+        const host = document.createElement('div');
+        host.setAttribute('data-keepalive-host', '');
+        host.style.cssText =
+          'position:fixed;left:-1px;top:-1px;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;z-index:-1';
+        host.appendChild(audioEl);
+        document.body.appendChild(host);
+      } catch { /* ignore */ }
+    }
   }
 
   // The promise rejects outside a user gesture; callers should handle.
@@ -91,9 +105,10 @@ export function startSilentKeepalive(): void {
 
 export function stopSilentKeepalive(): void {
   if (audioEl) {
-    audioEl.pause();
-    audioEl.removeAttribute('src');
-    audioEl.load();
+    try { audioEl.pause(); } catch { /* ignore */ }
+    try { audioEl.removeAttribute('src'); audioEl.load(); } catch { /* ignore */ }
+    // Detach the host wrapper if we attached one.
+    try { audioEl.parentNode?.parentNode?.removeChild(audioEl.parentNode); } catch { /* ignore */ }
   }
   if (blobUrl) {
     URL.revokeObjectURL(blobUrl);
