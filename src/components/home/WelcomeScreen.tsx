@@ -28,7 +28,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, ArrowRight, CalendarDays, Flame } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Flame } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/genesis/progression';
@@ -189,7 +189,11 @@ export default function WelcomeScreen({
         </div>
       </div>
 
-      {/* ═══ FOOTER · greeting · quote · calendar (3 lines max) ═══ */}
+      {/* ═══ FOOTER · split bento card ═══════════════════════════
+           Mirrors thecraftsmen.tech "fast support / happy to help"
+           pattern: dark text panel on the left (greeting + quote),
+           solid dorado action panel on the right (today's date,
+           tap → opens full Calendar screen). */}
       <div
         className="relative z-10 px-5 sunrise-fade-up"
         style={{
@@ -197,104 +201,158 @@ export default function WelcomeScreen({
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
         }}
       >
-        {/* Greeting line */}
-        <div className="flex items-center gap-3 mb-3">
-          <div
-            className="h-px w-7 shrink-0"
-            style={{ background: hexToRgba(SUNRISE.rise2, 0.55) }}
+        {mounted ? (
+          <QuoteCalendarCard
+            firstName={firstName.toLowerCase()}
+            quote={quote}
+            onOpenCalendar={onOpenCalendar}
           />
-          <span
-            className="font-ui text-[12px] tracking-[0.32em] uppercase"
-            style={{ color: 'var(--sunrise-text-soft)' }}
-          >
-            buenos días,{' '}
-            <span style={{ color: 'var(--sunrise-text)' }}>{firstName.toLowerCase()}</span>
-          </span>
-        </div>
-
-        {/* Quote — italic body, allows up to ~2 lines */}
-        <p
-          className="font-display italic font-[300] text-[15px] leading-[1.4] mb-4"
-          style={{
-            color: 'var(--sunrise-text-soft)',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          &ldquo;{quote.text}&rdquo;
-          <span
-            className="font-ui not-italic uppercase tracking-[0.26em] text-[11px] ml-2"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            — {quote.author}
-          </span>
-        </p>
-
-        {/* Calendar single-line preview */}
-        {mounted && onOpenCalendar && <CalendarPreviewLine onOpen={onOpenCalendar} />}
+        ) : (
+          // SSR placeholder · same height to avoid layout shift
+          <div style={{ height: 148 }} aria-hidden />
+        )}
       </div>
     </div>
   );
 }
 
-// ─── single-line calendar preview ────────────────────────
+// ─── split bento card (greeting + quote · today) ───────────
 
-function CalendarPreviewLine({ onOpen }: { onOpen: () => void }) {
+function QuoteCalendarCard({
+  firstName,
+  quote,
+  onOpenCalendar,
+}: {
+  firstName: string;
+  quote: { text: string; author: string };
+  onOpenCalendar?: () => void;
+}) {
   const today = useMemo(() => new Date(), []);
   const ctx = useMemo(() => getDayContext(today), [today]);
   const upcoming = useMemo(() => getNextHolidays(today, 1)[0], [today]);
   const dayLabel = getDayProfileLabel(ctx);
-  const dayName = useMemo(() => {
-    const fmt = new Intl.DateTimeFormat('es', { weekday: 'short', day: 'numeric', month: 'short' });
-    return fmt.format(today).replace(/\.,?/g, '').toLowerCase();
-  }, [today]);
+  const dayNum = today.getDate();
+  const monthShort = useMemo(
+    () => new Intl.DateTimeFormat('es', { month: 'short' }).format(today).replace(/\.?$/, ''),
+    [today],
+  );
+  const weekdayShort = useMemo(
+    () => new Intl.DateTimeFormat('es', { weekday: 'short' }).format(today).replace(/\.?$/, ''),
+    [today],
+  );
 
   return (
-    <button
-      type="button"
-      onClick={() => { haptics.tick(); onOpen(); }}
-      className="group w-full flex items-center gap-3 py-3 transition-opacity active:opacity-70"
-      style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}` }}
+    <div
+      className="w-full overflow-hidden flex"
+      style={{
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
+        minHeight: 148,
+      }}
     >
-      <CalendarDays
-        size={15}
-        strokeWidth={1.85}
-        className="shrink-0"
-        style={{ color: SUNRISE.rise2 }}
-      />
-      <span
-        className="font-ui text-[11px] tracking-[0.26em] uppercase shrink-0"
-        style={{ color: 'var(--sunrise-text-soft)' }}
+      {/* LEFT · dark · greeting kicker + quote (info, non-interactive) */}
+      <div
+        className="flex flex-col justify-between flex-1 min-w-0"
+        style={{ padding: '16px 18px' }}
       >
-        {dayName}
-      </span>
-      <span
-        className="font-ui text-[10px] tracking-[0.26em] uppercase shrink-0"
-        style={{ color: 'var(--sunrise-text-muted)' }}
-      >
-        · {dayLabel.toLowerCase()}
-      </span>
-      <span
-        className="flex-1 h-px min-w-[12px]"
-        style={{ background: hexToRgba(SUNRISE.rise2, 0.16) }}
-      />
-      {upcoming && (
-        <span
-          className="font-mono text-[10px] tracking-wider tabular-nums shrink-0 truncate"
-          style={{ color: 'var(--sunrise-text-muted)', maxWidth: '42%' }}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span
+              className="inline-block rounded-full"
+              style={{
+                width: 7,
+                height: 7,
+                background: SUNRISE.rise2,
+              }}
+            />
+            <span
+              className="font-ui text-[11px] tracking-[0.3em] uppercase truncate"
+              style={{ color: 'var(--sunrise-text-muted)' }}
+            >
+              buenos días,{' '}
+              <span style={{ color: 'var(--sunrise-text)' }}>{firstName}</span>
+            </span>
+          </div>
+          <p
+            className="font-display italic font-[300] text-[16px] leading-[1.4]"
+            style={{
+              color: 'var(--sunrise-text-soft)',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+        </div>
+        <div
+          className="font-ui text-[10px] tracking-[0.32em] uppercase mt-2.5 truncate"
+          style={{ color: 'var(--sunrise-text-muted)' }}
         >
-          +{upcoming.daysUntil}d {upcoming.name.toLowerCase()}
-        </span>
-      )}
-      <ArrowRight
-        size={13}
-        strokeWidth={1.85}
-        className="shrink-0 transition-transform group-active:translate-x-0.5"
-        style={{ color: SUNRISE.rise2 }}
-      />
-    </button>
+          — {quote.author.toLowerCase()}
+        </div>
+      </div>
+
+      {/* RIGHT · dorado · today (tap → opens Calendar) */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!onOpenCalendar) return;
+          haptics.tick();
+          onOpenCalendar();
+        }}
+        disabled={!onOpenCalendar}
+        className="group flex flex-col justify-between text-left transition-transform active:scale-[0.985] shrink-0 disabled:cursor-default"
+        style={{
+          width: '42%',
+          maxWidth: 188,
+          padding: '16px 18px',
+          background: SUNRISE.rise2,
+          color: SUNRISE.night,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <CalendarDays size={16} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
+          {onOpenCalendar && (
+            <ArrowUpRight
+              size={17}
+              strokeWidth={2.4}
+              className="transition-transform group-active:translate-x-0.5 group-active:-translate-y-0.5"
+              style={{ color: SUNRISE.night }}
+            />
+          )}
+        </div>
+        <div className="mt-2">
+          <div
+            className="font-headline font-[700] leading-[0.92] lowercase tracking-[-0.03em]"
+            style={{
+              fontSize: 'clamp(1.9rem, 7.5vw, 2.4rem)',
+              color: SUNRISE.night,
+            }}
+          >
+            {weekdayShort.toLowerCase()} {dayNum}
+          </div>
+          <div
+            className="font-ui text-[11px] tracking-[0.26em] uppercase font-[600] mt-1.5 truncate"
+            style={{ color: SUNRISE.night, opacity: 0.72 }}
+          >
+            {monthShort.toLowerCase()} · {dayLabel.toLowerCase()}
+          </div>
+          {upcoming && (
+            <div
+              className="font-mono text-[10px] tabular-nums mt-2 truncate"
+              style={{ color: SUNRISE.night, opacity: 0.6 }}
+            >
+              +{upcoming.daysUntil}d {upcoming.name.toLowerCase()}
+            </div>
+          )}
+        </div>
+      </button>
+    </div>
   );
 }
 

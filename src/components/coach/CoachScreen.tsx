@@ -80,21 +80,21 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
         className="relative z-10 px-5 pt-5 max-w-3xl w-full mx-auto shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-start gap-3 mb-3">
           <button
             type="button"
             onClick={() => { haptics.tap(); onClose(); }}
             aria-label="Volver"
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 shrink-0"
             style={{
-              background: hexToRgba(SUNRISE.predawn2, 0.55),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
-              color: SUNRISE_TEXT.primary,
+              background: SUNRISE.rise2,
+              color: SUNRISE.night,
+              boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
             }}
           >
-            <ArrowLeft size={18} strokeWidth={1.7} />
+            <ArrowLeft size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
           </button>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 pt-0.5">
             <span
               className="font-ui text-[10px] uppercase tracking-[0.42em]"
               style={{ color: SUNRISE_TEXT.muted }}
@@ -102,10 +102,10 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
               Coach
             </span>
             <div
-              className="font-display italic font-[400] text-[22px] leading-tight mt-0.5"
+              className="font-headline font-[600] text-[28px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
               style={{ color: SUNRISE_TEXT.primary }}
             >
-              {hydrated && briefing ? briefing.headline : 'Cargando…'}
+              {hydrated && briefing ? briefing.headline.toLowerCase() : 'cargando…'}
             </div>
           </div>
         </div>
@@ -218,34 +218,56 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
               <button
                 type="button"
                 onClick={() => { haptics.tap(); setConditionsOpen(true); }}
-                className="w-full mt-4 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
+                className="w-full mt-4 overflow-hidden flex transition-transform active:scale-[0.995]"
                 style={{
-                  background: hexToRgba(SUNRISE.predawn2, 0.5),
-                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+                  borderRadius: 22,
+                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
                 }}
               >
-                <span
-                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                {/* LEFT · dark · info */}
+                <div
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
                   style={{
-                    background: hexToRgba(SUNRISE.rise2, 0.16),
-                    color: SUNRISE.rise2,
+                    padding: '14px 16px',
+                    background: hexToRgba(SUNRISE.night, 0.55),
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
                   }}
                 >
-                  <Activity size={16} strokeWidth={1.85} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="font-display italic font-[400] text-[16px] leading-tight"
-                    style={{ color: SUNRISE_TEXT.primary }}
+                  <span
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{
+                      background: hexToRgba(SUNRISE.rise2, 0.16),
+                      color: SUNRISE.rise2,
+                    }}
                   >
-                    Mis condiciones
+                    <Activity size={16} strokeWidth={2} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="font-headline font-[600] text-[18px] leading-tight lowercase tracking-[-0.02em]"
+                      style={{ color: SUNRISE_TEXT.primary }}
+                    >
+                      mis condiciones
+                    </div>
+                    <div
+                      className="font-mono text-[10.5px] tracking-wider mt-0.5"
+                      style={{ color: SUNRISE_TEXT.muted }}
+                    >
+                      {state.conditions.length} activa{state.conditions.length === 1 ? '' : 's'} · toca para ajustar
+                    </div>
                   </div>
-                  <div
-                    className="font-mono text-[10.5px] tracking-wider mt-0.5"
-                    style={{ color: SUNRISE_TEXT.muted }}
-                  >
-                    {state.conditions.length} activa{state.conditions.length === 1 ? '' : 's'} · toca para ajustar
-                  </div>
+                </div>
+                {/* RIGHT · dorado · arrow */}
+                <div
+                  className="shrink-0 flex items-center justify-center"
+                  style={{
+                    width: 64,
+                    background: SUNRISE.rise2,
+                    color: SUNRISE.night,
+                  }}
+                >
+                  <Plus size={20} strokeWidth={2.5} style={{ color: SUNRISE.night }} />
                 </div>
               </button>
 
@@ -305,33 +327,66 @@ function ModeBadge({ briefing }: { briefing: Briefing }) {
   const accent = isFlare ? '#ff6b6b' : SUNRISE.rise2;
   return (
     <div
-      className="mt-2 rounded-2xl px-4 py-3"
+      className="mt-2 w-full overflow-hidden flex"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-        border: `1px solid ${hexToRgba(accent, 0.32)}`,
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        border: `1px solid ${hexToRgba(accent, 0.3)}`,
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
+        minHeight: 100,
       }}
     >
-      <div className="flex items-center gap-2 mb-1">
+      {/* LEFT · motivo */}
+      <div
+        className="flex-1 min-w-0 flex flex-col justify-center"
+        style={{ padding: '14px 16px' }}
+      >
         <span
-          className="inline-flex items-center font-ui text-[9.5px] tracking-[0.32em] uppercase px-2 py-0.5 rounded-full"
-          style={{
-            background: hexToRgba(accent, 0.18),
-            color: accent,
-            border: `1px solid ${hexToRgba(accent, 0.45)}`,
-          }}
-        >
-          {modeLabel(briefing.mode)}
-        </span>
-        <span
-          className="font-mono text-[10px] tracking-wider"
+          className="font-ui text-[10px] tracking-[0.32em] uppercase"
           style={{ color: SUNRISE_TEXT.muted }}
         >
-          {briefing.context.dateISO}
+          motivo
         </span>
+        <p
+          className="font-mono text-[12.5px] leading-snug mt-1.5"
+          style={{ color: SUNRISE_TEXT.soft }}
+        >
+          {briefing.modeReason}
+        </p>
       </div>
-      <p className="font-mono text-[11.5px] leading-snug" style={{ color: SUNRISE_TEXT.soft }}>
-        {briefing.modeReason}
-      </p>
+      {/* RIGHT · modo activo (solído accent) */}
+      <div
+        className="shrink-0 flex flex-col justify-between text-left"
+        style={{
+          width: '40%',
+          maxWidth: 168,
+          padding: '14px 16px',
+          background: accent,
+          color: SUNRISE.night,
+        }}
+      >
+        <span
+          className="font-ui text-[10px] tracking-[0.32em] uppercase font-[700]"
+          style={{ color: SUNRISE.night, opacity: 0.7 }}
+        >
+          modo
+        </span>
+        <div>
+          <div
+            className="font-headline font-[700] text-[20px] leading-[0.95] lowercase tracking-[-0.025em]"
+            style={{ color: SUNRISE.night }}
+          >
+            {modeLabel(briefing.mode).toLowerCase()}
+          </div>
+          <div
+            className="font-mono text-[10px] tabular-nums mt-1.5"
+            style={{ color: SUNRISE.night, opacity: 0.6 }}
+          >
+            {briefing.context.dateISO}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -359,23 +414,31 @@ function StatusCardView({ card }: { card: StatusCard }) {
   const pct = card.progress !== undefined ? Math.round(card.progress * 100) : null;
   return (
     <div
-      className="rounded-xl p-3 flex flex-col gap-1.5"
+      className="rounded-2xl p-3.5 flex flex-col gap-2.5"
       style={{
-        background: hexToRgba(SUNRISE.predawn2, 0.55),
+        background: hexToRgba(SUNRISE.night, 0.55),
         border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <div className="flex items-center gap-2">
-        <Icon size={14} strokeWidth={1.85} style={{ color: SUNRISE.rise2 }} />
-        <span
-          className="font-ui text-[9.5px] tracking-[0.28em] uppercase"
-          style={{ color: SUNRISE_TEXT.muted }}
-        >
-          {card.label}
-        </span>
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center"
+        style={{
+          background: hexToRgba(SUNRISE.rise2, 0.18),
+          color: SUNRISE.rise2,
+        }}
+      >
+        <Icon size={16} strokeWidth={2} />
       </div>
       <span
-        className="font-display italic font-[400] text-[18px] leading-none"
+        className="font-ui text-[10px] tracking-[0.3em] uppercase"
+        style={{ color: SUNRISE_TEXT.muted }}
+      >
+        {card.label}
+      </span>
+      <span
+        className="font-headline font-[600] text-[20px] leading-tight lowercase tracking-[-0.02em] mt-auto"
         style={{ color: SUNRISE_TEXT.primary }}
       >
         {card.value}
@@ -416,7 +479,9 @@ function ActionRow({
   const Icon = ACTION_ICON[action.kind] ?? Activity;
   const isCritical = action.priority === 'critical';
   const isOverdue = action.urgency === 'overdue';
-  const accent = isOverdue ? '#ff6b6b' : isCritical ? SUNRISE.rise2 : SUNRISE_TEXT.soft as unknown as string;
+  // Solid fill for urgency: overdue=red, critical=dorado, normal=dark glass
+  const filled = isOverdue || isCritical;
+  const fillBg = isOverdue ? '#ff6b6b' : SUNRISE.rise2;
   const firstProductId = action.productIds?.[0];
   const tappable = !!firstProductId;
   const Tag = tappable ? 'button' : 'div';
@@ -424,66 +489,57 @@ function ActionRow({
     <Tag
       type={tappable ? 'button' : undefined}
       onClick={tappable ? () => onSelectProduct(firstProductId!) : undefined}
-      className={`rounded-xl px-3.5 py-3 flex items-start gap-3 text-left w-full ${tappable ? 'transition-transform active:scale-[0.99]' : ''}`}
+      className={`rounded-2xl px-4 py-3.5 flex items-start gap-3 text-left w-full ${tappable ? 'transition-transform active:scale-[0.99]' : ''}`}
       style={{
-        background: hexToRgba(SUNRISE.predawn2, 0.5),
-        border: `1px solid ${hexToRgba(isOverdue ? '#ff6b6b' : SUNRISE.rise2, isCritical ? 0.32 : 0.16)}`,
+        background: filled ? fillBg : hexToRgba(SUNRISE.night, 0.55),
+        border: filled ? 'none' : `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        color: filled ? SUNRISE.night : SUNRISE_TEXT.primary,
+        backdropFilter: filled ? undefined : 'blur(10px)',
+        WebkitBackdropFilter: filled ? undefined : 'blur(10px)',
+        boxShadow: filled ? `0 8px 24px -8px ${hexToRgba(fillBg, 0.5)}` : undefined,
       }}
     >
       <span
         className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
         style={{
-          background: hexToRgba(isOverdue ? '#ff6b6b' : SUNRISE.rise2, 0.16),
-          color: accent,
+          background: filled ? hexToRgba(SUNRISE.night, 0.16) : hexToRgba(SUNRISE.rise2, 0.16),
+          color: filled ? SUNRISE.night : SUNRISE.rise2,
         }}
       >
-        <Icon size={16} strokeWidth={1.85} />
+        <Icon size={16} strokeWidth={2} />
       </span>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
           <span
-            className="font-display italic font-[400] text-[15px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
+            className="font-headline font-[600] text-[16px] leading-tight lowercase tracking-[-0.015em]"
+            style={{ color: filled ? SUNRISE.night : SUNRISE_TEXT.primary }}
           >
-            {action.title}
+            {action.title.toLowerCase()}
           </span>
-          {isOverdue && (
+          {(isOverdue || isCritical) && (
             <span
-              className="font-ui text-[9px] tracking-[0.28em] uppercase px-1.5 py-0.5 rounded-full"
+              className="font-ui text-[9px] tracking-[0.3em] uppercase px-2 py-0.5 rounded-full font-[700]"
               style={{
-                background: hexToRgba('#ff6b6b', 0.2),
-                color: '#ff6b6b',
-                border: `1px solid ${hexToRgba('#ff6b6b', 0.4)}`,
+                background: hexToRgba(SUNRISE.night, 0.18),
+                color: SUNRISE.night,
               }}
             >
-              Atraso
-            </span>
-          )}
-          {action.priority === 'critical' && !isOverdue && (
-            <span
-              className="font-ui text-[9px] tracking-[0.28em] uppercase px-1.5 py-0.5 rounded-full"
-              style={{
-                background: hexToRgba(SUNRISE.rise2, 0.2),
-                color: SUNRISE.rise2,
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
-              }}
-            >
-              Crítico
+              {isOverdue ? 'atraso' : 'crítico'}
             </span>
           )}
         </div>
         <p
-          className="font-mono text-[11px] leading-snug"
-          style={{ color: SUNRISE_TEXT.muted }}
+          className="font-mono text-[11.5px] leading-snug"
+          style={{ color: filled ? hexToRgba(SUNRISE.night, 0.72) : SUNRISE_TEXT.muted }}
         >
           {action.reason}
         </p>
         {tappable && (
           <span
-            className="font-ui text-[9px] tracking-[0.28em] uppercase mt-1.5 inline-block"
-            style={{ color: SUNRISE.rise2 }}
+            className="font-ui text-[9.5px] tracking-[0.28em] uppercase mt-2 inline-flex items-center gap-1 font-[600]"
+            style={{ color: filled ? SUNRISE.night : SUNRISE.rise2, opacity: filled ? 0.75 : 1 }}
           >
-            Toca para detalle →
+            ver detalle →
           </span>
         )}
       </div>
@@ -521,52 +577,81 @@ function RoutineSection({
   const stepCount = routine.steps.length;
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="overflow-hidden"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+        borderRadius: 22,
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
       }}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3.5 flex items-center gap-3 text-left"
+        className="w-full flex transition-transform active:scale-[0.995]"
       >
-        <span
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        {/* LEFT · dark glass · info */}
+        <div
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
           style={{
-            background: hexToRgba(SUNRISE.rise2, 0.16),
-            color: SUNRISE.rise2,
+            padding: '14px 16px',
+            background: hexToRgba(SUNRISE.night, 0.55),
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
           }}
         >
-          <Icon size={16} strokeWidth={1.85} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div
-            className="font-display italic font-[400] text-[16px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: hexToRgba(SUNRISE.rise2, 0.16),
+              color: SUNRISE.rise2,
+            }}
           >
-            Rutina {label}
-          </div>
-          <div
-            className="font-mono text-[10.5px] tracking-wider mt-0.5"
-            style={{ color: SUNRISE_TEXT.muted }}
-          >
-            {stepCount} pasos · {routine.mode === 'normal' ? 'estándar' : routine.mode}
+            <Icon size={16} strokeWidth={2} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-headline font-[600] text-[18px] leading-tight lowercase tracking-[-0.02em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              rutina {label.toLowerCase()}
+            </div>
+            <div
+              className="font-mono text-[10.5px] tracking-wider mt-0.5"
+              style={{ color: SUNRISE_TEXT.muted }}
+            >
+              {stepCount} pasos · {routine.mode === 'normal' ? 'estándar' : routine.mode}
+            </div>
           </div>
         </div>
-        <ChevronDown
-          size={16}
-          strokeWidth={1.85}
+        {/* RIGHT · dorado · chevron */}
+        <div
+          className="shrink-0 flex items-center justify-center"
           style={{
-            color: SUNRISE_TEXT.muted,
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 200ms',
+            width: 64,
+            background: SUNRISE.rise2,
+            color: SUNRISE.night,
           }}
-        />
+        >
+          <ChevronDown
+            size={20}
+            strokeWidth={2.5}
+            style={{
+              color: SUNRISE.night,
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 220ms',
+            }}
+          />
+        </div>
       </button>
       {open && (
-        <div className="px-3.5 pb-3.5 flex flex-col gap-2">
+        <div
+          className="px-3.5 pt-3 pb-3.5 flex flex-col gap-2"
+          style={{
+            background: hexToRgba(SUNRISE.night, 0.55),
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
+          }}
+        >
           {routine.rationale && (
             <p
               className="font-mono text-[11px] leading-snug px-3 py-2 rounded-lg"
@@ -661,46 +746,67 @@ function CollapsibleSection({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3.5 rounded-2xl flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
+        className="w-full overflow-hidden flex transition-transform active:scale-[0.995]"
         style={{
-          background: hexToRgba(SUNRISE.predawn2, 0.5),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+          borderRadius: 22,
+          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
         }}
       >
-        <span
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        {/* LEFT · dark glass · info */}
+        <div
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
           style={{
-            background: hexToRgba(SUNRISE.rise2, 0.16),
-            color: SUNRISE.rise2,
+            padding: '14px 16px',
+            background: hexToRgba(SUNRISE.night, 0.55),
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
           }}
         >
-          <Icon size={16} strokeWidth={1.85} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div
-            className="font-display italic font-[400] text-[16px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: hexToRgba(SUNRISE.rise2, 0.16),
+              color: SUNRISE.rise2,
+            }}
           >
-            {label}
-          </div>
-          {kicker && (
+            <Icon size={16} strokeWidth={2} />
+          </span>
+          <div className="flex-1 min-w-0">
             <div
-              className="font-mono text-[10.5px] tracking-wider mt-0.5"
-              style={{ color: SUNRISE_TEXT.muted }}
+              className="font-headline font-[600] text-[18px] leading-tight lowercase tracking-[-0.02em]"
+              style={{ color: SUNRISE_TEXT.primary }}
             >
-              {kicker}
+              {label.toLowerCase()}
             </div>
-          )}
+            {kicker && (
+              <div
+                className="font-mono text-[10.5px] tracking-wider mt-0.5"
+                style={{ color: SUNRISE_TEXT.muted }}
+              >
+                {kicker}
+              </div>
+            )}
+          </div>
         </div>
-        <ChevronDown
-          size={16}
-          strokeWidth={1.85}
+        {/* RIGHT · dorado · chevron */}
+        <div
+          className="shrink-0 flex items-center justify-center"
           style={{
-            color: SUNRISE_TEXT.muted,
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 200ms',
+            width: 64,
+            background: SUNRISE.rise2,
+            color: SUNRISE.night,
           }}
-        />
+        >
+          <ChevronDown
+            size={20}
+            strokeWidth={2.5}
+            style={{
+              color: SUNRISE.night,
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 220ms',
+            }}
+          />
+        </div>
       </button>
       {open && <div className="mt-2.5">{children}</div>}
     </div>
