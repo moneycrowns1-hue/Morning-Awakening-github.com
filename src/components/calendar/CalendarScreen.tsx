@@ -163,40 +163,44 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
     >
       <GradientBackground stage="welcome" particleCount={40} />
 
-      {/* ─── Header ─────────────────────────────────────────── */}
+      {/* ─── Header ────────────────────────────────────── */}
       <div
-        className="relative z-10 flex items-center justify-between gap-3 px-5 pt-5 max-w-3xl w-full mx-auto shrink-0"
+        className="relative z-10 flex items-start gap-3 px-5 pt-5 max-w-3xl w-full mx-auto shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
         <button
           onClick={() => { haptics.tap(); onClose(); }}
           aria-label="Cerrar"
-          className="rounded-full p-2 transition-colors hover:bg-white/5"
-          style={{ color: SUNRISE_TEXT.soft }}
+          className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 shrink-0"
+          style={{
+            background: SUNRISE.rise2,
+            color: SUNRISE.night,
+            boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+          }}
         >
-          <X size={20} strokeWidth={1.75} />
+          <X size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
         </button>
-        <div className="flex flex-col items-center">
+        <div className="flex-1 min-w-0 pt-0.5">
           <span
-            className="font-ui text-[10px] uppercase tracking-[0.4em]"
+            className="font-ui text-[10px] uppercase tracking-[0.42em]"
             style={{ color: SUNRISE_TEXT.muted }}
           >
             Calendario
           </span>
-          <span
-            className="font-display italic font-[400] text-[20px] md:text-[24px] leading-none mt-1"
+          <div
+            className="font-headline font-[600] text-[26px] md:text-[30px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
             style={{ color: SUNRISE_TEXT.primary }}
           >
-            {monthLabel}
-          </span>
+            {monthLabel.toLowerCase()}
+          </div>
         </div>
         <button
           onClick={goToday}
-          className="font-ui text-[10px] tracking-[0.3em] uppercase rounded-full px-3 py-1.5 transition-colors"
+          className="font-ui text-[10px] tracking-[0.3em] uppercase rounded-full px-3.5 py-2 transition-transform active:scale-[0.96] font-[700] shrink-0"
           style={{
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
-            background: hexToRgba(SUNRISE.rise2, 0.08),
-            color: SUNRISE_TEXT.primary,
+            background: hexToRgba(SUNRISE.rise2, 0.16),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+            color: SUNRISE.rise2,
           }}
         >
           Hoy
@@ -210,47 +214,75 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
       >
         <div className="px-5 md:px-8 max-w-3xl mx-auto">
           {/* Today's profile pill */}
-          <div className="mt-4 mb-5 flex items-center justify-center">
+          <div className="mt-4 mb-4 flex items-center justify-center">
             <span
-              className="font-ui text-[10px] tracking-[0.28em] uppercase rounded-full px-3 py-1.5"
+              className="inline-flex items-center gap-2 font-ui text-[10px] tracking-[0.3em] uppercase rounded-full px-3 py-1.5 font-[600]"
               style={{
                 background: todayCtx.profile === 'rest'
                   ? hexToRgba(SUNRISE.rise2, 0.16)
                   : todayCtx.profile === 'saturday'
                   ? hexToRgba(SUNRISE.cool, 0.16)
-                  : hexToRgba(SUNRISE.fulllight, 0.08),
+                  : hexToRgba(SUNRISE.night, 0.55),
                 border: `1px solid ${todayCtx.profile === 'rest'
-                  ? hexToRgba(SUNRISE.rise2, 0.45)
+                  ? hexToRgba(SUNRISE.rise2, 0.5)
                   : todayCtx.profile === 'saturday'
-                  ? hexToRgba(SUNRISE.cool, 0.45)
-                  : hexToRgba(SUNRISE.fulllight, 0.2)}`,
-                color: SUNRISE_TEXT.primary,
+                  ? hexToRgba(SUNRISE.cool, 0.5)
+                  : hexToRgba(SUNRISE.rise2, 0.18)}`,
+                color: todayCtx.profile === 'rest'
+                  ? SUNRISE.rise2
+                  : todayCtx.profile === 'saturday'
+                  ? SUNRISE.cool
+                  : SUNRISE_TEXT.soft,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
             >
-              Hoy · {getDayProfileLabel(todayCtx)}
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: todayCtx.profile === 'rest'
+                    ? SUNRISE.rise2
+                    : todayCtx.profile === 'saturday'
+                    ? SUNRISE.cool
+                    : SUNRISE_TEXT.muted,
+                }}
+              />
+              hoy · {getDayProfileLabel(todayCtx).toLowerCase()}
             </span>
           </div>
 
-          {/* Month nav */}
-          <div className="flex items-center justify-between mb-3">
+          {/* Month nav · split bento style */}
+          <div
+            className="flex items-stretch overflow-hidden mb-3"
+            style={{
+              borderRadius: 18,
+              background: hexToRgba(SUNRISE.night, 0.55),
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
             <button
               onClick={prev}
               aria-label="Mes anterior"
-              className="rounded-full p-2 transition-colors hover:bg-white/5"
-              style={{ color: SUNRISE_TEXT.soft }}
+              className="shrink-0 flex items-center justify-center transition-transform active:scale-[0.95]"
+              style={{ width: 44, color: SUNRISE.rise2 }}
             >
-              <ChevronLeft size={18} strokeWidth={1.75} />
+              <ChevronLeft size={18} strokeWidth={2.2} />
             </button>
-            <div className="font-ui text-[11px] tracking-[0.32em] uppercase" style={{ color: SUNRISE_TEXT.muted }}>
-              {monthLabel}
+            <div
+              className="flex-1 flex items-center justify-center font-headline font-[600] text-[15px] lowercase tracking-[-0.01em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              {monthLabel.toLowerCase()}
             </div>
             <button
               onClick={next}
               aria-label="Mes siguiente"
-              className="rounded-full p-2 transition-colors hover:bg-white/5"
-              style={{ color: SUNRISE_TEXT.soft }}
+              className="shrink-0 flex items-center justify-center transition-transform active:scale-[0.95]"
+              style={{ width: 44, color: SUNRISE.rise2 }}
             >
-              <ChevronRight size={18} strokeWidth={1.75} />
+              <ChevronRight size={18} strokeWidth={2.2} />
             </button>
           </div>
 
@@ -296,7 +328,7 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
             })}
           </div>
 
-          {/* ─── Próximos feriados ──────────────────────────── */}
+          {/* ─── Próximos feriados · split bento cards ───────────── */}
           <div className="mt-7">
             <h2
               className="font-ui text-[10px] tracking-[0.34em] uppercase mb-3"
@@ -305,47 +337,81 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
               Próximos feriados · Ecuador
             </h2>
             <ul className="flex flex-col gap-2">
-              {upcomingHolidays.map((h) => (
-                <li
-                  key={h.date.toISOString()}
-                  className="flex items-center justify-between rounded-2xl px-4 py-3"
-                  style={{
-                    background: hexToRgba(SUNRISE.predawn2, 0.4),
-                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div
-                      className="font-display italic font-[400] text-[16px] truncate"
-                      style={{ color: SUNRISE_TEXT.primary }}
-                    >
-                      {h.name}
-                    </div>
-                    <div
-                      className="mt-0.5 font-mono text-[10.5px] tracking-wider"
-                      style={{ color: SUNRISE_TEXT.muted }}
-                    >
-                      {formatLongDateLocal(h.date)}
-                    </div>
-                  </div>
-                  <span
-                    className="font-mono text-[11px] tabular-nums tracking-wider px-2.5 py-1 rounded-full shrink-0"
+              {upcomingHolidays.map((h) => {
+                const isToday = h.daysUntil === 0;
+                return (
+                  <li
+                    key={h.date.toISOString()}
+                    className="flex items-stretch overflow-hidden"
                     style={{
-                      background: h.daysUntil === 0
-                        ? hexToRgba(SUNRISE.rise2, 0.5)
-                        : hexToRgba(SUNRISE.rise2, 0.14),
-                      color: SUNRISE_TEXT.primary,
-                      border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
+                      borderRadius: 18,
+                      background: hexToRgba(SUNRISE.night, 0.55),
+                      border: `1px solid ${hexToRgba(SUNRISE.rise2, isToday ? 0.45 : 0.16)}`,
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
                     }}
                   >
-                    {h.daysUntil === 0 ? 'HOY' : h.daysUntil === 1 ? 'MAÑANA' : `${h.daysUntil} d`}
-                  </span>
-                </li>
-              ))}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center px-4 py-3">
+                      <div
+                        className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.015em] truncate"
+                        style={{ color: SUNRISE_TEXT.primary }}
+                      >
+                        {h.name.toLowerCase()}
+                      </div>
+                      <div
+                        className="mt-1 font-mono text-[10.5px] tracking-wider lowercase"
+                        style={{ color: SUNRISE_TEXT.muted }}
+                      >
+                        {formatLongDateLocal(h.date).toLowerCase()}
+                      </div>
+                    </div>
+                    <div
+                      className="shrink-0 flex flex-col items-center justify-center px-3"
+                      style={{
+                        minWidth: 78,
+                        background: isToday
+                          ? SUNRISE.rise2
+                          : hexToRgba(SUNRISE.rise2, 0.14),
+                      }}
+                    >
+                      {isToday ? (
+                        <span
+                          className="font-headline font-[700] text-[16px] lowercase tracking-[-0.01em]"
+                          style={{ color: SUNRISE.night }}
+                        >
+                          hoy
+                        </span>
+                      ) : h.daysUntil === 1 ? (
+                        <span
+                          className="font-headline font-[700] text-[14px] lowercase tracking-[-0.01em]"
+                          style={{ color: SUNRISE.rise2 }}
+                        >
+                          mañana
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className="font-headline font-[700] text-[22px] leading-none tabular-nums tracking-[-0.02em]"
+                            style={{ color: SUNRISE.rise2 }}
+                          >
+                            {h.daysUntil}
+                          </span>
+                          <span
+                            className="font-ui text-[8.5px] tracking-[0.3em] uppercase mt-0.5 font-[600]"
+                            style={{ color: SUNRISE.rise2, opacity: 0.7 }}
+                          >
+                            días
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
-          {/* ─── Resumen del mes ────────────────────────────── */}
+          {/* ─── Resumen del mes · split bento card ───────────── */}
           <div className="mt-7 mb-4">
             <h2
               className="font-ui text-[10px] tracking-[0.34em] uppercase mb-3"
@@ -354,43 +420,67 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
               Resumen del mes
             </h2>
             <div
-              className="rounded-2xl px-4 py-4 flex items-center justify-between"
+              className="flex items-stretch overflow-hidden"
               style={{
-                background: hexToRgba(SUNRISE.predawn2, 0.4),
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+                borderRadius: 22,
+                background: hexToRgba(SUNRISE.night, 0.55),
+                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
               }}
             >
-              <div>
+              {/* LEFT · días completados (dark glass) */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between px-4 py-3.5">
+                <span
+                  className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
+                  style={{ color: SUNRISE_TEXT.muted }}
+                >
+                  días ≥ 3 hábitos
+                </span>
                 <div
-                  className="font-mono text-[28px] tabular-nums leading-none"
-                  style={{ color: SUNRISE_TEXT.primary }}
+                  className="font-headline font-[700] leading-none lowercase tracking-[-0.025em] mt-2"
+                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: SUNRISE_TEXT.primary }}
                 >
                   {monthStats.daysCompleted}
-                  <span className="text-[16px]" style={{ color: SUNRISE_TEXT.muted }}>
-                    {' / '}{monthStats.totalCountedDays || '—'}
+                  <span
+                    className="font-mono text-[16px] font-[400] ml-1"
+                    style={{ color: SUNRISE_TEXT.muted }}
+                  >
+                    / {monthStats.totalCountedDays || '—'}
                   </span>
                 </div>
-                <div
-                  className="mt-1 font-ui text-[10px] tracking-[0.28em] uppercase"
-                  style={{ color: SUNRISE_TEXT.muted }}
-                >
-                  Días con ≥ 3 hábitos
-                </div>
               </div>
-              <div className="text-right">
+              {/* RIGHT · adherencia (dorado sólido) */}
+              <div
+                className="shrink-0 flex flex-col justify-between px-4 py-3.5"
+                style={{
+                  width: '40%',
+                  maxWidth: 168,
+                  background: SUNRISE.rise2,
+                  color: SUNRISE.night,
+                }}
+              >
+                <span
+                  className="font-ui text-[9.5px] tracking-[0.32em] uppercase font-[700]"
+                  style={{ color: SUNRISE.night, opacity: 0.7 }}
+                >
+                  adherencia
+                </span>
                 <div
-                  className="font-display italic font-[400] text-[15px]"
-                  style={{ color: SUNRISE_TEXT.soft }}
+                  className="font-headline font-[700] leading-none lowercase tracking-[-0.025em] mt-2"
+                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: SUNRISE.night }}
                 >
                   {monthStats.totalCountedDays > 0
-                    ? `${Math.round((monthStats.daysCompleted / monthStats.totalCountedDays) * 100)} %`
+                    ? Math.round((monthStats.daysCompleted / monthStats.totalCountedDays) * 100)
                     : '—'}
-                </div>
-                <div
-                  className="mt-1 font-ui text-[9.5px] tracking-[0.28em] uppercase"
-                  style={{ color: SUNRISE_TEXT.muted }}
-                >
-                  Adherencia
+                  {monthStats.totalCountedDays > 0 && (
+                    <span
+                      className="font-mono text-[16px] font-[400] ml-1"
+                      style={{ color: SUNRISE.night, opacity: 0.5 }}
+                    >
+                      %
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -473,11 +563,11 @@ function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: Calen
       )}
       {isHolidayDay && showTip && (
         <span
-          className="absolute z-20 left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap font-ui text-[10px] tracking-wider rounded-md px-2 py-1 pointer-events-none"
+          className="absolute z-20 left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap font-ui text-[9.5px] tracking-[0.2em] uppercase rounded-md px-2 py-1 pointer-events-none font-[600]"
           style={{
-            background: SUNRISE.predawn2,
-            color: SUNRISE_TEXT.primary,
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
+            background: SUNRISE.rise2,
+            color: SUNRISE.night,
+            boxShadow: `0 4px 12px -2px ${hexToRgba(SUNRISE.rise2, 0.4)}`,
           }}
         >
           {holiday!.name}

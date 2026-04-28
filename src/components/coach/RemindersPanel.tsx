@@ -13,7 +13,7 @@
 //     con relativa + clock.
 // ═══════════════════════════════════════════════════════════
 
-import { Bell, BellOff, Clock, Clock4, X } from 'lucide-react';
+import { Bell, BellOff, Clock, Clock4, X, ArrowUpRight } from 'lucide-react';
 import {
   type CoachReminder,
   reminderClockLabel,
@@ -54,58 +54,84 @@ export default function RemindersPanel({
   // No renderizar si no hay nada que decir.
   if (!hasReminders && permission !== 'default') return null;
 
-  // CTA para pedir permiso.
+  // CTA para pedir permiso · estilo hero card dorado-filled (acorde a HeroActionCard).
   if (permission === 'default' && hasReminders) {
     return (
-      <div
-        className="rounded-2xl p-4"
+      <button
+        type="button"
+        onClick={() => { haptics.tap(); onRequestPermission(); }}
+        className="w-full text-left transition-transform active:scale-[0.99]"
         style={{
-          background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.rise2, 0.14)} 0%, ${hexToRgba(SUNRISE.rise2, 0.04)} 100%)`,
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
-          boxShadow: `0 14px 40px -22px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+          background: SUNRISE.rise2,
+          color: SUNRISE.night,
+          padding: '16px 18px 14px',
+          borderRadius: 24,
+          boxShadow: `0 14px 32px -12px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
         }}
       >
-        <div className="flex items-start gap-3">
-          <span
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{
-              background: hexToRgba(SUNRISE.rise2, 0.2),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
-              color: SUNRISE.rise2,
-            }}
-          >
-            <Bell size={16} strokeWidth={1.85} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div
-              className="font-display italic font-[400] text-[15px] leading-tight"
-              style={{ color: SUNRISE_TEXT.primary }}
+        {/* Top row · icon kicker + arrow */}
+        <div className="flex items-start justify-between gap-3 mb-3.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: hexToRgba(SUNRISE.night, 0.16) }}
             >
-              Activar avisos
-            </div>
-            <p
-              className="font-mono text-[11px] leading-snug mt-1"
-              style={{ color: SUNRISE_TEXT.muted }}
+              <Bell size={13} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
+            </span>
+            <span
+              className="font-ui text-[10px] tracking-[0.32em] uppercase font-[700] truncate"
+              style={{ color: SUNRISE.night, opacity: 0.7 }}
             >
-              Tienes {reminders.length} recordatorio{reminders.length === 1 ? '' : 's'} en cola
-              para hoy. Permití notificaciones para que la app te avise aunque
-              esté cerrada.
-            </p>
+              notificaciones
+            </span>
           </div>
+          <ArrowUpRight
+            size={18}
+            strokeWidth={2.4}
+            style={{ color: SUNRISE.night, flexShrink: 0 }}
+          />
         </div>
-        <button
-          type="button"
-          onClick={() => { haptics.tap(); onRequestPermission(); }}
-          className="w-full mt-3 rounded-full py-2 font-ui text-[10.5px] tracking-[0.28em] uppercase transition-transform active:scale-[0.98]"
+
+        {/* Big title */}
+        <div
+          className="font-headline font-[700] leading-[0.95] lowercase tracking-[-0.02em]"
           style={{
-            background: hexToRgba(SUNRISE.rise2, 0.18),
-            color: SUNRISE.rise2,
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+            fontSize: 'clamp(1.55rem, 6vw, 1.9rem)',
+            color: SUNRISE.night,
           }}
         >
-          Activar
-        </button>
-      </div>
+          activar avisos
+        </div>
+
+        {/* Body */}
+        <p
+          className="font-mono text-[11.5px] leading-[1.4] mt-2"
+          style={{ color: SUNRISE.night, opacity: 0.72 }}
+        >
+          {reminders.length} recordatorio{reminders.length === 1 ? '' : 's'} en cola
+          para hoy. Permití notificaciones para que la app te avise aunque
+          esté cerrada.
+        </p>
+
+        {/* Bottom row · contexto + cta */}
+        <div
+          className="flex items-center justify-between mt-4 pt-3"
+          style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.night, 0.2)}` }}
+        >
+          <span
+            className="font-ui text-[10px] tracking-[0.3em] uppercase font-[700]"
+            style={{ color: SUNRISE.night, opacity: 0.65 }}
+          >
+            ios pwa · safari
+          </span>
+          <span
+            className="font-ui text-[11px] tracking-[0.3em] uppercase font-[700]"
+            style={{ color: SUNRISE.night }}
+          >
+            permitir →
+          </span>
+        </div>
+      </button>
     );
   }
 
@@ -117,10 +143,13 @@ export default function RemindersPanel({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="overflow-hidden"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
       <div className="px-4 py-2.5 flex items-center gap-2">
@@ -190,7 +219,7 @@ export default function RemindersPanel({
               </div>
               <div className="text-right shrink-0">
                 <div
-                  className="font-display italic font-[400] text-[14px] leading-tight"
+                  className="font-headline font-[700] text-[16px] leading-none lowercase tracking-[-0.01em] tabular-nums"
                   style={{ color: fired ? SUNRISE_TEXT.muted : SUNRISE.rise2 }}
                 >
                   {reminderClockLabel(r)}
@@ -251,7 +280,7 @@ function ChipButton({
       style={{
         background: isDanger
           ? hexToRgba('#ff6b6b', 0.1)
-          : hexToRgba(SUNRISE.predawn2, 0.5),
+          : hexToRgba(SUNRISE.night, 0.5),
         border: `1px solid ${
           isDanger ? hexToRgba('#ff6b6b', 0.3) : hexToRgba(SUNRISE.rise2, 0.18)
         }`,

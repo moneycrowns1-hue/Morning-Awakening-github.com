@@ -45,22 +45,62 @@ export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSche
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="overflow-hidden"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <div className="px-4 py-2.5 flex items-center gap-2">
-        <Pill size={12} strokeWidth={1.85} style={{ color: SUNRISE.rise2 }} />
-        <span
-          className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
-          style={{ color: SUNRISE_TEXT.muted }}
-        >
-          Pastillas programadas · {scheduledProducts.length}
-        </span>
+      {/* HEADER · split bento (dark info + dorado add button) */}
+      <div className="flex items-stretch">
+        <div className="flex-1 min-w-0 flex items-center gap-3" style={{ padding: '12px 16px' }}>
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: hexToRgba(SUNRISE.rise2, 0.16),
+              color: SUNRISE.rise2,
+            }}
+          >
+            <Pill size={15} strokeWidth={2} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-headline font-[600] text-[16px] leading-tight lowercase tracking-[-0.015em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              pastillas programadas
+            </div>
+            <div
+              className="font-mono text-[10.5px] tracking-wider mt-0.5"
+              style={{ color: SUNRISE_TEXT.muted }}
+            >
+              {scheduledProducts.length === 0
+                ? 'sin horarios activos'
+                : `${scheduledProducts.length} activa${scheduledProducts.length === 1 ? '' : 's'}`}
+            </div>
+          </div>
+        </div>
+        {!picker && availableProducts.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { haptics.tick(); setPicker(true); }}
+            aria-label="Añadir pastilla"
+            className="shrink-0 flex items-center justify-center transition-transform active:scale-[0.97]"
+            style={{
+              width: 64,
+              background: SUNRISE.rise2,
+              color: SUNRISE.night,
+            }}
+          >
+            <Plus size={22} strokeWidth={2.5} style={{ color: SUNRISE.night }} />
+          </button>
+        )}
       </div>
 
+      {/* EMPTY STATE */}
       {scheduledProducts.length === 0 && !picker && (
         <div
           className="px-4 py-3 font-mono text-[11px] leading-snug"
@@ -69,11 +109,11 @@ export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSche
             borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
           }}
         >
-          Sin horarios activos. Añadí uno para que el coach te recuerde
-          la toma diaria.
+          Tocá <span style={{ color: SUNRISE.rise2, fontWeight: 700 }}>+</span> para que el coach te recuerde la toma diaria.
         </div>
       )}
 
+      {/* SCHEDULE ROWS */}
       {scheduledProducts.length > 0 && (
         <div
           className="flex flex-col"
@@ -91,28 +131,14 @@ export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSche
         </div>
       )}
 
-      {!picker && availableProducts.length > 0 && (
-        <button
-          type="button"
-          onClick={() => { haptics.tick(); setPicker(true); }}
-          className="w-full px-4 py-2.5 flex items-center justify-center gap-1.5 font-ui text-[10px] tracking-[0.28em] uppercase transition-colors"
-          style={{
-            color: SUNRISE.rise2,
-            background: hexToRgba(SUNRISE.rise2, 0.06),
-            borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
-          }}
-        >
-          <Plus size={12} strokeWidth={1.85} /> Añadir pastilla
-        </button>
-      )}
-
+      {/* PICKER */}
       {picker && (
         <div
-          className="px-3 py-2.5 flex flex-col gap-1.5"
+          className="px-3 pt-3 pb-3 flex flex-col gap-1.5"
           style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}` }}
         >
           <div
-            className="font-ui text-[9px] tracking-[0.28em] uppercase pl-1 pb-1"
+            className="font-ui text-[9.5px] tracking-[0.3em] uppercase pl-1 pb-1"
             style={{ color: SUNRISE_TEXT.muted }}
           >
             Elegí del arsenal oral
@@ -127,17 +153,17 @@ export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSche
                 onSet(p.id, { hour: t.h, minute: t.m });
                 setPicker(false);
               }}
-              className="text-left rounded-lg px-3 py-2 transition-transform active:scale-[0.99]"
+              className="text-left rounded-xl px-3 py-2 transition-transform active:scale-[0.99]"
               style={{
-                background: hexToRgba(SUNRISE.rise2, 0.05),
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
+                background: hexToRgba(SUNRISE.night, 0.5),
+                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
               }}
             >
               <div
-                className="font-display italic font-[400] text-[13px] leading-tight"
+                className="font-headline font-[600] text-[13px] leading-tight lowercase tracking-[-0.01em]"
                 style={{ color: SUNRISE_TEXT.primary }}
               >
-                {p.name}
+                {p.name.toLowerCase()}
               </div>
               <div
                 className="font-mono text-[10px] tracking-wider mt-0.5"
@@ -150,7 +176,7 @@ export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSche
           <button
             type="button"
             onClick={() => { haptics.tick(); setPicker(false); }}
-            className="font-ui text-[9px] tracking-[0.28em] uppercase py-1.5 mt-1"
+            className="font-ui text-[9.5px] tracking-[0.3em] uppercase py-2 mt-1"
             style={{ color: SUNRISE_TEXT.muted }}
           >
             Cancelar
@@ -181,23 +207,23 @@ function ScheduleRow({
       className="px-4 py-2.5 flex flex-col gap-2"
       style={{ borderBottom: `1px solid ${hexToRgba(SUNRISE.rise2, 0.08)}` }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <span
-          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
           style={{
             background: hexToRgba(SUNRISE.rise2, 0.14),
             color: SUNRISE.rise2,
             border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
           }}
         >
-          <Pill size={12} strokeWidth={1.85} />
+          <Pill size={13} strokeWidth={2} />
         </span>
         <div className="flex-1 min-w-0">
           <div
-            className="font-mono text-[11.5px] leading-tight"
+            className="font-headline font-[600] text-[13.5px] leading-tight lowercase tracking-[-0.01em] truncate"
             style={{ color: SUNRISE_TEXT.primary }}
           >
-            {product.name}
+            {product.name.toLowerCase()}
           </div>
           <div
             className="font-mono text-[9.5px] tracking-wider mt-0.5"
@@ -209,13 +235,19 @@ function ScheduleRow({
         <button
           type="button"
           onClick={() => { haptics.tick(); setEditing(e => !e); }}
-          className="font-display italic font-[400] text-[14px] leading-tight inline-flex items-center gap-1"
-          style={{ color: SUNRISE.rise2 }}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-colors"
+          style={{
+            background: hexToRgba(SUNRISE.rise2, 0.14),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+            color: SUNRISE.rise2,
+          }}
         >
-          {hh}:{mm}
+          <span className="font-mono text-[12px] tabular-nums font-[600]">
+            {hh}:{mm}
+          </span>
           <ChevronDown
             size={12}
-            strokeWidth={1.85}
+            strokeWidth={2.2}
             style={{
               transform: editing ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 200ms',
@@ -227,13 +259,13 @@ function ScheduleRow({
           onClick={onRemove}
           className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-[0.94]"
           style={{
-            background: hexToRgba('#ff6b6b', 0.1),
+            background: hexToRgba('#ff6b6b', 0.12),
             color: '#ff6b6b',
-            border: `1px solid ${hexToRgba('#ff6b6b', 0.3)}`,
+            border: `1px solid ${hexToRgba('#ff6b6b', 0.32)}`,
           }}
           aria-label="Quitar"
         >
-          <Trash2 size={11} strokeWidth={1.85} />
+          <Trash2 size={11} strokeWidth={2} />
         </button>
       </div>
       {editing && (

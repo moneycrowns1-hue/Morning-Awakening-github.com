@@ -3,19 +3,19 @@
 // ═══════════════════════════════════════════════════════════
 // FitnessBridgeScreen · Apple Fitness (vía Shortcut) modal
 //
-// Misma arquitectura que HealthBridgeScreen pero orientado al
-// flujo de mañana. Lee del MISMO snapshot (porque Apple Fitness
-// vive dentro de Apple Health), pero la copy y los visuales
-// hablan de pasos, calorías y minutos de ejercicio.
-//
-//   mode='connect'     → primera vez: instalá / corré el atajo
-//                        de mañana, que incluye el bloque
-//                        `fitness` en el JSON de salida.
-//   mode='permissions' → datos vencidos (>6h) o el atajo falló.
+// Diseño · masthead editorial NightMissionPhase:
+//   - Modal full-screen con header masthead (close + brand mono).
+//   - Hero title lowercase + punto ámbar.
+//   - Body con DataChips (pasos/calorías/ejercicio · activity rings)
+//     o instrucciones de permisos.
+//   - Footer · CTA principal V5 con label mono uppercase.
+// Activity ring colors (Apple Fitness Move/Exercise/Stand) se
+// preservan como design tokens fijos · son identidad de marca.
 // ═══════════════════════════════════════════════════════════
 
 import { X, ArrowUpRight, Activity, Flame, Footprints } from 'lucide-react';
 import { hexToRgba } from '@/lib/common/theme';
+import { useNightPalette } from '@/lib/night/nightPalette';
 import { haptics } from '@/lib/common/haptics';
 import { withBasePath } from '@/lib/common/publicPath';
 
@@ -30,28 +30,14 @@ interface FitnessBridgeScreenProps {
 const SHORTCUT_NAME = 'Morning Awakening Sync';
 const SHORTCUT_ICLOUD_URL = '';
 
-// Morning palette — warmer than the night theme (sunrise rose +
-// peach + warm cream) so the Fitness modal feels distinct.
-const SUN = {
-  base: '#1a0f1f',
-  warm_1: '#3a1f2a',
-  warm_2: '#5a2f3a',
-  rose: '#ff9aa2',
-  peach: '#ffd4a8',
-  cream: '#fff5e8',
-  ring_move: '#ff375f',     // Apple Fitness Move ring
-  ring_exercise: '#a3ff5f', // Exercise ring
-  ring_stand: '#5fc8ff',    // Stand ring
-};
-
-const TEXT = {
-  primary: '#fff5e8',
-  soft: '#ffd9c2',
-  muted: '#bf9d8a',
-  divider: 'rgba(255, 213, 194, 0.18)',
-};
+// Apple Fitness ring colors · fixed design tokens (brand identity).
+const RING_MOVE     = '#ff375f';
+const RING_EXERCISE = '#a3ff5f';
+const RING_STAND    = '#5fc8ff';
 
 export default function FitnessBridgeScreen({ mode, onClose, onAction }: FitnessBridgeScreenProps) {
+  const { palette: N, paletteText: NT } = useNightPalette();
+
   const handlePrimary = () => {
     haptics.tick();
     onAction?.();
@@ -74,150 +60,283 @@ export default function FitnessBridgeScreen({ mode, onClose, onAction }: Fitness
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: 'rgba(15,5,8,0.82)', backdropFilter: 'blur(6px)' }}
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      style={{ background: N.void, color: NT.primary }}
     >
+      {/* ─── Header · MASTHEAD editorial ─── */}
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-[360px] rounded-[28px] overflow-hidden"
-        style={{
-          background: `linear-gradient(180deg, ${hexToRgba(SUN.warm_2, 0.92)} 0%, ${hexToRgba(SUN.base, 0.98)} 100%)`,
-          border: `1px solid ${hexToRgba(SUN.peach, 0.18)}`,
-          boxShadow: `0 30px 80px -20px rgba(0,0,0,0.8), 0 0 0 1px ${hexToRgba(SUN.peach, 0.08)} inset`,
-        }}
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        <div
-          className="mx-auto mt-3 w-10 h-[4px] rounded-full"
-          style={{ background: hexToRgba(SUN.cream, 0.25) }}
-        />
+        <div className="flex items-center justify-between pb-2.5">
+          <button
+            onClick={() => { haptics.tap(); onClose(); }}
+            aria-label="Cerrar"
+            className="flex items-center gap-2 transition-opacity active:opacity-60"
+            style={{ color: NT.muted }}
+          >
+            <X size={14} strokeWidth={2.2} />
+            <span
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: N.amber,
+                borderRadius: 99,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
+              }}
+              className="night-breath"
+            />
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[500]"
+              style={{ color: NT.muted, fontSize: 9 }}
+            >
+              soporte · apple fitness
+            </span>
+          </button>
+          <span
+            className="font-mono uppercase tracking-[0.18em] font-[500]"
+            style={{ color: NT.muted, fontSize: 10 }}
+          >
+            <span style={{ color: NT.primary, fontWeight: 600 }}>
+              {mode === 'connect' ? 'connect' : 'permisos'}
+            </span>
+          </span>
+        </div>
+        <div className="h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }} />
+      </div>
 
-        {mode === 'connect' ? <ConnectBody onInstall={handleInstall} /> : <PermissionsBody />}
+      {/* ─── Body ────────────────────────────────────────────── */}
+      <div className="flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6 overflow-y-auto">
+        {/* Top corners */}
+        <div className="mt-3 flex items-baseline justify-between">
+          <span
+            className="font-mono tabular-nums font-[600]"
+            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
+          >
+            ⌬
+            <span style={{ color: N.amber }}>.</span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · health bridge ·
+          </span>
+        </div>
 
-        <div className="px-6 pb-5 pt-2">
+        {mode === 'connect' ? (
+          <ConnectBody N={N} NT={NT} onInstall={handleInstall} />
+        ) : (
+          <PermissionsBody N={N} NT={NT} />
+        )}
+      </div>
+
+      {/* ─── Footer · CTA V5 ─────────────────── */}
+      <div
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <div className="flex items-center gap-3 pt-3">
           {mode === 'connect' ? (
             <button
               onClick={handlePrimary}
-              className="w-full rounded-full py-4 font-ui font-[500] text-[14px] tracking-wider transition-transform active:scale-[0.98]"
+              className="flex-1 font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985]"
               style={{
-                background: SUN.peach,
-                color: SUN.base,
-                boxShadow: `0 12px 32px -8px ${hexToRgba(SUN.peach, 0.6)}`,
+                padding: '14px 28px',
+                background: N.amber,
+                color: N.void,
+                fontSize: 10.5,
+                boxShadow: `0 8px 24px -6px ${hexToRgba(N.amber, 0.5)}`,
               }}
             >
-              Conectar
+              conectar
             </button>
           ) : (
-            <div className="flex items-center gap-3">
+            <>
               <button
-                onClick={onClose}
-                className="flex-1 rounded-full py-3.5 font-ui text-[13px] tracking-wider transition-transform active:scale-[0.98]"
+                onClick={() => { haptics.tap(); onClose(); }}
+                className="flex-1 font-mono font-[600] tracking-[0.32em] uppercase transition-opacity active:opacity-70"
                 style={{
-                  background: hexToRgba(SUN.base, 0.6),
-                  border: `1px solid ${TEXT.divider}`,
-                  color: TEXT.primary,
+                  padding: '14px 24px',
+                  background: 'transparent',
+                  color: NT.soft,
+                  fontSize: 10,
+                  border: `1px solid ${hexToRgba(N.amber, 0.25)}`,
                 }}
               >
-                Cerrar
+                cerrar
               </button>
               <button
                 onClick={handlePrimary}
-                className="flex-1 rounded-full py-3.5 font-ui font-[500] text-[13px] tracking-wider inline-flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98]"
+                className="flex-1 font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985] flex items-center justify-center gap-2"
                 style={{
-                  background: SUN.peach,
-                  color: SUN.base,
-                  boxShadow: `0 12px 32px -8px ${hexToRgba(SUN.peach, 0.6)}`,
+                  padding: '14px 24px',
+                  background: N.amber,
+                  color: N.void,
+                  fontSize: 10.5,
+                  boxShadow: `0 8px 24px -6px ${hexToRgba(N.amber, 0.5)}`,
                 }}
               >
-                Salud
-                <ArrowUpRight size={14} strokeWidth={2.2} />
+                salud
+                <ArrowUpRight size={13} strokeWidth={2.4} />
               </button>
-            </div>
+            </>
           )}
         </div>
-
-        {mode === 'connect' && (
-          <p
-            className="px-6 pb-5 text-center text-[11px] leading-relaxed"
-            style={{ color: TEXT.muted }}
-          >
-            Tus datos de actividad se procesan en tu dispositivo. Los usamos para personalizar el cardio matinal según tu actividad real.
-          </p>
-        )}
-
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{
-            background: hexToRgba(SUN.base, 0.5),
-            color: TEXT.muted,
-          }}
-          aria-label="Cerrar"
-        >
-          <X size={14} strokeWidth={1.8} />
-        </button>
       </div>
     </div>
   );
 }
 
-// ────────────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────
 
-function ConnectBody({ onInstall }: { onInstall: () => void }) {
+interface PaletteProps {
+  N: ReturnType<typeof useNightPalette>['palette'];
+  NT: ReturnType<typeof useNightPalette>['paletteText'];
+}
+
+function ConnectBody({ N, NT, onInstall }: PaletteProps & { onInstall: () => void }) {
   return (
-    <div className="px-6 pt-6 pb-3 text-center">
-      <h2 className="font-display italic font-[400] text-[22px] leading-tight" style={{ color: TEXT.primary }}>
-        Conectar Apple Fitness
-      </h2>
-      <p className="mt-2 text-[13px] leading-relaxed" style={{ color: TEXT.soft }}>
-        Morning Awakening lee tus pasos, calorías activas y ejercicio para ajustar el cardio matinal a tu actividad real.
+    <>
+      {/* Hero title */}
+      <h1
+        className="font-headline font-[700] lowercase tracking-[-0.04em] mt-5"
+        style={{
+          color: NT.primary,
+          fontSize: 'clamp(2rem, 7.5vw, 2.8rem)',
+          lineHeight: 0.95,
+          textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+          textWrap: 'balance' as never,
+          maxWidth: '14ch',
+        }}
+      >
+        conectar apple fitness
+        <span style={{ color: N.amber }}>.</span>
+      </h1>
+
+      <p
+        className="mt-3 font-ui text-[12.5px] leading-[1.55] max-w-[36ch]"
+        style={{ color: NT.soft }}
+      >
+        Morning Awakening lee tus pasos, calorías activas y minutos de ejercicio
+        para ajustar el cardio matinal a tu actividad real.
       </p>
 
-      {/* What we read — three icon row */}
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        <DataChip
-          icon={<Footprints size={16} strokeWidth={1.8} />}
-          label="Pasos"
-          tint={SUN.ring_stand}
-        />
-        <DataChip
-          icon={<Flame size={16} strokeWidth={1.8} />}
-          label="Calorías"
-          tint={SUN.ring_move}
-        />
-        <DataChip
-          icon={<Activity size={16} strokeWidth={1.8} />}
-          label="Ejercicio"
-          tint={SUN.ring_exercise}
-        />
+      {/* What we read · 3 chips */}
+      <div className="mt-7 grid grid-cols-3 gap-2">
+        <DataChip icon={<Footprints size={16} strokeWidth={1.8} />} label="pasos" tint={RING_STAND} N={N} NT={NT} />
+        <DataChip icon={<Flame size={16} strokeWidth={1.8} />} label="calorías" tint={RING_MOVE} N={N} NT={NT} />
+        <DataChip icon={<Activity size={16} strokeWidth={1.8} />} label="ejercicio" tint={RING_EXERCISE} N={N} NT={NT} />
       </div>
 
-      {/* Activity rings mock */}
-      <ActivityRingsMock />
+      {/* Activity rings mock + amber halo */}
+      <div className="relative mt-8 mb-2 flex justify-center">
+        <div
+          aria-hidden
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            inset: -12,
+            width: 120,
+            height: 120,
+            background: `radial-gradient(circle, ${hexToRgba(N.amber, 0.22)} 0%, transparent 70%)`,
+            filter: 'blur(14px)',
+            margin: 'auto',
+          }}
+        />
+        <ActivityRingsMock />
+      </div>
 
       <button
         onClick={onInstall}
-        className="mt-3 inline-flex items-center gap-1 font-ui text-[11px] uppercase tracking-[0.22em] transition-opacity hover:opacity-80"
-        style={{ color: SUN.peach }}
+        className="mt-2 mx-auto inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.32em] transition-opacity active:opacity-60"
+        style={{ color: hexToRgba(N.amber, 0.85), fontSize: 9, fontWeight: 600 }}
       >
-        ¿Primera vez? Instalá el atajo
-        <ArrowUpRight size={12} strokeWidth={2} />
+        ¿primera vez? instalá el atajo
+        <ArrowUpRight size={11} strokeWidth={2.2} />
       </button>
-    </div>
+
+      <p
+        className="mt-6 mb-4 text-center font-ui text-[10.5px] leading-[1.55]"
+        style={{ color: NT.muted }}
+      >
+        Tus datos de actividad se procesan en tu dispositivo. Los usamos para
+        personalizar el cardio matinal según tu actividad real.
+      </p>
+    </>
   );
 }
 
-function DataChip({ icon, label, tint }: { icon: React.ReactNode; label: string; tint: string }) {
+function PermissionsBody({ N, NT }: PaletteProps) {
+  return (
+    <>
+      <h1
+        className="font-headline font-[700] lowercase tracking-[-0.04em] mt-5"
+        style={{
+          color: NT.primary,
+          fontSize: 'clamp(2rem, 7.5vw, 2.8rem)',
+          lineHeight: 0.95,
+          textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+          maxWidth: '14ch',
+        }}
+      >
+        necesitamos permisos
+        <span style={{ color: N.amber }}>.</span>
+      </h1>
+
+      <p
+        className="mt-3 font-ui text-[12.5px] leading-[1.55] max-w-[36ch]"
+        style={{ color: NT.soft }}
+      >
+        Parece que no tenemos permiso para leer tu actividad de Apple Health.
+        Habilitalo en la app Salud → tu perfil → Apps → Morning Awakening.
+      </p>
+
+      {/* Breadcrumb path · jeton style */}
+      <div
+        className="mt-7 px-4 py-3.5 font-ui text-[12.5px] leading-[1.6]"
+        style={{
+          background: hexToRgba(N.amber, 0.06),
+          border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
+          color: NT.soft,
+        }}
+      >
+        <span style={{ color: NT.muted }}>Salud</span>{' '}
+        <span style={{ color: hexToRgba(N.amber, 0.5) }}>›</span>{' '}
+        <span style={{ color: NT.muted }}>Perfil</span>{' '}
+        <span style={{ color: hexToRgba(N.amber, 0.5) }}>›</span>{' '}
+        <span style={{ color: NT.muted }}>Apps</span>{' '}
+        <span style={{ color: hexToRgba(N.amber, 0.5) }}>›</span>{' '}
+        <span style={{ color: N.amber, fontWeight: 600 }}>Morning Awakening</span>{' '}
+        <span style={{ color: hexToRgba(N.amber, 0.5) }}>›</span>{' '}
+        <span style={{ color: NT.primary, fontWeight: 600 }}>Activar todo</span>
+      </div>
+
+      <div className="h-4" />
+    </>
+  );
+}
+
+function DataChip({
+  icon,
+  label,
+  tint,
+  N,
+  NT,
+}: { icon: React.ReactNode; label: string; tint: string } & PaletteProps) {
   return (
     <div
-      className="flex flex-col items-center gap-1.5 rounded-2xl py-3"
+      className="flex flex-col items-center gap-1.5 py-3.5"
       style={{
-        background: hexToRgba(SUN.base, 0.5),
-        border: `1px solid ${hexToRgba(tint, 0.3)}`,
+        background: hexToRgba(tint, 0.08),
+        border: `1px solid ${hexToRgba(tint, 0.32)}`,
       }}
     >
       <div style={{ color: tint }}>{icon}</div>
-      <div className="font-ui text-[10px] uppercase tracking-[0.22em]" style={{ color: TEXT.soft }}>
+      <div
+        className="font-mono uppercase tracking-[0.28em] font-[600]"
+        style={{ color: NT.soft, fontSize: 9 }}
+      >
         {label}
       </div>
     </div>
@@ -226,19 +345,14 @@ function DataChip({ icon, label, tint }: { icon: React.ReactNode; label: string;
 
 /** Apple Fitness style three concentric rings (Move/Exercise/Stand). */
 function ActivityRingsMock() {
-  const ringSize = 80;
+  const ringSize = 100;
   const stroke = 9;
   return (
-    <div className="mt-6 flex justify-center">
-      <svg width={ringSize} height={ringSize} viewBox="0 0 100 100">
-        {/* Outer · Move (red) */}
-        <Ring r={44} stroke={stroke} color={SUN.ring_move} progress={0.78} />
-        {/* Middle · Exercise (green) */}
-        <Ring r={32} stroke={stroke} color={SUN.ring_exercise} progress={0.62} />
-        {/* Inner · Stand (blue) */}
-        <Ring r={20} stroke={stroke} color={SUN.ring_stand} progress={0.85} />
-      </svg>
-    </div>
+    <svg width={ringSize} height={ringSize} viewBox="0 0 100 100">
+      <Ring r={44} stroke={stroke} color={RING_MOVE} progress={0.78} />
+      <Ring r={32} stroke={stroke} color={RING_EXERCISE} progress={0.62} />
+      <Ring r={20} stroke={stroke} color={RING_STAND} progress={0.85} />
+    </svg>
   );
 }
 
@@ -258,34 +372,5 @@ function Ring({ r, stroke, color, progress }: { r: number; stroke: number; color
         transform={`rotate(-90 ${cx} ${cy})`}
       />
     </>
-  );
-}
-
-function PermissionsBody() {
-  return (
-    <div className="px-6 pt-6 pb-3 text-center">
-      <h2 className="font-display italic font-[400] text-[22px] leading-tight" style={{ color: TEXT.primary }}>
-        Necesitamos permisos
-      </h2>
-      <p className="mt-2 text-[13px] leading-relaxed" style={{ color: TEXT.soft }}>
-        Parece que no tenemos permiso para leer tu actividad de Apple Health. Habilitalo en la app Salud → tu perfil → Apps → Morning Awakening.
-      </p>
-
-      {/* Path mock */}
-      <div
-        className="mt-5 rounded-2xl px-4 py-3 text-left text-[12px] leading-relaxed"
-        style={{
-          background: hexToRgba(SUN.base, 0.55),
-          border: `1px solid ${TEXT.divider}`,
-          color: TEXT.soft,
-        }}
-      >
-        <span style={{ color: TEXT.muted }}>Salud</span> ›{' '}
-        <span style={{ color: TEXT.muted }}>Perfil</span> ›{' '}
-        <span style={{ color: TEXT.muted }}>Apps</span> ›{' '}
-        <span style={{ color: SUN.peach }}>Morning Awakening</span> ›{' '}
-        <span style={{ color: TEXT.primary }}>Activar todo</span>
-      </div>
-    </div>
   );
 }

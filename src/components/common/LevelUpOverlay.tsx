@@ -86,10 +86,10 @@ export default function LevelUpOverlay({ newLevel, previousLevel, onDone }: Leve
       </div>
 
       <div
-        className="font-display italic text-[32px] leading-none mb-1"
+        className="font-headline font-[700] text-[34px] leading-none lowercase tracking-[-0.025em] mb-1 tabular-nums"
         style={{ color: 'var(--sunrise-text)' }}
       >
-        Nivel {newLevel}
+        nivel {newLevel}
       </div>
 
       {rankChanged && (

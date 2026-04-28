@@ -1,47 +1,48 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════
-// NucleusBlockCard · expandable card for the timeline screen
+// NucleusBlockCard · big showcase card (Craftsmen-style)
 //
-// Renders one of the 6 NUCLEUS macro-blocks as a tall card with
-// a left rail (kanji + time progress), a header (codename +
-// title + window), and a collapsible body that shows the
-// narrative, directive, scienceNote, micro-habit checklist, and
-// (optionally) a special action button (NSDR launcher, etc.).
+// Diseño · poppr.be / jeton.com / thecraftsmen.tech showcase:
+//   ┌─────────────────────────────────────────┐ rounded 22
+//   │  02.                    en curso ·      │ numeral + status
+//   │                                         │
+//   │         enfoque                         │ huge lowercase
+//   │                                         │
+//   │  06:50 — 09:00 · 2h 10m                 │ time mono
+//   │  ─────────────────────────────          │ hairline
+//   │  abrir                            ↗     │ action footer
+//   └─────────────────────────────────────────┘
 //
-// Animation duties:
-//   - Card entrance: fade + slide-up via parent (stagger).
-//   - Active block: warm-gold halo pulse using GSAP.
-//   - Expand/collapse: GSAP timeline that animates max-height
-//     of the body section.
-//   - Habit check: stroke-dashoffset + scale punch + golden
-//     particles on completion (lightweight, no plugin).
+//   - Active: solid accent bg + ink-paper text (CTA-style).
+//   - Upcoming: tint glass + accent hairline.
+//   - Past: dimmed glass.
+//   - Paused: muy dimmed, "en pausa hoy".
+//   - Tap → expande body con narrative, directiva, micro-hábitos,
+//     ciencia, tips (animado con GSAP).
 // ═══════════════════════════════════════════════════════════
 
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { Check, ChevronDown, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown } from 'lucide-react';
 import {
   describeWindow,
   getBlockProgress,
   type NucleusBlock,
 } from '@/lib/nucleus/nucleusConstants';
-import { NUCLEUS, NUCLEUS_TEXT, getNucleusStageColors, nucleusRgba } from '@/lib/nucleus/nucleusTheme';
+import { useAppTheme } from '@/lib/common/appTheme';
+import { hexToRgba } from '@/lib/common/theme';
 import { isHabitDone, setHabit } from '@/lib/common/habits';
 import { haptics } from '@/lib/common/haptics';
 import type { HabitId } from '@/lib/common/habits';
 
 interface NucleusBlockCardProps {
   block: NucleusBlock;
-  /** Compared against block window to render "active" / "past" / "upcoming". */
+  /** 1-indexed position in the NUCLEUS_BLOCKS list (for numeral). */
+  index: number;
   now: Date;
-  /** Open by default? Active block opens by default. */
   defaultExpanded?: boolean;
-  /** True when the day profile (rest/sat) disables this block today.
-   *  Card renders dimmed with a "En pausa hoy" badge instead of the
-   *  normal status badge, no halo, no auto-expand. */
   pausedToday?: boolean;
-  /** Optional: action handler for blocks that have a sub-screen (NSDR). */
   onAction?: (block: NucleusBlock) => void;
 }
 
@@ -58,41 +59,23 @@ function getStatus(block: NucleusBlock, now: Date): BlockStatus {
   return 'active';
 }
 
-export default function NucleusBlockCard({ block, now, defaultExpanded, pausedToday, onAction }: NucleusBlockCardProps) {
+export default function NucleusBlockCard({
+  block, index, now, defaultExpanded, pausedToday, onAction,
+}: NucleusBlockCardProps) {
+  const { day: D, dayText: DT } = useAppTheme();
   const rawStatus = getStatus(block, now);
-  // When paused by day profile, never display as 'active' so the halo,
-  // active border and gold accents don't render even if the wall clock
-  // is inside the block's window.
-  const status: BlockStatus = pausedToday ? rawStatus === 'past' ? 'past' : 'upcoming' : rawStatus;
+  const status: BlockStatus = pausedToday
+    ? rawStatus === 'past' ? 'past' : 'upcoming'
+    : rawStatus;
   const [expanded, setExpanded] = useState<boolean>(
     pausedToday ? false : (defaultExpanded ?? status === 'active'),
   );
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const haloRef = useRef<HTMLDivElement | null>(null);
-  const stage = useMemo(() => getNucleusStageColors(block.id), [block.id]);
-
-  // Halo pulse on active block.
-  useLayoutEffect(() => {
-    const node = haloRef.current;
-    if (status !== 'active' || !node) return;
-    const tween = gsap.to(node, {
-      opacity: 0.9,
-      duration: 2.6,
-      ease: 'sine.inOut',
-      yoyo: true,
-      repeat: -1,
-    });
-    return () => {
-      tween.kill();
-      gsap.set(node, { opacity: 0.55 });
-    };
-  }, [status]);
 
   // Expand / collapse animation.
   useLayoutEffect(() => {
     if (!bodyRef.current) return;
     if (expanded) {
-      // Measure to natural height.
       gsap.fromTo(
         bodyRef.current,
         { height: 0, opacity: 0 },
@@ -116,210 +99,274 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, pausedTo
     }
   }, [expanded]);
 
-  const progress = status === 'active' ? getBlockProgress(block, now) : status === 'past' ? 1 : 0;
+  const progress = useMemo(() => {
+    return status === 'active' ? getBlockProgress(block, now) : status === 'past' ? 1 : 0;
+  }, [status, block, now]);
 
   const toggle = () => {
     haptics.tap();
     setExpanded((v) => !v);
   };
 
+  // ── Color tokens by status ────────────────────────────────
+  const isActive = status === 'active';
+  const isPast = status === 'past';
+
+  // Active card uses solid accent bg + paper text (like CTA pills).
+  // Otherwise tint glass + ink text.
+  const cardBg = isActive ? D.accent : hexToRgba(D.tint, 0.7);
+  const cardBorder = isActive
+    ? D.accent_deep
+    : hexToRgba(D.accent, isPast ? 0.12 : 0.22);
+  const heroColor = isActive ? D.paper : DT.primary;
+  const captionColor = isActive ? hexToRgba(D.paper, 0.7) : DT.muted;
+  const subtleColor = isActive ? hexToRgba(D.paper, 0.85) : DT.soft;
+  const numeralColor = isActive ? D.paper : hexToRgba(D.accent, 0.7);
+  const hairlineColor = isActive
+    ? hexToRgba(D.paper, 0.25)
+    : hexToRgba(D.accent, 0.16);
+
+  // Status caption text
+  const statusLabel = pausedToday
+    ? 'en pausa hoy'
+    : isActive
+    ? 'en curso'
+    : isPast
+    ? 'cerrado'
+    : 'próximo';
+
+  // Time mono caption
+  const timeStr = `${block.startHHMM} — ${block.endHHMM}`;
+  const minutesTotal = (() => {
+    const [sh, sm] = block.startHHMM.split(':').map(Number);
+    const [eh, em] = block.endHHMM.split(':').map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  })();
+  const durationStr = minutesTotal >= 60
+    ? `${Math.floor(minutesTotal / 60)}h ${minutesTotal % 60 > 0 ? `${minutesTotal % 60}m` : ''}`.trim()
+    : `${minutesTotal}m`;
+
   return (
     <div
-      className="relative rounded-2xl overflow-hidden"
       data-block-card={block.id}
+      className="relative overflow-hidden transition-all"
       style={{
-        background: `linear-gradient(165deg, ${nucleusRgba(stage.sky, 0.85)} 0%, ${nucleusRgba(stage.horizon, 0.65)} 100%)`,
-        border: `1px solid ${
-          status === 'active'
-            ? nucleusRgba(NUCLEUS.sun_gold, 0.55)
-            : nucleusRgba(NUCLEUS.cloud, 0.1)
-        }`,
-        boxShadow:
-          status === 'active'
-            ? `0 14px 40px -16px ${nucleusRgba(NUCLEUS.sun_gold, 0.55)}`
-            : '0 4px 18px -10px rgba(0,0,0,0.5)',
-        opacity: pausedToday ? 0.45 : 1,
-        filter: pausedToday ? 'grayscale(0.4)' : 'none',
+        borderRadius: 22,
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
+        boxShadow: isActive
+          ? `0 18px 48px -18px ${hexToRgba(D.accent, 0.55)}`
+          : '0 4px 18px -10px rgba(0,0,0,0.12)',
+        opacity: pausedToday ? 0.55 : 1,
+        backdropFilter: !isActive ? 'blur(10px)' : 'none',
+        WebkitBackdropFilter: !isActive ? 'blur(10px)' : 'none',
       }}
     >
-      {/* Active halo */}
-      {status === 'active' && (
+      {/* Active progress overlay (top hairline filling left→right) */}
+      {isActive && (
         <div
-          ref={haloRef}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse at 90% 0%, ${nucleusRgba(NUCLEUS.sun_halo, 0.4)} 0%, transparent 55%)`,
-            opacity: 0.55,
-          }}
-        />
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[2px]"
+          style={{ background: hexToRgba(D.paper, 0.18) }}
+        >
+          <div
+            className="absolute inset-y-0 left-0"
+            style={{
+              width: `${progress * 100}%`,
+              background: D.paper,
+              transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
+            }}
+          />
+        </div>
       )}
 
       <button
         onClick={toggle}
         aria-expanded={expanded}
-        className="relative w-full flex items-stretch gap-3 px-4 py-3 text-left"
+        className="relative w-full text-left px-5 py-5 md:py-6"
       >
-        {/* Left rail · kanji + progress bar */}
-        <div className="flex flex-col items-center gap-2 shrink-0 w-12">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center"
-            style={{
-              background: nucleusRgba(NUCLEUS.cloud, 0.08),
-              border: `1px solid ${nucleusRgba(NUCLEUS.cloud, 0.15)}`,
-              color: status === 'past' ? NUCLEUS_TEXT.muted : NUCLEUS.sun_halo,
-              fontFamily: 'var(--font-cinzel, serif)',
-              fontSize: 22,
-              fontWeight: 300,
-              textShadow:
-                status === 'active'
-                  ? `0 0 14px ${nucleusRgba(NUCLEUS.sun_gold, 0.55)}`
-                  : 'none',
-            }}
+        {/* ── Top row: numeral + status caption ───────────── */}
+        <div className="flex items-baseline justify-between mb-6 md:mb-8">
+          <span
+            className="font-headline font-[700] tabular-nums tracking-[-0.02em]"
+            style={{ color: numeralColor, fontSize: 22, lineHeight: 1 }}
           >
-            {block.kanji}
-          </div>
-          <div
-            className="relative w-1 h-12 rounded-full"
-            style={{ background: nucleusRgba(NUCLEUS.cloud, 0.12) }}
+            {String(index).padStart(2, '0')}.
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[600]"
+            style={{ color: captionColor, fontSize: 9.5 }}
           >
-            <div
-              className="absolute inset-x-0 bottom-0 rounded-full"
-              style={{
-                height: `${progress * 100}%`,
-                background:
-                  status === 'past'
-                    ? nucleusRgba(NUCLEUS.cloud, 0.45)
-                    : `linear-gradient(180deg, ${NUCLEUS.sun_gold}, ${NUCLEUS.sun_halo})`,
-                transition: 'height 0.6s ease-out',
-              }}
-            />
-          </div>
+            {statusLabel}
+            <span style={{ marginLeft: 5 }}>·</span>
+          </span>
         </div>
 
-        {/* Middle · text */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="font-display italic font-[400] text-[18px] truncate"
-              style={{ color: NUCLEUS_TEXT.primary }}
-            >
-              {block.codename}
-            </span>
-            {pausedToday ? <PausedBadge /> : <StatusBadge status={status} />}
-          </div>
-          <div
-            className="font-ui text-[11px] truncate"
-            style={{ color: NUCLEUS_TEXT.soft }}
-          >
-            {block.title}
-          </div>
-          <div
-            className="mt-1 font-mono text-[10px] tracking-[0.2em]"
-            style={{ color: NUCLEUS_TEXT.muted }}
-          >
-            {describeWindow(block)} · {block.kanjiReading}
-          </div>
-        </div>
-
-        {/* Chevron */}
-        <ChevronDown
-          size={18}
-          strokeWidth={1.8}
+        {/* ── Hero: codename ──────────────────────────────── */}
+        <h3
+          className="font-headline font-[700] lowercase tracking-[-0.045em]"
           style={{
-            color: NUCLEUS_TEXT.soft,
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.3s ease',
+            color: heroColor,
+            fontSize: 'clamp(2.4rem, 8vw, 3.4rem)',
+            lineHeight: 0.92,
+            textShadow: isActive ? `0 0 40px ${hexToRgba(D.accent_deep, 0.32)}` : 'none',
           }}
+        >
+          {block.codename.toLowerCase()}
+          <span style={{ color: isActive ? D.accent_deep : D.accent }}>.</span>
+        </h3>
+
+        {/* ── Subtitle (block.title) ──────────────────────── */}
+        <p
+          className="mt-3 font-ui leading-[1.45] line-clamp-2"
+          style={{ color: subtleColor, fontSize: 13.5 }}
+        >
+          {block.title}
+        </p>
+
+        {/* ── Time mono ───────────────────────────────────── */}
+        <div
+          className="mt-5 font-mono tabular-nums tracking-[0.1em]"
+          style={{ color: captionColor, fontSize: 11 }}
+        >
+          {timeStr} · {durationStr}
+        </div>
+
+        {/* ── Hairline divider ────────────────────────────── */}
+        <div
+          aria-hidden
+          className="mt-4 mb-4 h-[1px] w-full"
+          style={{ background: hairlineColor }}
         />
+
+        {/* ── Footer: action label + arrow ────────────────── */}
+        <div className="flex items-center justify-between">
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: isActive ? D.paper : D.accent, fontSize: 10 }}
+          >
+            {expanded ? 'cerrar' : describeWindow(block).split('·')[1]?.trim() ?? 'abrir'}
+          </span>
+          <ChevronDown
+            size={16}
+            strokeWidth={2.2}
+            style={{
+              color: isActive ? D.paper : D.accent,
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease',
+            }}
+          />
+        </div>
       </button>
 
-      {/* Body (collapsible) */}
+      {/* ─── Body collapsible ─────────────────────────────── */}
       <div
         ref={bodyRef}
         className="relative overflow-hidden"
-        style={{ height: defaultExpanded ?? status === 'active' ? 'auto' : 0, opacity: defaultExpanded ?? status === 'active' ? 1 : 0 }}
+        style={{
+          height: defaultExpanded ?? status === 'active' ? 'auto' : 0,
+          opacity: defaultExpanded ?? status === 'active' ? 1 : 0,
+        }}
       >
-        <div className="px-5 pb-5 pt-1 flex flex-col gap-4">
+        <div
+          className="px-5 pb-6 pt-2 flex flex-col gap-4"
+          style={{ borderTop: `1px solid ${hairlineColor}` }}
+        >
+          {/* Narrative */}
           <p
-            className="font-ui text-[12.5px] leading-[1.6]"
-            style={{ color: NUCLEUS_TEXT.primary }}
+            className="font-ui leading-[1.6] mt-3"
+            style={{ color: subtleColor, fontSize: 13 }}
           >
             {block.narrative}
           </p>
 
+          {/* Directiva · jeton */}
           <div
-            className="rounded-xl p-3"
+            className="px-4 py-3.5"
             style={{
-              background: nucleusRgba(NUCLEUS.sun_gold, 0.08),
-              border: `1px solid ${nucleusRgba(NUCLEUS.sun_gold, 0.25)}`,
+              borderRadius: 14,
+              background: isActive ? hexToRgba(D.paper, 0.16) : hexToRgba(D.accent, 0.08),
+              border: `1px solid ${isActive ? hexToRgba(D.paper, 0.28) : hexToRgba(D.accent, 0.28)}`,
             }}
           >
             <div
-              className="font-ui text-[9.5px] tracking-[0.3em] uppercase mb-1"
-              style={{ color: NUCLEUS.sun_halo }}
+              className="font-mono uppercase tracking-[0.42em] font-[700] mb-1.5"
+              style={{ color: isActive ? D.paper : D.accent, fontSize: 9 }}
             >
-              Directiva
+              · directiva ·
             </div>
             <div
-              className="font-ui text-[12px] leading-[1.5]"
-              style={{ color: NUCLEUS_TEXT.primary }}
+              className="font-ui leading-[1.55]"
+              style={{ color: heroColor, fontSize: 12.5 }}
             >
               {block.directive}
             </div>
           </div>
 
-          {/* Special action (NSDR) */}
+          {/* NSDR action CTA */}
           {block.action === 'nsdr' && onAction && (
             <button
-              onClick={() => { haptics.tap(); onAction(block); }}
-              className="w-full rounded-xl py-3 transition-transform active:scale-[0.98]"
+              onClick={(e) => { e.stopPropagation(); haptics.tap(); onAction(block); }}
+              className="w-full font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985] flex items-center justify-center gap-2"
               style={{
-                background: `linear-gradient(180deg, ${nucleusRgba(NUCLEUS.sun_gold, 0.18)} 0%, ${nucleusRgba(NUCLEUS.horizon_blue, 0.5)} 100%)`,
-                border: `1px solid ${nucleusRgba(NUCLEUS.sun_halo, 0.5)}`,
-                boxShadow: `0 8px 28px -12px ${nucleusRgba(NUCLEUS.sun_gold, 0.45)}`,
+                padding: '14px 20px',
+                borderRadius: 99,
+                fontSize: 11,
+                background: isActive ? D.paper : D.accent,
+                color: isActive ? D.accent : D.paper,
+                boxShadow: `0 8px 24px -6px ${hexToRgba(isActive ? D.accent_deep : D.accent, 0.4)}`,
               }}
             >
-              <span
-                className="font-ui font-[500] text-[12px] tracking-[0.32em] uppercase"
-                style={{ color: NUCLEUS_TEXT.primary }}
-              >
-                Iniciar NSDR · 20 min
-              </span>
+              iniciar NSDR · 20 min
+              <ArrowUpRight size={14} strokeWidth={2.4} />
             </button>
           )}
 
-          {/* Micro-habit checklist */}
+          {/* Micro-habits */}
           {block.microHabits.length > 0 && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col">
               <div
-                className="font-ui text-[9.5px] tracking-[0.3em] uppercase"
-                style={{ color: NUCLEUS_TEXT.muted }}
+                className="font-mono uppercase tracking-[0.42em] font-[700] mb-2"
+                style={{ color: captionColor, fontSize: 9 }}
               >
-                Micro-hábitos
+                · micro-hábitos ·
               </div>
-              {block.microHabits.map((mh) => (
-                <MicroHabitRow key={mh.id} habitId={mh.habitId} label={mh.label} description={mh.description} />
-              ))}
+              <div className="flex flex-col">
+                {block.microHabits.map((mh, i) => (
+                  <MicroHabitRow
+                    key={mh.id}
+                    habitId={mh.habitId}
+                    label={mh.label}
+                    description={mh.description}
+                    index={i + 1}
+                    isActiveCard={isActive}
+                    D={D}
+                    DT={DT}
+                    hairlineColor={hairlineColor}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Science note */}
+          {/* Ciencia note */}
           <div
-            className="rounded-xl p-3"
+            className="px-4 py-3"
             style={{
-              background: nucleusRgba(NUCLEUS.sky_deep, 0.45),
-              border: `1px solid ${nucleusRgba(NUCLEUS.cloud, 0.08)}`,
+              borderRadius: 14,
+              background: isActive ? hexToRgba(D.paper, 0.1) : hexToRgba(D.tint_deep, 0.4),
+              border: `1px solid ${hairlineColor}`,
             }}
           >
             <div
-              className="font-ui text-[9.5px] tracking-[0.3em] uppercase mb-1"
-              style={{ color: NUCLEUS_TEXT.muted }}
+              className="font-mono uppercase tracking-[0.42em] font-[700] mb-1"
+              style={{ color: captionColor, fontSize: 9 }}
             >
-              Ciencia
+              · ciencia ·
             </div>
             <p
-              className="font-ui text-[11.5px] leading-[1.55]"
-              style={{ color: NUCLEUS_TEXT.soft }}
+              className="font-ui leading-[1.55]"
+              style={{ color: subtleColor, fontSize: 11.5 }}
             >
               {block.scienceNote}
             </p>
@@ -327,14 +374,22 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, pausedTo
 
           {/* Tips */}
           {block.tips.length > 0 && (
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-1.5 mt-1">
               {block.tips.map((tip, i) => (
                 <li
                   key={i}
-                  className="flex items-start gap-2 font-ui text-[11px] leading-[1.55]"
-                  style={{ color: NUCLEUS_TEXT.soft }}
+                  className="flex items-start gap-2 font-ui leading-[1.55]"
+                  style={{ color: subtleColor, fontSize: 11.5 }}
                 >
-                  <span style={{ color: NUCLEUS.sun_halo, flexShrink: 0 }}>·</span>
+                  <span
+                    style={{
+                      color: isActive ? D.paper : D.accent,
+                      flexShrink: 0,
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    ·
+                  </span>
                   {tip}
                 </li>
               ))}
@@ -346,65 +401,44 @@ export default function NucleusBlockCard({ block, now, defaultExpanded, pausedTo
   );
 }
 
-// ─── sub-components ─────────────────────────────────────────
-
-function PausedBadge() {
-  return (
-    <span
-      className="font-ui text-[8.5px] tracking-[0.32em] uppercase px-2 py-0.5 rounded-full"
-      style={{
-        background: nucleusRgba(NUCLEUS.cloud, 0.08),
-        color: NUCLEUS_TEXT.muted,
-        border: `1px solid ${nucleusRgba(NUCLEUS.cloud, 0.18)}`,
-        fontWeight: 600,
-      }}
-    >
-      En pausa hoy
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: BlockStatus }) {
-  const config = (() => {
-    switch (status) {
-      case 'active':
-        return { label: 'En curso', bg: nucleusRgba(NUCLEUS.sun_gold, 0.92), color: NUCLEUS.sky_deep };
-      case 'past':
-        return { label: 'Cerrado', bg: nucleusRgba(NUCLEUS.cloud, 0.1), color: NUCLEUS_TEXT.muted };
-      case 'upcoming':
-      default:
-        return { label: 'Próximo', bg: nucleusRgba(NUCLEUS.cloud, 0.12), color: NUCLEUS_TEXT.soft };
-    }
-  })();
-  return (
-    <span
-      className="font-ui text-[8.5px] tracking-[0.32em] uppercase px-2 py-0.5 rounded-full"
-      style={{
-        background: config.bg,
-        color: config.color,
-        border: `1px solid ${nucleusRgba(NUCLEUS.sun_gold, status === 'active' ? 0.55 : 0.2)}`,
-        fontWeight: 600,
-      }}
-    >
-      {config.label}
-    </span>
-  );
-}
+// ─── Micro-habit row · numeral + label + checkbox ──────────
 
 function MicroHabitRow({
   habitId,
   label,
   description,
+  index,
+  isActiveCard,
+  D,
+  DT,
+  hairlineColor,
 }: {
   habitId: HabitId;
   label: string;
   description: string;
+  index: number;
+  isActiveCard: boolean;
+  D: ReturnType<typeof useAppTheme>['day'];
+  DT: ReturnType<typeof useAppTheme>['dayText'];
+  hairlineColor: string;
 }) {
   const [done, setDone] = useState<boolean>(() => isHabitDone(habitId));
   const tickRef = useRef<SVGPathElement | null>(null);
   const rowRef = useRef<HTMLButtonElement | null>(null);
 
-  const toggle = () => {
+  const captionColor = isActiveCard ? hexToRgba(D.paper, 0.7) : DT.muted;
+  const labelColor = isActiveCard ? D.paper : DT.primary;
+  const numeralColor = done
+    ? (isActiveCard ? D.paper : D.accent)
+    : (isActiveCard ? hexToRgba(D.paper, 0.45) : hexToRgba(D.accent, 0.45));
+  const checkBoxFill = done ? (isActiveCard ? D.paper : D.accent) : 'transparent';
+  const checkBoxBorder = done
+    ? (isActiveCard ? D.paper : D.accent)
+    : (isActiveCard ? hexToRgba(D.paper, 0.4) : hexToRgba(D.accent, 0.32));
+  const checkColor = isActiveCard ? D.accent : D.paper;
+
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = !done;
     haptics.tap();
     const today = new Date();
@@ -425,44 +459,6 @@ function MicroHabitRow({
         { scale: 1 },
         { scale: 1.015, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1 },
       );
-      // Particle burst.
-      const burst = document.createElement('div');
-      burst.style.position = 'absolute';
-      burst.style.inset = '0';
-      burst.style.pointerEvents = 'none';
-      rowRef.current.appendChild(burst);
-      const colors = [NUCLEUS.sun_gold, NUCLEUS.sun_halo, NUCLEUS.cloud];
-      for (let i = 0; i < 6; i++) {
-        const dot = document.createElement('span');
-        dot.style.position = 'absolute';
-        dot.style.left = '24px';
-        dot.style.top = '50%';
-        dot.style.width = '5px';
-        dot.style.height = '5px';
-        dot.style.borderRadius = '999px';
-        dot.style.background = colors[i % colors.length];
-        dot.style.boxShadow = `0 0 6px ${colors[i % colors.length]}`;
-        burst.appendChild(dot);
-        const angle = (i / 6) * Math.PI * 2;
-        gsap.fromTo(
-          dot,
-          { x: 0, y: 0, opacity: 1, scale: 1 },
-          {
-            x: Math.cos(angle) * 22,
-            y: Math.sin(angle) * 22,
-            opacity: 0,
-            scale: 0.6,
-            duration: 0.55,
-            ease: 'power2.out',
-            onComplete: () => {
-              if (dot.parentElement) dot.parentElement.removeChild(dot);
-            },
-          },
-        );
-      }
-      window.setTimeout(() => {
-        if (burst.parentElement) burst.parentElement.removeChild(burst);
-      }, 700);
     }
   };
 
@@ -470,51 +466,78 @@ function MicroHabitRow({
     <button
       ref={rowRef}
       onClick={toggle}
-      className="relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
-      style={{
-        background: done ? nucleusRgba(NUCLEUS.sun_gold, 0.12) : nucleusRgba(NUCLEUS.cloud, 0.04),
-        border: `1px solid ${done ? nucleusRgba(NUCLEUS.sun_gold, 0.45) : nucleusRgba(NUCLEUS.cloud, 0.08)}`,
-        color: NUCLEUS_TEXT.primary,
-      }}
+      className="relative flex items-baseline gap-4 py-2.5 text-left transition-opacity active:opacity-70"
+      style={{ borderBottom: `1px solid ${hairlineColor}` }}
     >
       <span
-        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+        className="font-mono tabular-nums shrink-0"
         style={{
-          background: done ? NUCLEUS.sun_gold : 'transparent',
-          border: `1px solid ${done ? NUCLEUS.sun_gold : nucleusRgba(NUCLEUS.cloud, 0.3)}`,
+          color: numeralColor,
+          fontSize: 11,
+          letterSpacing: '0.1em',
+          fontWeight: done ? 700 : 500,
+          minWidth: '2ch',
         }}
       >
-        {done ? (
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+        {String(index).padStart(2, '0')}
+      </span>
+
+      <span className="flex-1 min-w-0">
+        <span
+          className="block font-headline font-[600] lowercase tracking-[-0.01em]"
+          style={{
+            color: done ? captionColor : labelColor,
+            fontSize: 13.5,
+            textDecoration: done ? 'line-through' : 'none',
+            textDecorationColor: hexToRgba(isActiveCard ? D.paper : D.accent, 0.5),
+          }}
+        >
+          {label.toLowerCase()}
+        </span>
+        <span
+          className="block mt-0.5 font-ui leading-[1.45]"
+          style={{ color: captionColor, fontSize: 10.5 }}
+        >
+          {description}
+        </span>
+      </span>
+
+      <span
+        className="shrink-0 w-6 h-6 flex items-center justify-center"
+        style={{
+          background: checkBoxFill,
+          border: `1px solid ${checkBoxBorder}`,
+          borderRadius: 6,
+          marginTop: 2,
+        }}
+      >
+        {done && (
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none">
             <path
               ref={tickRef}
               d="M5 12 L10 17 L19 7"
-              stroke={NUCLEUS.sky_deep}
+              stroke={checkColor}
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
-        ) : (
-          <Sparkles size={11} strokeWidth={1.8} style={{ color: NUCLEUS_TEXT.muted }} />
         )}
       </span>
-      <div className="text-left min-w-0 flex-1">
-        <div
-          className="font-ui text-[12.5px] font-[500]"
-          style={{ color: NUCLEUS_TEXT.primary }}
-        >
-          {label}
-        </div>
-        <div
-          className="font-ui text-[10.5px] mt-0.5"
-          style={{ color: NUCLEUS_TEXT.muted }}
-        >
-          {description}
-        </div>
-      </div>
+
       {done && (
-        <Check size={13} strokeWidth={2.2} style={{ color: NUCLEUS.sun_gold }} />
+        <Check
+          size={12}
+          strokeWidth={2.4}
+          style={{
+            color: isActiveCard ? D.paper : D.accent,
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            opacity: 0,
+          }}
+          aria-hidden
+        />
       )}
     </button>
   );

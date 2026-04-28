@@ -1,18 +1,22 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════
-// SettingsScreen · full-screen replacement for SettingsModal
+// ═══════════════════════════════════════════════════════════
+// SettingsScreen · ajustes editorial.
 //
-// Sunrise-themed, scrollable. Groups:
-//   - Operator: voz on/off, volumen master.
-//   - Dispositivo: haptics on/off, reduce-motion note.
-//   - Datos: exportar historial (JSON), reiniciar progreso.
-//   - Acerca: versión, créditos.
-// ═══════════════════════════════════════════════════════
+// Diseño · poppr/jeton/craftsmen showcase con paleta de día:
+//   - Header masthead · dot accent + caption.
+//   - Hairline 1px decorativo.
+//   - Hero "ajustes." big lowercase con punto accent.
+//   - Section dividers newspaper `─ · OPERATOR · ─` etc.
+//   - Cards rounded-22 glass por grupo.
+//   - Toggle / Slider / Action / TimePicker / Palette rows.
+// ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
 import { Bell, ChevronLeft, Download, RotateCcw, Sun } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
+import NightPalettePicker from '../common/NightPalettePicker';
 import { haptics } from '@/lib/common/haptics';
 import { loadSessions } from '@/lib/genesis/sessionHistory';
 import {
@@ -50,15 +54,14 @@ export default function SettingsScreen({
   onResetProgress,
   onClose,
 }: SettingsScreenProps) {
+  const { day: D, dayText: DT } = useAppTheme();
   const [hapticsOn, setHapticsOn] = useState<boolean>(haptics.isEnabled());
   const [reminder, setReminder] = useState<ReminderConfig>({ enabled: false, hour: 5, minute: 0 });
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
-  // NUCLEUS state
   const [nucleusOn, setNucleusOn] = useState<boolean>(false);
   const [nucleusPerm, setNucleusPerm] = useState<NotificationPermission | 'unsupported'>('default');
   const [skipToday, setSkipTodayState] = useState<boolean>(false);
 
-  // Hydrate reminder config + permission state on mount (client-only).
   useEffect(() => {
     setReminder(loadReminderConfig());
     setPermission(permissionStatus());
@@ -143,171 +146,242 @@ export default function SettingsScreen({
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
-      <GradientBackground stage="welcome" particleCount={30} />
-      <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
-
-      {/* Header */}
+    <div
+      className="relative w-full h-full flex flex-col overflow-hidden"
+      style={{ color: DT.primary, background: D.paper }}
+    >
+      {/* Soft warm radial */}
       <div
-        className="relative z-10 flex items-center gap-3 px-4 pt-4 pb-2 sunrise-fade-up"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.08)} 0%, transparent 55%)`,
+        }}
+      />
+
+      {/* ─── Header · masthead ────────── */}
+      <div
+        className="relative z-10 px-5 md:px-8 shrink-0 max-w-3xl w-full mx-auto"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        <button
-          onClick={onClose}
-          aria-label="Volver"
-          className="rounded-full p-2 transition-colors hover:bg-white/5"
-          style={{ color: 'var(--sunrise-text-soft)' }}
-        >
-          <ChevronLeft size={20} strokeWidth={1.75} />
-        </button>
-        <div className="flex flex-col">
-          <span
-            className="font-ui text-[10px] uppercase tracking-[0.38em]"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+        <div className="flex items-center justify-between pb-2.5">
+          <button
+            onClick={() => { haptics.tap(); onClose(); }}
+            aria-label="Volver"
+            className="flex items-center gap-2 transition-opacity active:opacity-60"
+            style={{ color: DT.muted }}
           >
-            Morning Awakening
-          </span>
-          <span className="font-display italic font-[400] text-[22px] leading-none mt-1" style={{ color: 'var(--sunrise-text)' }}>
-            Ajustes
+            <ChevronLeft size={14} strokeWidth={2.2} />
+            <span
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: D.accent,
+                borderRadius: 99,
+              }}
+            />
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[500]"
+              style={{ color: DT.muted, fontSize: 9 }}
+            >
+              perfil · ajustes
+            </span>
+          </button>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: DT.muted, fontSize: 9 }}
+          >
+            v8.0—α3
           </span>
         </div>
+        <div className="h-[1px]" style={{ background: hexToRgba(D.accent, 0.14) }} />
       </div>
 
-      {/* Scrollable body */}
+      {/* ─── Body ──────────────────────────────────────── */}
       <div
-        className="scroll-area flex-1 relative z-10 min-h-0 px-5 flex flex-col gap-6"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)', paddingTop: '0.5rem' }}
+        className="scroll-area flex-1 relative z-10 min-h-0 overflow-y-auto"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}
       >
-        {/* Operator */}
-        <SettingsGroup title="Operator">
-          <ToggleRow
-            label="Voz del narrador"
-            hint="Briefing al inicio de cada fase"
-            value={voiceEnabled}
-            onChange={(on) => { haptics.tap(); onToggleVoice(on); }}
-          />
-          <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
-          <SliderRow
-            label="Volumen master"
-            value={masterVolume}
-            onChange={onVolumeChange}
-            display={`${Math.round(masterVolume * 100)}%`}
-          />
-        </SettingsGroup>
-
-        {/* Recordatorio matutino */}
-        <SettingsGroup title="Recordatorio">
-          <ToggleRow
-            label="Aviso matutino"
-            hint={
-              permission === 'unsupported'
-                ? 'Este navegador no soporta notificaciones'
-                : permission === 'denied'
-                  ? 'Permiso denegado · habilita notificaciones en ajustes del navegador'
-                  : 'Notificación diaria a la hora elegida'
-            }
-            value={reminder.enabled && permission === 'granted'}
-            onChange={handleToggleReminder}
-          />
-          {reminder.enabled && permission === 'granted' && (
-            <>
-              <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
-              <TimePickerRow
-                hour={reminder.hour}
-                minute={reminder.minute}
-                onChange={handleTimeChange}
-              />
-            </>
-          )}
-          {permission !== 'granted' && reminder.enabled === false && (
-            <div
-              className="px-4 pb-4 -mt-2 font-ui text-[10px] leading-relaxed"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+        <div className="px-5 md:px-8 max-w-3xl mx-auto">
+          {/* Top corners */}
+          <div className="mt-3 flex items-baseline justify-between">
+            <span
+              className="font-mono tabular-nums font-[600]"
+              style={{ color: DT.primary, fontSize: 13, letterSpacing: '0.02em' }}
             >
-              <span style={{ color: 'var(--sunrise-text-soft)' }}>Tip iPad: </span>
-              instala la app al home screen (Compartir → Añadir a inicio) para que el aviso funcione con la pantalla bloqueada.
-            </div>
-          )}
-        </SettingsGroup>
+              ⚙
+              <span style={{ color: D.accent }}>.</span>
+            </span>
+            <span
+              className="font-mono uppercase tracking-[0.32em] font-[700]"
+              style={{ color: DT.muted, fontSize: 9 }}
+            >
+              · configuración ·
+            </span>
+          </div>
 
-        {/* NUCLEUS · Día */}
-        <SettingsGroup title="NUCLEUS · Día">
-          <ToggleRow
-            label="Pings de micro-hábitos"
-            hint={
-              nucleusPerm === 'unsupported'
-                ? 'Notificaciones no soportadas en este navegador'
-                : nucleusPerm === 'denied'
-                  ? 'Permiso denegado · habilita notificaciones en el navegador'
-                  : 'Café, regla 20-20-20, retracciones, NSDR, optic flow…'
-            }
-            value={nucleusOn && nucleusPerm === 'granted'}
-            onChange={handleToggleNucleus}
-          />
-          <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
-          <ToggleRow
-            label="Pausar NUCLEUS hoy"
-            hint="Sin pings · útil para días anómalos (examen, viaje)"
-            value={skipToday}
-            onChange={handleToggleSkip}
-          />
-          <div
-            className="px-4 pb-4 -mt-1 font-ui text-[10px] leading-relaxed"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+          {/* Hero · "ajustes." */}
+          <h1
+            className="font-headline font-[700] lowercase tracking-[-0.045em] mt-3"
+            style={{
+              color: DT.primary,
+              fontSize: 'clamp(2.6rem, 11vw, 4.5rem)',
+              lineHeight: 0.92,
+            }}
           >
-            <Sun size={12} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" style={{ color: 'var(--sunrise-rise-2, #f4c267)' }} />
-            <span style={{ color: 'var(--sunrise-text-soft)' }}>Horario: </span>
-            06:50 AM → 6:00 PM · sáb/dom: ARENA y PRE-ARENA en off automático.
-          </div>
-        </SettingsGroup>
+            ajustes
+            <span style={{ color: D.accent }}>.</span>
+          </h1>
 
-        {/* Dispositivo */}
-        <SettingsGroup title="Dispositivo">
-          <ToggleRow
-            label="Vibración táctil"
-            hint="Feedback al interactuar (solo Android)"
-            value={hapticsOn}
-            onChange={handleToggleHaptics}
-          />
-        </SettingsGroup>
+          {/* Operator */}
+          <SectionHeader N={D} NT={DT}>· operator ·</SectionHeader>
+          <SettingsCard>
+            <ToggleRow
+              label="voz del narrador"
+              hint="briefing al inicio de cada fase"
+              value={voiceEnabled}
+              onChange={(on) => { haptics.tap(); onToggleVoice(on); }}
+            />
+            <Hairline />
+            <SliderRow
+              label="volumen master"
+              value={masterVolume}
+              onChange={onVolumeChange}
+              display={`${Math.round(masterVolume * 100)}%`}
+            />
+          </SettingsCard>
 
-        {/* Datos */}
-        <SettingsGroup title="Datos">
-          <ActionRow
-            label="Exportar historial"
-            hint="Descargar sesiones como JSON"
-            icon={<Download size={16} strokeWidth={1.8} />}
-            onClick={handleExport}
-          />
-          <div className="h-px w-full" style={{ background: 'rgba(255,250,240,0.06)' }} />
-          <ActionRow
-            label="Reiniciar progreso"
-            hint="Borra perfil, racha y sesiones"
-            icon={<RotateCcw size={16} strokeWidth={1.8} />}
-            onClick={handleReset}
-            destructive
-          />
-        </SettingsGroup>
+          {/* Recordatorio matutino */}
+          <SectionHeader N={D} NT={DT}>· recordatorio ·</SectionHeader>
+          <SettingsCard>
+            <ToggleRow
+              label="aviso matutino"
+              hint={
+                permission === 'unsupported'
+                  ? 'este navegador no soporta notificaciones'
+                  : permission === 'denied'
+                  ? 'permiso denegado · habilita en ajustes del navegador'
+                  : 'notificación diaria a la hora elegida'
+              }
+              value={reminder.enabled && permission === 'granted'}
+              onChange={handleToggleReminder}
+            />
+            {reminder.enabled && permission === 'granted' && (
+              <>
+                <Hairline />
+                <TimePickerRow
+                  hour={reminder.hour}
+                  minute={reminder.minute}
+                  onChange={handleTimeChange}
+                />
+              </>
+            )}
+            {permission !== 'granted' && reminder.enabled === false && (
+              <div
+                className="px-4 pb-4 -mt-2 font-ui leading-relaxed"
+                style={{ color: DT.muted, fontSize: 10.5 }}
+              >
+                <span style={{ color: DT.soft, fontWeight: 600 }}>tip iPad: </span>
+                instala la app al home screen (compartir → añadir a inicio) para que el aviso funcione con la pantalla bloqueada.
+              </div>
+            )}
+          </SettingsCard>
 
-        {/* Acerca */}
-        <SettingsGroup title="Acerca">
-          <div className="flex flex-col gap-2 px-4 py-4">
-            <div className="flex justify-between font-ui text-[13px]">
-              <span style={{ color: 'var(--sunrise-text-soft)' }}>Versión</span>
-              <span className="font-mono" style={{ color: 'var(--sunrise-text)' }}>8.0-α3</span>
-            </div>
-            <div className="flex justify-between font-ui text-[13px]">
-              <span style={{ color: 'var(--sunrise-text-soft)' }}>Protocolo</span>
-              <span className="font-mono" style={{ color: 'var(--sunrise-text)' }}>13 fases · 1h 50m</span>
-            </div>
-            <p
-              className="mt-3 font-ui text-[11px] leading-relaxed"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+          {/* NUCLEUS · Día */}
+          <SectionHeader N={D} NT={DT}>· NUCLEUS · día ·</SectionHeader>
+          <SettingsCard>
+            <ToggleRow
+              label="pings de micro-hábitos"
+              hint={
+                nucleusPerm === 'unsupported'
+                  ? 'notificaciones no soportadas'
+                  : nucleusPerm === 'denied'
+                  ? 'permiso denegado · habilita en ajustes del navegador'
+                  : 'café · 20-20-20 · retracciones · NSDR · optic flow'
+              }
+              value={nucleusOn && nucleusPerm === 'granted'}
+              onChange={handleToggleNucleus}
+            />
+            <Hairline />
+            <ToggleRow
+              label="pausar NUCLEUS hoy"
+              hint="sin pings · útil para días anómalos"
+              value={skipToday}
+              onChange={handleToggleSkip}
+            />
+            <div
+              className="px-4 pb-4 pt-1 font-ui leading-relaxed"
+              style={{ color: DT.muted, fontSize: 10.5 }}
             >
-              Protocolo Génesis: 110 minutos en tres bloques (fragua oscura · ventana anabólica · filo cognitivo) y el anclaje final. Diseñado para ejecutarse entre 5:00 y 6:50 AM.
-            </p>
-          </div>
-        </SettingsGroup>
+              <Sun size={12} strokeWidth={1.8} className="inline-block mr-1 -mt-0.5" style={{ color: D.accent }} />
+              <span style={{ color: DT.soft, fontWeight: 600 }}>horario: </span>
+              06:50 → 18:00 · sáb/dom: ARENA y PRE-ARENA en off automático.
+            </div>
+          </SettingsCard>
+
+          {/* Dispositivo */}
+          <SectionHeader N={D} NT={DT}>· dispositivo ·</SectionHeader>
+          <SettingsCard>
+            <ToggleRow
+              label="vibración táctil"
+              hint="feedback al interactuar (solo Android)"
+              value={hapticsOn}
+              onChange={handleToggleHaptics}
+            />
+          </SettingsCard>
+
+          {/* Apariencia · paleta */}
+          <SectionHeader N={D} NT={DT}>· apariencia ·</SectionHeader>
+          <SettingsCard>
+            <div className="px-4 py-4">
+              <p
+                className="font-ui leading-[1.55] mb-3"
+                style={{ color: DT.soft, fontSize: 12 }}
+              >
+                Paleta global pareada · cada opción tiene una versión día (clara) y una versión noche (oscura, melatonin-safe).
+              </p>
+              <NightPalettePicker mode="inline" caption="· paleta · global ·" />
+            </div>
+          </SettingsCard>
+
+          {/* Datos */}
+          <SectionHeader N={D} NT={DT}>· datos ·</SectionHeader>
+          <SettingsCard>
+            <ActionRow
+              label="exportar historial"
+              hint="descargar sesiones como JSON"
+              icon={<Download size={16} strokeWidth={1.8} />}
+              onClick={handleExport}
+            />
+            <Hairline />
+            <ActionRow
+              label="reiniciar progreso"
+              hint="borra perfil · racha · sesiones"
+              icon={<RotateCcw size={16} strokeWidth={1.8} />}
+              onClick={handleReset}
+              destructive
+            />
+          </SettingsCard>
+
+          {/* Acerca */}
+          <SectionHeader N={D} NT={DT}>· acerca ·</SectionHeader>
+          <SettingsCard>
+            <div className="flex flex-col gap-2 px-4 py-4">
+              <InfoRow label="versión" value="8.0—α3" />
+              <Hairline tight />
+              <InfoRow label="protocolo" value="13 fases · 1h 50m" />
+              <p
+                className="mt-3 font-ui leading-relaxed"
+                style={{ color: DT.muted, fontSize: 10.5 }}
+              >
+                Protocolo Génesis: 110 minutos en tres bloques (fragua oscura · ventana anabólica · filo cognitivo) y el anclaje final. Diseñado para ejecutarse entre 5:00 y 6:50 AM.
+              </p>
+            </div>
+          </SettingsCard>
+
+          <div className="h-6" />
+        </div>
       </div>
     </div>
   );
@@ -315,27 +389,64 @@ export default function SettingsScreen({
 
 // ═══ small building blocks ═════════════════════════════
 
-function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
+interface PaletteProps {
+  N: ReturnType<typeof useAppTheme>['day'];
+  NT: ReturnType<typeof useAppTheme>['dayText'];
+}
+
+function SectionHeader({ children, N }: { children: React.ReactNode } & PaletteProps) {
   return (
-    <div className="sunrise-fade-up">
-      <div
-        className="font-ui text-[10px] uppercase tracking-[0.38em] mb-2 px-1"
-        style={{ color: 'var(--sunrise-text-muted)' }}
-      >
-        {title}
-      </div>
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          border: '1px solid rgba(255,250,240,0.08)',
-          background: 'rgba(255,250,240,0.03)',
-          backdropFilter: 'blur(6px)',
-          WebkitBackdropFilter: 'blur(6px)',
-        }}
+    <div className="flex items-center gap-3 pt-7 pb-3">
+      <span
+        aria-hidden
+        className="flex-1 h-[1px]"
+        style={{ background: hexToRgba(N.accent, 0.18) }}
+      />
+      <span
+        className="font-mono uppercase tracking-[0.42em] font-[700] shrink-0"
+        style={{ color: hexToRgba(N.accent, 0.85), fontSize: 9 }}
       >
         {children}
-      </div>
+      </span>
+      <span
+        aria-hidden
+        className="flex-1 h-[1px]"
+        style={{ background: hexToRgba(N.accent, 0.18) }}
+      />
     </div>
+  );
+}
+
+function SettingsCard({ children }: { children: React.ReactNode }) {
+  const { day: D } = useAppTheme();
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        borderRadius: 22,
+        border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+        background: hexToRgba(D.tint, 0.7),
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Hairline({ tight }: { tight?: boolean }) {
+  const { day: D } = useAppTheme();
+  return (
+    <div
+      className="w-full"
+      style={{
+        height: 1,
+        marginTop: tight ? 4 : 0,
+        marginBottom: tight ? 4 : 0,
+        background: hexToRgba(D.accent, 0.12),
+      }}
+    />
   );
 }
 
@@ -345,26 +456,36 @@ function ToggleRow({
   value,
   onChange,
 }: { label: string; hint?: string; value: boolean; onChange: (on: boolean) => void }) {
+  const { day: D, dayText: DT } = useAppTheme();
   return (
     <label className="flex items-center justify-between gap-3 px-4 py-4 cursor-pointer">
       <div className="min-w-0">
-        <div className="font-ui text-[14px] font-[500]" style={{ color: 'var(--sunrise-text)' }}>
+        <div
+          className="font-headline font-[600] lowercase tracking-[-0.015em]"
+          style={{ color: DT.primary, fontSize: 15 }}
+        >
           {label}
         </div>
         {hint && (
-          <div className="font-ui text-[11px] mt-0.5" style={{ color: 'var(--sunrise-text-muted)' }}>
+          <div
+            className="mt-1 font-mono uppercase tracking-[0.22em] font-[600] leading-tight"
+            style={{ color: DT.muted, fontSize: 9.5 }}
+          >
             {hint}
           </div>
         )}
       </div>
       <span
-        className="shrink-0 w-11 h-6 rounded-full p-[3px] transition-colors"
-        style={{ background: value ? 'var(--sunrise-rise-2, #f4c267)' : 'rgba(255,250,240,0.12)' }}
+        className="shrink-0 w-12 h-7 rounded-full p-[3px] transition-colors"
+        style={{
+          background: value ? D.accent : hexToRgba(D.ink, 0.14),
+          boxShadow: value ? `0 4px 12px -2px ${hexToRgba(D.accent, 0.4)}` : 'none',
+        }}
       >
         <span
-          className="block w-[18px] h-[18px] rounded-full transition-transform"
+          className="block w-[22px] h-[22px] rounded-full transition-transform"
           style={{
-            background: value ? '#0b0618' : 'rgba(255,250,240,0.75)',
+            background: value ? D.paper : hexToRgba(D.ink, 0.4),
             transform: value ? 'translateX(20px)' : 'translateX(0)',
           }}
         />
@@ -384,29 +505,34 @@ function TimePickerRow({
   minute,
   onChange,
 }: { hour: number; minute: number; onChange: (h: number, m: number) => void }) {
-  // Native <input type="time"> is the right call here: on iOS it
-  // surfaces the wheel picker which is the best UX for this, and on
-  // desktop / Android it's a clean 24h input. Value is "HH:MM".
+  const { day: D, dayText: DT } = useAppTheme();
   const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   return (
-    <div className="flex items-center justify-between px-4 py-4">
+    <div className="flex items-center justify-between gap-3 px-4 py-4">
       <div className="flex items-center gap-3 min-w-0">
         <span
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+          className="w-9 h-9 flex items-center justify-center shrink-0"
           style={{
-            color: 'var(--sunrise-rise-2, #f4c267)',
-            background: 'rgba(244,194,103,0.12)',
-            border: '1px solid rgba(244,194,103,0.35)',
+            color: D.accent,
+            background: hexToRgba(D.accent, 0.14),
+            border: `1px solid ${hexToRgba(D.accent, 0.4)}`,
+            borderRadius: 10,
           }}
         >
-          <Bell size={14} strokeWidth={1.9} />
+          <Bell size={15} strokeWidth={2} />
         </span>
         <div className="min-w-0">
-          <div className="font-ui text-[14px] font-[500]" style={{ color: 'var(--sunrise-text)' }}>
-            Hora
+          <div
+            className="font-headline font-[600] lowercase tracking-[-0.015em]"
+            style={{ color: DT.primary, fontSize: 15 }}
+          >
+            hora
           </div>
-          <div className="font-ui text-[11px] mt-0.5" style={{ color: 'var(--sunrise-text-muted)' }}>
-            Se repite cada día
+          <div
+            className="mt-1 font-mono uppercase tracking-[0.22em] font-[600]"
+            style={{ color: DT.muted, fontSize: 9.5 }}
+          >
+            se repite cada día
           </div>
         </div>
       </div>
@@ -417,12 +543,13 @@ function TimePickerRow({
           const [h, m] = e.target.value.split(':').map((s) => parseInt(s, 10));
           if (!Number.isNaN(h) && !Number.isNaN(m)) onChange(h, m);
         }}
-        className="font-mono text-[15px] px-3 py-1.5 rounded-lg focus:outline-none"
+        className="font-mono px-3 py-1.5 focus:outline-none tabular-nums font-[700]"
         style={{
-          background: 'rgba(5,3,15,0.55)',
-          border: '1px solid rgba(255,250,240,0.12)',
-          color: 'var(--sunrise-text)',
-          colorScheme: 'dark',
+          background: hexToRgba(D.accent, 0.16),
+          border: `1px solid ${hexToRgba(D.accent, 0.45)}`,
+          color: D.accent_deep,
+          fontSize: 14,
+          borderRadius: 10,
         }}
       />
     </div>
@@ -435,13 +562,20 @@ function SliderRow({
   onChange,
   display,
 }: { label: string; value: number; onChange: (v: number) => void; display: string }) {
+  const { day: D, dayText: DT } = useAppTheme();
   return (
     <div className="px-4 py-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="font-ui text-[14px] font-[500]" style={{ color: 'var(--sunrise-text)' }}>
+      <div className="flex justify-between items-baseline mb-2.5">
+        <div
+          className="font-headline font-[600] lowercase tracking-[-0.015em]"
+          style={{ color: DT.primary, fontSize: 15 }}
+        >
           {label}
         </div>
-        <div className="font-mono text-[11px]" style={{ color: 'var(--sunrise-text-muted)' }}>
+        <div
+          className="font-mono tabular-nums font-[700]"
+          style={{ color: D.accent, fontSize: 13 }}
+        >
           {display}
         </div>
       </div>
@@ -465,18 +599,22 @@ function ActionRow({
   onClick,
   destructive,
 }: { label: string; hint?: string; icon?: React.ReactNode; onClick: () => void; destructive?: boolean }) {
+  const { day: D, dayText: DT } = useAppTheme();
+  const danger = '#c44a3c';
+  const accent = destructive ? danger : D.accent;
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-4 text-left transition-colors active:bg-white/5"
+      className="w-full flex items-center gap-3 px-4 py-4 text-left transition-opacity active:opacity-70"
     >
       {icon && (
         <span
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+          className="w-9 h-9 flex items-center justify-center shrink-0"
           style={{
-            color: destructive ? '#ff6b6b' : 'var(--sunrise-text-soft)',
-            background: 'rgba(255,250,240,0.05)',
-            border: '1px solid rgba(255,250,240,0.08)',
+            color: accent,
+            background: hexToRgba(accent, 0.14),
+            border: `1px solid ${hexToRgba(accent, 0.4)}`,
+            borderRadius: 10,
           }}
         >
           {icon}
@@ -484,17 +622,40 @@ function ActionRow({
       )}
       <div className="min-w-0 flex-1">
         <div
-          className="font-ui text-[14px] font-[500]"
-          style={{ color: destructive ? '#ff6b6b' : 'var(--sunrise-text)' }}
+          className="font-headline font-[600] lowercase tracking-[-0.015em]"
+          style={{ color: destructive ? danger : DT.primary, fontSize: 15 }}
         >
           {label}
         </div>
         {hint && (
-          <div className="font-ui text-[11px] mt-0.5" style={{ color: 'var(--sunrise-text-muted)' }}>
+          <div
+            className="mt-1 font-mono uppercase tracking-[0.22em] font-[600]"
+            style={{ color: DT.muted, fontSize: 9.5 }}
+          >
             {hint}
           </div>
         )}
       </div>
     </button>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  const { dayText: DT } = useAppTheme();
+  return (
+    <div className="flex justify-between items-center">
+      <span
+        className="font-mono uppercase tracking-[0.32em] font-[600]"
+        style={{ color: DT.soft, fontSize: 10 }}
+      >
+        {label}
+      </span>
+      <span
+        className="font-mono tabular-nums font-[700]"
+        style={{ color: DT.primary, fontSize: 12.5 }}
+      >
+        {value}
+      </span>
+    </div>
   );
 }

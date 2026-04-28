@@ -57,116 +57,192 @@ export default function FlareControls({ coach }: FlareControlsProps) {
     }
   };
 
+  const flareActive = flare.phase !== 'resolved';
+  const severityLabelMap = { mild: 'leve', strong: 'severo' } as const;
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Brote */}
+      {/* ============== BROTE ============== */}
       <div
-        className="rounded-xl p-3"
+        className="rounded-2xl p-4"
         style={{
-          background: hexToRgba(SUNRISE.predawn2, 0.5),
-          border: `1px solid ${hexToRgba('#ff6b6b', flare.phase !== 'resolved' ? 0.4 : 0.15)}`,
+          background: hexToRgba(SUNRISE.night, 0.55),
+          border: `1px solid ${hexToRgba('#ff6b6b', flareActive ? 0.4 : 0.16)}`,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}
       >
-        <div className="flex items-center gap-2 mb-2">
-          <Flame size={14} strokeWidth={1.85} style={{ color: '#ff6b6b' }} />
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-3">
           <span
-            className="font-display italic font-[400] text-[15px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: hexToRgba('#ff6b6b', 0.16), color: '#ff6b6b' }}
           >
-            Brote atópico
+            <Flame size={15} strokeWidth={2} />
           </span>
-          <span
-            className="font-mono text-[10.5px] tracking-wider ml-auto"
-            style={{ color: SUNRISE_TEXT.muted }}
-          >
-            {flare.phase === 'resolved'
-              ? 'sin brote'
-              : flare.phase === 'recovery'
-              ? 'recovery'
-              : `activo · ${flare.severity}`}
-          </span>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.01em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              brote atópico
+            </div>
+            <div
+              className="font-mono text-[10px] tracking-wider mt-0.5"
+              style={{ color: flareActive ? '#ff6b6b' : SUNRISE_TEXT.muted }}
+            >
+              {flare.phase === 'resolved'
+                ? 'sin brote · modo normal'
+                : flare.phase === 'recovery'
+                ? 'recovery · piel cediendo'
+                : `activo · ${severityLabelMap[flare.severity ?? 'mild']}`}
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        {/* Microcopy explainer */}
+        <p
+          className="font-mono text-[11px] leading-[1.45] mb-3.5 px-1"
+          style={{ color: SUNRISE_TEXT.soft }}
+        >
+          Activalo si la piel se inflama, pica o aparecen lesiones. Las rutinas
+          se simplifican y se silencian activos irritantes
+          {' '}<span style={{ color: '#ff6b6b' }}>(vitamina C, retinoides, exfoliantes)</span>.
+        </p>
+
+        {/* Step 1 · Iniciar brote */}
+        <div
+          className="font-ui text-[9px] tracking-[0.34em] uppercase mb-2 flex items-center gap-2"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded-full font-mono text-[8.5px] font-[700]"
+            style={{ background: hexToRgba('#ff6b6b', 0.2), color: '#ff6b6b' }}
+          >
+            1
+          </span>
+          si aparece · eligí intensidad
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-3.5">
           <ToggleButton
-            label="Brote leve"
+            label="leve"
+            sublabel="picor / sequedad"
             active={flare.phase === 'active' && flare.severity === 'mild'}
             onClick={() => setSeverity('mild')}
             color="#ffb44d"
           />
           <ToggleButton
-            label="Brote severo"
+            label="severo"
+            sublabel="eccema / eritema"
             active={flare.phase === 'active' && flare.severity === 'strong'}
             onClick={() => setSeverity('strong')}
             color="#ff6b6b"
           />
         </div>
 
+        {/* Step 2 · Salida del brote */}
+        <div
+          className="font-ui text-[9px] tracking-[0.34em] uppercase mb-2 flex items-center gap-2"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded-full font-mono text-[8.5px] font-[700]"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.2), color: SUNRISE.rise2 }}
+          >
+            2
+          </span>
+          cuando ya cede
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <ToggleButton
             icon={RotateCcw}
-            label="Pasar a recovery"
+            label="recovery"
+            sublabel="cicatrizando"
             active={flare.phase === 'recovery'}
             onClick={() => setPhase('recovery')}
             color={SUNRISE.rise2}
           />
           <ToggleButton
             icon={Check}
-            label="Resuelto"
+            label="resuelto"
+            sublabel="volver a normal"
             active={flare.phase === 'resolved'}
             onClick={() => setPhase('resolved')}
             color={SUNRISE.cool}
           />
         </div>
 
-        {flare.startedAt && (
+        {flare.startedAt && flare.phase !== 'resolved' && (
           <p
-            className="font-mono text-[10px] tracking-wider mt-2"
+            className="font-mono text-[10px] tracking-wider mt-3 px-1"
             style={{ color: SUNRISE_TEXT.muted }}
           >
-            Iniciado: {flare.startedAt.slice(0, 10)}
+            iniciado · {flare.startedAt.slice(0, 10)}
           </p>
         )}
       </div>
 
-      {/* Deriva-C */}
+      {/* ============== DERIVA-C ============== */}
       <div
-        className="rounded-xl p-3"
+        className="rounded-2xl p-4"
         style={{
-          background: hexToRgba(SUNRISE.predawn2, 0.5),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, derivaC.active ? 0.42 : 0.15)}`,
+          background: hexToRgba(SUNRISE.night, 0.55),
+          border: `1px solid ${hexToRgba(SUNRISE.rise2, derivaC.active ? 0.42 : 0.16)}`,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}
       >
-        <div className="flex items-center gap-2 mb-2">
-          <Pill size={14} strokeWidth={1.85} style={{ color: SUNRISE.rise2 }} />
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-3">
           <span
-            className="font-display italic font-[400] text-[15px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: hexToRgba(SUNRISE.rise2, 0.16), color: SUNRISE.rise2 }}
           >
-            Curso Deriva-C Micro
+            <Pill size={15} strokeWidth={2} />
           </span>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.01em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              curso deriva-c micro
+            </div>
+            <div
+              className="font-mono text-[10px] tracking-wider mt-0.5"
+              style={{ color: derivaC.active ? SUNRISE.rise2 : SUNRISE_TEXT.muted }}
+            >
+              {derivaC.active ? 'activo · 12 semanas' : 'no iniciado · 12 semanas'}
+            </div>
+          </div>
         </div>
+
+        {/* Microcopy */}
         <p
-          className="font-mono text-[11px] leading-snug mb-2"
-          style={{ color: SUNRISE_TEXT.muted }}
+          className="font-mono text-[11px] leading-[1.45] mb-3.5 px-1"
+          style={{ color: SUNRISE_TEXT.soft }}
         >
-          Adapaleno + clindamicina · 12 semanas. Mientras esté activo, la PM se
-          simplifica y AM exige SPF 50+. No combinable con brote activo.
+          Adapaleno + clindamicina por 12 semanas. Mientras esté activo:{' '}
+          <span style={{ color: SUNRISE.rise2 }}>la rutina PM se simplifica</span>
+          {' '}y la AM exige{' '}
+          <span style={{ color: SUNRISE.rise2 }}>SPF 50+ obligatorio</span>.
+          No combinable con brote activo.
         </p>
+
+        {/* CTA */}
         <button
           type="button"
           onClick={toggleDerivaC}
-          className="w-full rounded-full py-2 font-ui text-[10.5px] tracking-[0.28em] uppercase transition-transform active:scale-[0.98]"
+          className="w-full rounded-full py-2.5 font-ui text-[10.5px] tracking-[0.3em] uppercase font-[700] transition-transform active:scale-[0.98]"
           style={{
-            background: derivaC.active
-              ? hexToRgba('#ff6b6b', 0.18)
-              : hexToRgba(SUNRISE.rise2, 0.18),
-            color: derivaC.active ? '#ff6b6b' : SUNRISE.rise2,
-            border: `1px solid ${hexToRgba(derivaC.active ? '#ff6b6b' : SUNRISE.rise2, 0.5)}`,
+            background: derivaC.active ? hexToRgba('#ff6b6b', 0.16) : SUNRISE.rise2,
+            color: derivaC.active ? '#ff6b6b' : SUNRISE.night,
+            border: derivaC.active ? `1px solid ${hexToRgba('#ff6b6b', 0.5)}` : 'none',
+            boxShadow: derivaC.active ? undefined : `0 8px 22px -10px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
           }}
         >
-          {derivaC.active ? 'Detener curso' : 'Iniciar curso'}
+          {derivaC.active ? 'detener curso' : 'iniciar curso'}
         </button>
+
         {derivaC.active && derivaC.startedAt && (
           <DerivaCProgress
             startedAt={derivaC.startedAt}
@@ -206,19 +282,33 @@ function DerivaCProgress({
   const milestone = DERIVA_C_MILESTONES.find(m => week >= m.weekFrom && week <= m.weekTo);
 
   return (
-    <div className="mt-3">
-      <div className="flex items-center justify-between mb-1.5">
+    <div className="mt-4">
+      <div className="flex items-end justify-between mb-2">
+        <div>
+          <span
+            className="font-ui text-[9px] tracking-[0.34em] uppercase"
+            style={{ color: SUNRISE_TEXT.muted }}
+          >
+            semana
+          </span>
+          <div
+            className="font-headline font-[700] text-[22px] leading-none lowercase tracking-[-0.02em] mt-0.5"
+            style={{ color: SUNRISE_TEXT.primary }}
+          >
+            {week}
+            <span
+              className="font-mono text-[12px] font-[400] ml-1"
+              style={{ color: SUNRISE_TEXT.muted }}
+            >
+              / 12
+            </span>
+          </div>
+        </div>
         <span
-          className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
-          style={{ color: SUNRISE_TEXT.muted }}
+          className="font-mono text-[10px] tracking-wider tabular-nums"
+          style={{ color: SUNRISE.rise2 }}
         >
-          Semana {week} / 12
-        </span>
-        <span
-          className="font-mono text-[10px] tracking-wider"
-          style={{ color: SUNRISE_TEXT.muted }}
-        >
-          {daysRemaining} días restantes
+          {daysRemaining}d restantes
         </span>
       </div>
       <div
@@ -235,19 +325,33 @@ function DerivaCProgress({
         />
       </div>
       {milestone && (
-        <p
-          className="font-mono text-[10.5px] leading-snug mt-2"
-          style={{ color: SUNRISE_TEXT.soft }}
+        <div
+          className="mt-3 rounded-xl px-3 py-2.5"
+          style={{
+            background: hexToRgba(SUNRISE.rise2, 0.08),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.2)}`,
+          }}
         >
-          <span style={{ color: SUNRISE.rise2 }}>•</span> {milestone.label}
-        </p>
+          <span
+            className="font-ui text-[9px] tracking-[0.32em] uppercase"
+            style={{ color: SUNRISE.rise2 }}
+          >
+            fase actual
+          </span>
+          <p
+            className="font-mono text-[11px] leading-[1.4] mt-1"
+            style={{ color: SUNRISE_TEXT.soft }}
+          >
+            {milestone.label}
+          </p>
+        </div>
       )}
       <p
-        className="font-mono text-[10px] tracking-wider mt-1.5"
+        className="font-mono text-[10px] tracking-wider mt-2.5 px-1"
         style={{ color: SUNRISE_TEXT.muted }}
       >
-        Inicio: {startedAt.slice(0, 10)}
-        {plannedEndAt && ` · fin previsto: ${plannedEndAt.slice(0, 10)}`}
+        inicio · {startedAt.slice(0, 10)}
+        {plannedEndAt && ` · fin · ${plannedEndAt.slice(0, 10)}`}
       </p>
     </div>
   );
@@ -255,12 +359,14 @@ function DerivaCProgress({
 
 function ToggleButton({
   label,
+  sublabel,
   active,
   onClick,
   icon: Icon,
   color,
 }: {
   label: string;
+  sublabel?: string;
   active: boolean;
   onClick: () => void;
   icon?: typeof Flame;
@@ -270,15 +376,36 @@ function ToggleButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-center gap-1.5 rounded-full py-1.5 transition-transform active:scale-[0.97]"
+      className="flex flex-col items-start gap-1 rounded-2xl px-3 py-2.5 text-left transition-transform active:scale-[0.97]"
       style={{
-        background: active ? hexToRgba(color, 0.22) : hexToRgba(SUNRISE.night, 0.4),
-        color: active ? color : SUNRISE_TEXT.soft,
-        border: `1px solid ${hexToRgba(color, active ? 0.55 : 0.22)}`,
+        background: active ? color : hexToRgba(SUNRISE.night, 0.4),
+        border: active ? 'none' : `1px solid ${hexToRgba(color, 0.25)}`,
+        boxShadow: active ? `0 6px 16px -8px ${hexToRgba(color, 0.55)}` : undefined,
       }}
     >
-      {Icon && <Icon size={12} strokeWidth={1.85} />}
-      <span className="font-ui text-[10px] tracking-[0.22em] uppercase">{label}</span>
+      <div className="flex items-center gap-1.5">
+        {Icon && (
+          <Icon
+            size={12}
+            strokeWidth={2.2}
+            style={{ color: active ? SUNRISE.night : color }}
+          />
+        )}
+        <span
+          className="font-ui text-[10px] tracking-[0.26em] uppercase font-[700]"
+          style={{ color: active ? SUNRISE.night : color }}
+        >
+          {label}
+        </span>
+      </div>
+      {sublabel && (
+        <span
+          className="font-mono text-[9.5px] leading-tight lowercase"
+          style={{ color: active ? hexToRgba(SUNRISE.night, 0.7) : SUNRISE_TEXT.muted }}
+        >
+          {sublabel}
+        </span>
+      )}
     </button>
   );
 }

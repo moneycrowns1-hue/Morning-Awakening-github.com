@@ -1,8 +1,23 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════
+// BreathingGuide · Wim Hof method · 3 rondas energizantes.
+//
+// Diseño · masthead editorial NightMissionPhase:
+//   - Top folio dot ámbar + caption "wellness · wim hof".
+//   - Hero title lowercase de la fase actual.
+//   - Orb central pulsante (inhala expande, exhala contrae,
+//     retén estático, recuperación expandida).
+//   - Round dots tabular + breath count tabular.
+//   - Pre-start: descripción + CTA iniciar V5.
+// ═══════════════════════════════════════════════════════════
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import gsap from 'gsap';
-import { Play } from 'lucide-react';
+import { Play, X } from 'lucide-react';
+import { useNightPalette } from '@/lib/night/nightPalette';
+import { hexToRgba } from '@/lib/common/theme';
+import { haptics } from '@/lib/common/haptics';
 
 type BreathPhase = 'POWER' | 'HOLD' | 'RECOVERY' | 'REST';
 
@@ -14,19 +29,26 @@ interface WimHofState {
   isInhaling: boolean;
 }
 
-export default function BreathingGuide() {
+interface BreathingGuideProps {
+  /** Optional close handler · si se omite, no muestra botón cerrar. */
+  onClose?: () => void;
+}
+
+const TOTAL_ROUNDS = 3;
+const BREATHS_PER_ROUND = 30;
+const HOLD_DURATION = 30;
+const RECOVERY_HOLD = 15;
+
+export default function BreathingGuide({ onClose }: BreathingGuideProps = {}) {
+  const { palette: N, paletteText: NT } = useNightPalette();
+
   const [state, setState] = useState<WimHofState>({
     round: 1, phase: 'POWER', breathCount: 0, holdTimer: 0, isInhaling: true,
   });
   const [active, setActive] = useState(false);
-  const circleRef = useRef<HTMLDivElement>(null);
+  const orbRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const totalRounds = 3;
-  const breathsPerRound = 30;
-  const holdDuration = 30;
-  const recoveryHold = 15;
 
   const clearTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -35,21 +57,21 @@ export default function BreathingGuide() {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
-  // Circle animation based on phase
+  // Orb animation per phase
   useEffect(() => {
-    if (!circleRef.current || !active) return;
-    const el = circleRef.current;
+    if (!orbRef.current || !active) return;
+    const el = orbRef.current;
 
     if (state.phase === 'POWER') {
       if (state.isInhaling) {
-        gsap.to(el, { scale: 1.3, duration: 0.8, ease: 'power1.inOut' });
+        gsap.to(el, { scale: 1.18, duration: 0.8, ease: 'power1.inOut' });
       } else {
-        gsap.to(el, { scale: 0.8, duration: 0.7, ease: 'power1.inOut' });
+        gsap.to(el, { scale: 0.85, duration: 0.7, ease: 'power1.inOut' });
       }
     } else if (state.phase === 'HOLD') {
-      gsap.to(el, { scale: 0.6, duration: 1, ease: 'power2.out' });
+      gsap.to(el, { scale: 0.7, duration: 1, ease: 'power2.out' });
     } else if (state.phase === 'RECOVERY') {
-      gsap.to(el, { scale: 1.4, duration: 2, ease: 'power1.inOut' });
+      gsap.to(el, { scale: 1.22, duration: 2, ease: 'power1.inOut' });
     } else if (state.phase === 'REST') {
       gsap.to(el, { scale: 1, duration: 1, ease: 'power2.inOut' });
     }
@@ -70,12 +92,13 @@ export default function BreathingGuide() {
         inhaling = true;
         setState(s => ({ ...s, breathCount: count, isInhaling: true }));
 
-        if (count >= breathsPerRound) {
+        if (count >= BREATHS_PER_ROUND) {
           if (intervalRef.current) clearInterval(intervalRef.current);
           startHoldPhase(round);
         }
       }
     }, 750);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startHoldPhase = useCallback((round: number) => {
@@ -85,11 +108,12 @@ export default function BreathingGuide() {
     intervalRef.current = setInterval(() => {
       timer++;
       setState(s => ({ ...s, holdTimer: timer }));
-      if (timer >= holdDuration) {
+      if (timer >= HOLD_DURATION) {
         if (intervalRef.current) clearInterval(intervalRef.current);
         startRecoveryPhase(round);
       }
     }, 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startRecoveryPhase = useCallback((round: number) => {
@@ -99,122 +123,391 @@ export default function BreathingGuide() {
     intervalRef.current = setInterval(() => {
       timer++;
       setState(s => ({ ...s, holdTimer: timer }));
-      if (timer >= recoveryHold) {
+      if (timer >= RECOVERY_HOLD) {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        if (round < totalRounds) {
+        if (round < TOTAL_ROUNDS) {
           setState(s => ({ ...s, phase: 'REST' }));
           timeoutRef.current = setTimeout(() => startPowerBreathing(round + 1), 3000);
         } else {
           setState(s => ({ ...s, phase: 'REST' }));
+          haptics.tap();
         }
       }
     }, 1000);
   }, [startPowerBreathing]);
 
   const handleStart = useCallback(() => {
+    haptics.tap();
     setActive(true);
     startPowerBreathing(1);
   }, [startPowerBreathing]);
 
-  const getPhaseLabel = (): string => {
+  const phaseLabel = (): string => {
     switch (state.phase) {
-      case 'POWER': return state.isInhaling ? 'INHALA' : 'EXHALA';
-      case 'HOLD': return 'RETÉN';
-      case 'RECOVERY': return 'RECUPERACIÓN';
-      case 'REST': return state.round >= totalRounds ? 'COMPLETO' : 'PREPARANDO...';
+      case 'POWER':    return state.isInhaling ? 'inhala' : 'exhala';
+      case 'HOLD':     return 'retén';
+      case 'RECOVERY': return 'recuperación';
+      case 'REST':     return state.round >= TOTAL_ROUNDS ? 'completo' : 'preparando';
     }
   };
 
-  const getPhaseDescription = (): string => {
+  const phaseHint = (): string => {
     switch (state.phase) {
-      case 'POWER': return `Respiración ${state.breathCount}/${breathsPerRound}`;
-      case 'HOLD': return `Exhala y mantén — ${state.holdTimer}s`;
-      case 'RECOVERY': return `Inhala profundo y mantén — ${state.holdTimer}s`;
-      case 'REST': return state.round >= totalRounds ? 'Todas las rondas completadas' : 'Siguiente ronda en 3s...';
+      case 'POWER':    return `Respiración ${state.breathCount}/${BREATHS_PER_ROUND}`;
+      case 'HOLD':     return `Exhala y mantén · ${state.holdTimer}s`;
+      case 'RECOVERY': return `Inhala profundo y mantén · ${state.holdTimer}s`;
+      case 'REST':     return state.round >= TOTAL_ROUNDS ? 'Tres rondas completadas.' : 'Siguiente ronda en 3s…';
     }
   };
 
+  const isFinished = state.phase === 'REST' && state.round >= TOTAL_ROUNDS;
+  const globalProgress = isFinished
+    ? 1
+    : Math.min(1, (state.round - 1 + (state.phase === 'POWER' ? state.breathCount / BREATHS_PER_ROUND * 0.5 : state.phase === 'HOLD' ? 0.5 + state.holdTimer / HOLD_DURATION * 0.25 : state.phase === 'RECOVERY' ? 0.75 + state.holdTimer / RECOVERY_HOLD * 0.25 : 1)) / TOTAL_ROUNDS);
+
+  // ─── Pre-start screen ─────────────────────────────────────
   if (!active) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-[13px] tracking-[0.3em]" style={{ color: 'rgba(201,162,39,0.55)' }}>
-          MÉTODO WIM HOF · 3 RONDAS
-        </div>
-        <div className="text-[13px] max-w-xs text-center leading-relaxed" style={{ color: 'rgba(232,220,196,0.45)' }}>
-          30 respiraciones profundas rápidas → Retención tras exhalar → Respiración de recuperación
-        </div>
-        <button
-          onClick={handleStart}
-          className="mt-2 px-6 py-3 rounded text-sm tracking-[0.25em] transition-all animate-ember-pulse hover:brightness-125 inline-flex items-center gap-2"
-          style={{
-            border: '1px solid rgba(201,162,39,0.4)',
-            color: '#c9a227',
-            background: 'rgba(201,162,39,0.06)',
-            fontFamily: 'var(--font-cinzel), Georgia, serif',
-          }}
+      <div
+        className="relative w-full h-full flex flex-col overflow-hidden"
+        style={{ color: NT.primary, background: N.void }}
+      >
+        {/* Header masthead */}
+        <div
+          className="relative z-10 px-6 shrink-0"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
         >
-          <Play size={14} strokeWidth={1.8} fill="#c9a227" />
-          INICIAR RESPIRACIÓN
-        </button>
+          <div className="flex items-center justify-between pb-2.5">
+            {onClose ? (
+              <button
+                onClick={() => { haptics.tap(); onClose(); }}
+                aria-label="Cerrar"
+                className="flex items-center gap-2 transition-opacity active:opacity-60"
+                style={{ color: NT.muted }}
+              >
+                <X size={14} strokeWidth={2.2} />
+                <BrandCaption N={N} NT={NT} label="wellness · wim hof" />
+              </button>
+            ) : (
+              <span className="flex items-center gap-2">
+                <BrandCaption N={N} NT={NT} label="wellness · wim hof" />
+              </span>
+            )}
+            <span
+              className="font-mono tabular-nums tracking-[0.18em] font-[500]"
+              style={{ color: NT.muted, fontSize: 10 }}
+            >
+              <span style={{ color: NT.primary, fontWeight: 600 }}>03</span>
+              <span style={{ color: hexToRgba(N.amber, 0.5), margin: '0 6px' }}>—</span>
+              rondas
+            </span>
+          </div>
+          <div className="h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }} />
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · método wim hof ·
+          </span>
+
+          <h1
+            className="font-headline font-[700] lowercase tracking-[-0.04em] text-center"
+            style={{
+              color: NT.primary,
+              fontSize: 'clamp(2.2rem, 8vw, 3.2rem)',
+              lineHeight: 0.95,
+              textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+              maxWidth: '14ch',
+            }}
+          >
+            respiración<br />energizante
+            <span style={{ color: N.amber }}>.</span>
+          </h1>
+
+          <p
+            className="font-ui text-[13px] leading-[1.55] text-center max-w-[32ch]"
+            style={{ color: NT.soft }}
+          >
+            30 respiraciones rápidas y profundas → retención al exhalar →
+            inhalación de recuperación. Tres rondas.
+          </p>
+
+          {/* Mini stat strip */}
+          <div className="flex items-center gap-6 mt-2">
+            <Stat label="rondas" value="3" N={N} NT={NT} />
+            <Divider N={N} />
+            <Stat label="resp/ronda" value="30" N={N} NT={NT} />
+            <Divider N={N} />
+            <Stat label="duración" value="~10m" N={N} NT={NT} />
+          </div>
+        </div>
+
+        {/* Footer · CTA iniciar */}
+        <div
+          className="relative z-10 px-6 shrink-0"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
+          <div className="flex items-center justify-center pt-3">
+            <button
+              onClick={handleStart}
+              className="font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985] flex items-center gap-2.5"
+              style={{
+                padding: '14px 28px',
+                background: N.amber,
+                color: N.void,
+                fontSize: 10.5,
+                boxShadow: `0 8px 24px -6px ${hexToRgba(N.amber, 0.5)}`,
+              }}
+            >
+              <Play size={13} strokeWidth={2.4} fill="currentColor" />
+              iniciar
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col items-center">
-      {/* Round indicator */}
-      <div className="flex gap-2 mb-4">
-        {[1, 2, 3].map(r => (
-          <div key={r} className="flex flex-col items-center gap-1">
-            <div
-              className={`w-3 h-3 rounded-full border ${r === state.round ? 'animate-pulse' : ''}`}
-              style={{
-                borderColor: r <= state.round ? '#c9a227' : 'rgba(232,220,196,0.18)',
-                background: r < state.round ? '#c9a227' : 'transparent',
-              }}
-            />
-            <span className="text-[12px] tracking-wider" style={{ color: 'rgba(201,162,39,0.4)' }}>R{r}</span>
-          </div>
-        ))}
-      </div>
+  // ─── Active session screen ────────────────────────────────
+  const orbCount = state.phase === 'POWER' ? state.breathCount : state.phase === 'HOLD' || state.phase === 'RECOVERY' ? state.holdTimer : 0;
+  const orbCountSuffix = state.phase === 'POWER' ? '' : 's';
 
-      {/* Breathing circle */}
-      <div className="relative w-40 h-40 flex items-center justify-center mb-4">
-        <div
-          ref={circleRef}
-          className="w-24 h-24 rounded-full border-2 flex items-center justify-center"
-          style={{
-            boxShadow: state.phase === 'HOLD'
-              ? '0 0 30px rgba(188,0,45,0.4)'
-              : '0 0 30px rgba(201,162,39,0.35)',
-            borderColor: state.phase === 'HOLD' ? '#bc002d' : '#c9a227',
-          }}
-        >
-          <span
-            className="text-[14px] tracking-[0.2em] font-bold"
-            style={{ color: state.phase === 'HOLD' ? '#bc002d' : '#c9a227' }}
-          >
-            {state.phase === 'POWER' ? state.breathCount : state.holdTimer + 's'}
+  return (
+    <div
+      className="relative w-full h-full flex flex-col overflow-hidden"
+      style={{ color: NT.primary, background: N.void }}
+    >
+      {/* Header masthead */}
+      <div
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
+      >
+        <div className="flex items-center justify-between pb-2.5">
+          <span className="flex items-center gap-2">
+            <BrandCaption N={N} NT={NT} label="wellness · wim hof" />
           </span>
+          <span
+            className="font-mono tabular-nums tracking-[0.18em] font-[500]"
+            style={{ color: NT.muted, fontSize: 10 }}
+          >
+            <span style={{ color: NT.primary, fontWeight: 600 }}>
+              {String(state.round).padStart(2, '0')}
+            </span>
+            <span style={{ color: hexToRgba(N.amber, 0.5), margin: '0 6px' }}>—</span>
+            {String(TOTAL_ROUNDS).padStart(2, '0')}
+          </span>
+        </div>
+        <div className="relative h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }}>
+          <div
+            className="absolute inset-y-0 left-0"
+            style={{
+              width: `${globalProgress * 100}%`,
+              background: N.amber,
+              boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.5)}`,
+              transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
+            }}
+          />
         </div>
       </div>
 
-      {/* Phase label */}
+      {/* Body */}
+      <div className="flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6">
+        <div className="mt-3 flex items-baseline justify-between">
+          <span
+            className="font-mono tabular-nums font-[600]"
+            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
+          >
+            R{state.round}
+            <span style={{ color: N.amber }}>.</span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · {state.phase.toLowerCase()} ·
+          </span>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center gap-7">
+          <h1
+            className="font-headline font-[700] lowercase tracking-[-0.04em] text-center"
+            style={{
+              color: NT.primary,
+              fontSize: 'clamp(2.4rem, 9vw, 3.4rem)',
+              lineHeight: 0.95,
+              textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+              maxWidth: '14ch',
+            }}
+          >
+            {phaseLabel()}
+            <span style={{ color: N.amber }}>.</span>
+          </h1>
+
+          {/* Orb central */}
+          <div className="relative" style={{ width: 160, height: 160 }}>
+            <div
+              aria-hidden
+              className="absolute pointer-events-none rounded-full"
+              style={{
+                inset: -28,
+                background: `radial-gradient(circle, ${hexToRgba(N.amber, 0.4)} 0%, transparent 70%)`,
+                filter: 'blur(20px)',
+                opacity: isFinished ? 0.5 : 0.95,
+              }}
+            />
+            <div
+              ref={orbRef}
+              className="absolute inset-0 rounded-full flex items-center justify-center"
+              style={{
+                background: `radial-gradient(circle at 38% 35%, #fff4e2 0%, ${N.amber_glow} 35%, ${N.amber} 70%, ${N.candle} 100%)`,
+                boxShadow: `inset -10px -10px 28px ${hexToRgba(N.candle, 0.5)}, inset 5px 5px 12px ${hexToRgba('#ffffff', 0.18)}, 0 0 44px ${hexToRgba(N.amber, 0.5)}`,
+              }}
+            >
+              <span
+                className="font-headline font-[700] tabular-nums"
+                style={{
+                  color: N.void,
+                  fontSize: 30,
+                  letterSpacing: '-0.02em',
+                  textShadow: `0 1px 2px ${hexToRgba('#ffffff', 0.5)}`,
+                }}
+              >
+                {isFinished ? '✓' : orbCount + orbCountSuffix}
+              </span>
+            </div>
+          </div>
+
+          <p
+            className="font-ui text-[12.5px] leading-[1.55] text-center max-w-[28ch]"
+            style={{ color: NT.soft }}
+          >
+            {phaseHint()}
+          </p>
+        </div>
+
+        {/* Round dots */}
+        <div className="flex justify-center gap-2 mb-6">
+          {[1, 2, 3].map(r => (
+            <span
+              key={r}
+              className="rounded-full transition-all"
+              style={{
+                width: r === state.round && !isFinished ? 8 : 5,
+                height: r === state.round && !isFinished ? 8 : 5,
+                background: r <= state.round ? N.amber : hexToRgba(N.amber, 0.18),
+                boxShadow: r === state.round && !isFinished ? `0 0 10px ${hexToRgba(N.amber, 0.7)}` : 'none',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
       <div
-        className="text-lg font-bold tracking-wider mb-1 ember-text"
-        style={{
-          color: state.phase === 'HOLD' ? '#bc002d' : '#c9a227',
-          fontFamily: 'var(--font-cinzel), Georgia, serif',
-        }}
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
       >
-        {getPhaseLabel()}
-      </div>
-      <div className="text-[14px] tracking-wider" style={{ color: 'rgba(232,220,196,0.5)' }}>
-        {getPhaseDescription()}
-      </div>
-      <div className="text-[12px] mt-2 tracking-[0.25em]" style={{ color: 'rgba(201,162,39,0.4)' }}>
-        RONDA {state.round}/{totalRounds}
+        <div className="flex items-center justify-center pt-3">
+          {isFinished && onClose ? (
+            <button
+              onClick={() => { haptics.tap(); onClose(); }}
+              className="font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985]"
+              style={{
+                padding: '13px 28px',
+                background: N.amber,
+                color: N.void,
+                fontSize: 10.5,
+                boxShadow: `0 8px 24px -6px ${hexToRgba(N.amber, 0.5)}`,
+              }}
+            >
+              volver
+            </button>
+          ) : onClose ? (
+            <button
+              onClick={() => { clearTimers(); haptics.tap(); onClose(); }}
+              className="flex items-center gap-1.5 transition-opacity active:opacity-50"
+              style={{ color: NT.muted, opacity: 0.6 }}
+            >
+              <span className="font-mono uppercase tracking-[0.4em] font-[600]" style={{ fontSize: 9 }}>
+                interrumpir
+              </span>
+              <X size={11} strokeWidth={1.8} />
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
+  );
+}
+
+// ─── Sub-components ──────────────────────────────────────────
+
+interface PaletteProps {
+  N: ReturnType<typeof useNightPalette>['palette'];
+  NT: ReturnType<typeof useNightPalette>['paletteText'];
+}
+
+function BrandCaption({ N, NT, label }: PaletteProps & { label: string }) {
+  return (
+    <>
+      <span
+        aria-hidden
+        style={{
+          width: 5,
+          height: 5,
+          background: N.amber,
+          borderRadius: 99,
+          boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
+        }}
+        className="night-breath"
+      />
+      <span
+        className="font-mono uppercase tracking-[0.42em] font-[500]"
+        style={{ color: NT.muted, fontSize: 9 }}
+      >
+        {label}
+      </span>
+    </>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  N,
+  NT,
+}: { label: string; value: string } & PaletteProps) {
+  return (
+    <div className="flex flex-col items-center">
+      <span
+        className="font-headline font-[700] tabular-nums"
+        style={{ color: NT.primary, fontSize: 22, lineHeight: 1, letterSpacing: '-0.02em' }}
+      >
+        {value}
+      </span>
+      <span
+        className="font-mono uppercase tracking-[0.32em] font-[600] mt-1.5"
+        style={{ color: NT.muted, fontSize: 8.5 }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function Divider({ N }: { N: PaletteProps['N'] }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 1,
+        height: 26,
+        background: hexToRgba(N.amber, 0.18),
+      }}
+    />
   );
 }

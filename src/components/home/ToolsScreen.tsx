@@ -14,13 +14,13 @@
 import { useMemo, useState } from 'react';
 import {
   Smile, Brain, Droplet, Wind, Activity, Bell,
-  Heart, Check, Zap, Sparkles,
+  Heart, Check, Zap, Sparkles, ArrowUpRight, X,
   type LucideIcon,
 } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
 import BreathingGuide from '../common/BreathingGuide';
 import NightBreathing from '../night/NightBreathing';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
 import { haptics } from '@/lib/common/haptics';
 import {
   WELLNESS_ROUTINES,
@@ -58,6 +58,7 @@ export default function ToolsScreen({
   onOpenFitness,
   alarmArmed,
 }: ToolsScreenProps) {
+  const { day: D, dayText: DT, pair } = useAppTheme();
   const [breathOverlay, setBreathOverlay] = useState<BreathOverlay>(null);
 
   const habitsToday = useMemo<Record<HabitId, boolean>>(() => {
@@ -88,9 +89,23 @@ export default function ToolsScreen({
   return (
     <div
       className="w-full h-full flex flex-col relative overflow-hidden"
-      style={{ background: SUNRISE.night, color: SUNRISE_TEXT.primary }}
+      style={{ background: D.paper, color: DT.primary }}
     >
-      <GradientBackground stage="welcome" particleCount={40} />
+      {/* Day-palette gradient background · sustituye a GradientBackground */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${D.tint} 0%, ${D.paper} 60%, ${D.tint_deep} 100%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 100% 100%, ${hexToRgba(D.accent_soft, 0.18)} 0%, transparent 55%)`,
+        }}
+      />
 
       {/* Header */}
       <div
@@ -99,15 +114,15 @@ export default function ToolsScreen({
       >
         <span
           className="font-ui text-[10px] uppercase tracking-[0.42em]"
-          style={{ color: SUNRISE_TEXT.muted }}
+          style={{ color: DT.muted }}
         >
-          Herramientas
+          Herramientas · {pair.label}
         </span>
         <div
-          className="font-display italic font-[400] text-[26px] leading-tight mt-0.5"
-          style={{ color: SUNRISE_TEXT.primary }}
+          className="font-headline font-[600] text-[28px] md:text-[34px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
+          style={{ color: DT.primary }}
         >
-          Bienestar · Respiración · Soporte
+          bienestar · respiración · soporte
         </div>
       </div>
 
@@ -117,46 +132,59 @@ export default function ToolsScreen({
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}
       >
         <div className="px-5 max-w-3xl mx-auto mt-5">
-          {/* ── Coach launcher ───────────────── */}
+          {/* ── Coach launcher · hero dorado ───────────── */}
           <SectionLabel>Coach</SectionLabel>
           <button
             type="button"
             onClick={() => { haptics.tap(); onLaunchCoach(); }}
-            className="w-full mt-2 mb-6 text-left rounded-2xl p-4 flex items-start gap-4 transition-transform active:scale-[0.98]"
+            className="w-full mt-2 mb-6 text-left transition-transform active:scale-[0.99]"
             style={{
-              background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+              background: D.accent,
+              color: D.paper,
+              padding: '18px 20px 16px',
+              borderRadius: 28,
+              boxShadow: `0 16px 36px -10px ${hexToRgba(D.accent, 0.5)}`,
             }}
           >
-            <span
-              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
-              style={{
-                background: hexToRgba(SUNRISE.rise2, 0.18),
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
-                color: SUNRISE.rise2,
-              }}
-            >
-              <Sparkles size={20} strokeWidth={1.7} />
-            </span>
-            <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3 mb-4">
               <span
-                className="font-display italic font-[400] text-[18px] leading-tight"
-                style={{ color: SUNRISE_TEXT.primary }}
+                className="font-ui text-[10px] tracking-[0.34em] uppercase font-[700]"
+                style={{ color: D.paper, opacity: 0.78 }}
               >
-                Coach de bienestar
+                tu coach diario
               </span>
-              <div
-                className="font-mono text-[10.5px] tracking-wider mt-0.5"
-                style={{ color: SUNRISE_TEXT.muted }}
-              >
-                Skincare · oral · hidratación · bruxismo · brote
-              </div>
+              <ArrowUpRight size={20} strokeWidth={2.4} style={{ color: D.paper, flexShrink: 0 }} />
+            </div>
+            <div
+              className="font-headline font-[700] leading-[0.95] lowercase tracking-[-0.025em]"
+              style={{ fontSize: 'clamp(2rem, 8.5vw, 2.6rem)', color: D.paper }}
+            >
+              coach de<br />bienestar
+            </div>
+            <div
+              className="flex items-center justify-between mt-4 pt-3.5"
+              style={{ borderTop: `1px solid ${hexToRgba(D.paper, 0.28)}` }}
+            >
+              <span className="inline-flex items-center gap-2 min-w-0">
+                <span
+                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: hexToRgba(D.paper, 0.2), color: D.paper }}
+                >
+                  <Sparkles size={13} strokeWidth={2.2} />
+                </span>
+                <span
+                  className="font-mono text-[11.5px] tracking-wider truncate lowercase"
+                  style={{ color: D.paper, opacity: 0.85 }}
+                >
+                  skincare · oral · hidratación · brote
+                </span>
+              </span>
             </div>
           </button>
 
-          {/* ── Wellness routines ──────────────── */}
+          {/* ── Wellness routines · split bento cards ────────── */}
           <SectionLabel>Bienestar</SectionLabel>
-          <div className="mt-2 mb-6 flex flex-col gap-3">
+          <div className="mt-2 mb-6 flex flex-col gap-2.5">
             {cards.map(({ routine, onLaunch }) => {
               const Icon = ROUTINE_ICON[routine.id] ?? Activity;
               const done = !!habitsToday[routine.habitId];
@@ -168,61 +196,72 @@ export default function ToolsScreen({
                   key={routine.id}
                   type="button"
                   onClick={() => { haptics.tap(); onLaunch(); }}
-                  className="text-left rounded-2xl p-4 flex items-start gap-4 transition-transform active:scale-[0.98]"
+                  className="text-left flex items-stretch overflow-hidden transition-transform active:scale-[0.99]"
                   style={{
-                    background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.6)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
-                    border: `1px solid ${done
-                      ? hexToRgba(SUNRISE.rise2, 0.45)
-                      : hexToRgba(SUNRISE.rise2, 0.15)}`,
+                    borderRadius: 20,
+                    background: hexToRgba(D.tint, 0.7),
+                    border: `1px solid ${hexToRgba(D.accent, done ? 0.5 : 0.18)}`,
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
                   }}
                 >
-                  <span
-                    className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
+                  {/* LEFT · day glass content */}
+                  <div className="flex-1 min-w-0 flex items-start gap-3.5 px-4 py-3.5">
+                    <span
+                      className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{
+                        background: hexToRgba(D.accent, 0.16),
+                        border: `1px solid ${hexToRgba(D.accent, 0.4)}`,
+                        color: D.accent,
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={2} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="font-headline font-[600] text-[17px] leading-tight lowercase tracking-[-0.015em] truncate"
+                        style={{ color: DT.primary }}
+                      >
+                        {routine.title.toLowerCase()}
+                      </div>
+                      <div
+                        className="mt-1 font-mono text-[10.5px] tracking-wider lowercase"
+                        style={{ color: DT.muted }}
+                      >
+                        {routine.kicker.toLowerCase()} · {minutes}
+                      </div>
+                    </div>
+                  </div>
+                  {/* RIGHT · status (accent sólido cuando done) */}
+                  <div
+                    className="shrink-0 flex flex-col items-center justify-center px-3 gap-1"
                     style={{
-                      background: hexToRgba(SUNRISE.rise2, 0.16),
-                      border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
-                      color: SUNRISE.rise2,
+                      minWidth: 64,
+                      background: done ? D.accent : hexToRgba(D.accent, 0.12),
                     }}
                   >
-                    <Icon size={20} strokeWidth={1.7} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span
-                        className="font-display italic font-[400] text-[18px] leading-tight"
-                        style={{ color: SUNRISE_TEXT.primary }}
-                      >
-                        {routine.title}
-                      </span>
-                      {done && (
+                    {done ? (
+                      <>
+                        <Check size={16} strokeWidth={2.6} style={{ color: D.paper }} />
                         <span
-                          className="inline-flex items-center gap-1 font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-                          style={{
-                            background: hexToRgba(SUNRISE.rise2, 0.22),
-                            color: SUNRISE.rise2,
-                            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
-                          }}
+                          className="font-ui text-[9px] tracking-[0.3em] uppercase font-[700]"
+                          style={{ color: D.paper, opacity: 0.78 }}
                         >
-                          <Check size={10} strokeWidth={2.4} />
-                          Hoy
+                          hoy
                         </span>
-                      )}
-                    </div>
-                    <div
-                      className="font-mono text-[10.5px] tracking-wider"
-                      style={{ color: SUNRISE_TEXT.muted }}
-                    >
-                      {routine.kicker} · {minutes}
-                    </div>
+                      </>
+                    ) : (
+                      <ArrowUpRight size={18} strokeWidth={2.2} style={{ color: D.accent }} />
+                    )}
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* ── Breathing & NSDR shortcuts ─────────────────── */}
+          {/* ── Breathing & NSDR shortcuts ─────────────── */}
           <SectionLabel>Respiración &amp; NSDR</SectionLabel>
-          <div className="mt-2 mb-6 grid grid-cols-2 gap-2.5">
+          <div className="mt-2 mb-6 grid grid-cols-2 gap-2">
             <ToolChip
               icon={<Activity size={16} strokeWidth={1.85} />}
               title="Wim Hof"
@@ -243,9 +282,9 @@ export default function ToolsScreen({
             />
           </div>
 
-          {/* ── Support tools ──────────────────────────────── */}
+          {/* ── Support tools ────────────────────── */}
           <SectionLabel>Soporte</SectionLabel>
-          <div className="mt-2 grid grid-cols-2 gap-2.5">
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <ToolChip
               icon={<Bell size={16} strokeWidth={1.85} />}
               title="Alarma suave"
@@ -263,12 +302,13 @@ export default function ToolsScreen({
         </div>
       </div>
 
-      {/* Wim Hof overlay */}
+      {/* Wim Hof overlay (Wim Hof guide keeps its own internal palette;
+          we only theme the wrapper backdrop + close button.) */}
       {breathOverlay === 'wim_hof' && (
         <div
           className="fixed inset-0 z-[70] flex flex-col items-center justify-center px-6"
           style={{
-            background: hexToRgba(SUNRISE.night, 0.96),
+            background: hexToRgba(D.ink, 0.85),
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
           }}
@@ -276,15 +316,15 @@ export default function ToolsScreen({
           <button
             type="button"
             onClick={() => { haptics.tap(); setBreathOverlay(null); }}
-            className="absolute top-5 right-5 rounded-full px-3 py-1.5 font-ui text-[10px] tracking-[0.28em] uppercase"
+            aria-label="Cerrar"
+            className="absolute right-5 w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95"
             style={{
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
-              background: hexToRgba(SUNRISE.rise2, 0.1),
-              color: SUNRISE.rise2,
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.375rem)',
+              top: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+              background: D.accent,
+              boxShadow: `0 6px 18px -4px ${hexToRgba(D.accent, 0.5)}`,
             }}
           >
-            Cerrar
+            <X size={18} strokeWidth={2.4} style={{ color: D.paper }} />
           </button>
           <BreathingGuide />
         </div>
@@ -299,10 +339,11 @@ export default function ToolsScreen({
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  const { dayText: DT } = useAppTheme();
   return (
     <h2
       className="font-ui text-[10px] tracking-[0.34em] uppercase"
-      style={{ color: SUNRISE_TEXT.muted }}
+      style={{ color: DT.muted }}
     >
       {children}
     </h2>
@@ -322,39 +363,51 @@ function ToolChip({
   onClick: () => void;
   accent?: boolean;
 }) {
+  const { day: D, dayText: DT } = useAppTheme();
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-transform active:scale-[0.97]"
+      className="relative flex flex-col items-start gap-2.5 px-3.5 py-3 text-left transition-transform active:scale-[0.97] overflow-hidden"
       style={{
-        background: hexToRgba(SUNRISE.predawn2, 0.55),
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, accent ? 0.4 : 0.18)}`,
+        borderRadius: 18,
+        background: hexToRgba(D.tint, 0.7),
+        border: `1px solid ${hexToRgba(D.accent, accent ? 0.55 : 0.18)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        minHeight: 92,
       }}
     >
       <span
-        className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
         style={{
-          background: hexToRgba(SUNRISE.rise2, accent ? 0.22 : 0.14),
-          color: SUNRISE.rise2,
+          background: accent ? D.accent : hexToRgba(D.accent, 0.16),
+          color: accent ? D.paper : D.accent,
+          border: accent ? 'none' : `1px solid ${hexToRgba(D.accent, 0.4)}`,
         }}
       >
         {icon}
       </span>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 w-full">
         <div
-          className="font-display italic font-[400] text-[15px] leading-tight truncate"
-          style={{ color: SUNRISE_TEXT.primary }}
+          className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.015em] truncate"
+          style={{ color: DT.primary }}
         >
-          {title}
+          {title.toLowerCase()}
         </div>
         <div
-          className="font-ui text-[10.5px] tracking-wider"
-          style={{ color: SUNRISE_TEXT.muted }}
+          className="mt-0.5 font-mono text-[10px] tracking-wider lowercase truncate"
+          style={{ color: accent ? D.accent : DT.muted }}
         >
-          {hint}
+          {hint.toLowerCase()}
         </div>
       </div>
+      {accent && (
+        <span
+          className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full"
+          style={{ background: D.accent, boxShadow: `0 0 8px ${D.accent}` }}
+        />
+      )}
     </button>
   );
 }

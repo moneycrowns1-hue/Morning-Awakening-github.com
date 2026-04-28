@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import {
+  ArrowUpRight,
   BookOpen,
   ChevronLeft,
   Moon,
@@ -26,7 +27,7 @@ import {
   ZapOff,
 } from 'lucide-react';
 import { haptics } from '@/lib/common/haptics';
-import { SUNRISE, hexToRgba } from '@/lib/common/theme';
+import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
 import {
   loadNightConfig,
   saveNightConfig,
@@ -198,44 +199,50 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
 
       {/* ─── Header ───────────────────────────────── */}
       <div
-        className="relative z-10 flex items-center gap-3 px-4 pt-4 pb-2 sunrise-fade-up"
+        className="relative z-10 flex items-start gap-3 px-4 pt-4 pb-2 sunrise-fade-up"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
         <button
           onClick={() => { haptics.tap(); onClose(); }}
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/5"
-          style={{ color: 'var(--sunrise-text-soft)' }}
+          className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95"
+          style={{
+            background: SUNRISE.rise2,
+            color: SUNRISE.night,
+            boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+          }}
           aria-label="Volver"
         >
-          <ChevronLeft size={22} strokeWidth={1.7} />
+          <ChevronLeft size={18} strokeWidth={2.4} style={{ color: SUNRISE.night }} />
         </button>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-0.5">
           <div
-            className="font-ui text-[10px] uppercase tracking-[0.32em]"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            className="font-ui text-[10px] uppercase tracking-[0.42em] font-[600]"
+            style={{ color: SUNRISE_TEXT.muted }}
           >
-            Modo noche
+            modo noche
           </div>
           <h1
-            className="font-display italic font-[400] text-[22px] leading-none mt-0.5 truncate"
-            style={{ color: 'var(--sunrise-text)' }}
+            className="font-headline font-[600] text-[26px] md:text-[30px] leading-[0.95] tracking-[-0.025em] lowercase mt-1 truncate"
+            style={{ color: SUNRISE_TEXT.primary }}
           >
-            Wind-down
+            wind-down
           </h1>
         </div>
         <button
           onClick={() => { haptics.tick(); patchCfg({ warmFilter: !cfg.warmFilter }); }}
           aria-label={cfg.warmFilter ? 'Quitar filtro cálido' : 'Activar filtro cálido'}
-          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-full transition-all"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full transition-all mt-1"
           style={{
-            border: `1px solid ${cfg.warmFilter ? hexToRgba(SUNRISE.rise2, 0.45) : 'rgba(255,250,240,0.12)'}`,
-            background: cfg.warmFilter ? hexToRgba(SUNRISE.rise2, 0.12) : 'rgba(255,250,240,0.04)',
-            color: cfg.warmFilter ? SUNRISE.rise2 : 'var(--sunrise-text-soft)',
+            border: `1px solid ${cfg.warmFilter ? hexToRgba(SUNRISE.rise2, 0.5) : hexToRgba(SUNRISE_TEXT.primary, 0.14)}`,
+            background: cfg.warmFilter ? hexToRgba(SUNRISE.rise2, 0.16) : hexToRgba(SUNRISE.night, 0.5),
+            color: cfg.warmFilter ? SUNRISE.rise2 : SUNRISE_TEXT.soft,
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
         >
-          {cfg.warmFilter ? <Sun size={14} strokeWidth={1.9} /> : <Moon size={14} strokeWidth={1.9} />}
-          <span className="font-ui text-[11px] tracking-[0.24em] uppercase">
-            {cfg.warmFilter ? 'Cálido' : 'Frío'}
+          {cfg.warmFilter ? <Sun size={13} strokeWidth={2.2} /> : <Moon size={13} strokeWidth={2.2} />}
+          <span className="font-ui text-[10px] tracking-[0.28em] uppercase font-[700]">
+            {cfg.warmFilter ? 'cálido' : 'frío'}
           </span>
         </button>
       </div>
@@ -245,132 +252,187 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
         {/* ─── Hero: clock + greeting ───────────── */}
         <div className="flex flex-col items-center justify-center py-8 sunrise-fade-up">
           <div
-            className="font-display italic font-[200] leading-none tabular-nums"
+            className="font-headline font-[300] leading-none tabular-nums"
             style={{
-              fontSize: 'clamp(84px, 22vw, 128px)',
-              color: 'var(--sunrise-text)',
-              textShadow: `0 0 40px ${hexToRgba(SUNRISE.rise2, 0.3)}`,
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(96px, 24vw, 144px)',
+              color: SUNRISE_TEXT.primary,
+              textShadow: `0 0 50px ${hexToRgba(SUNRISE.rise2, 0.35)}`,
+              letterSpacing: '-0.05em',
             }}
           >
             {hh}:{mm}
           </div>
           <div
-            className="font-ui text-[13px] tracking-[0.22em] mt-2"
-            style={{ color: 'var(--sunrise-text-soft)' }}
+            className="font-mono text-[12px] tracking-[0.24em] mt-3 lowercase"
+            style={{ color: SUNRISE_TEXT.muted }}
           >
-            Buenas noches, <span style={{ color: 'var(--sunrise-text)' }}>{firstName(operatorName)}</span>.
+            buenas noches
+          </div>
+          <div
+            className="font-headline font-[600] text-[22px] leading-tight lowercase tracking-[-0.02em] mt-1"
+            style={{ color: SUNRISE.rise2 }}
+          >
+            {firstName(operatorName).toLowerCase()}
           </div>
         </div>
 
-        {/* ─── Alarm reminder ──────────────────── */}
-        <div
-          className="rounded-2xl p-4 mb-5 flex items-start gap-3 sunrise-fade-up"
-          style={{
-            animationDelay: '80ms',
-            border: `1px solid ${alarmInfo ? hexToRgba(SUNRISE.rise2, 0.25) : 'rgba(255,250,240,0.08)'}`,
-            background: alarmInfo ? hexToRgba(SUNRISE.rise2, 0.04) : 'rgba(255,250,240,0.03)',
-          }}
-        >
-          <span
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        {/* ─── Alarm reminder · split bento ──────────────────── */}
+        {alarmInfo ? (
+          <div
+            className="mb-5 overflow-hidden flex items-stretch sunrise-fade-up"
             style={{
-              background: hexToRgba(SUNRISE.rise2, 0.14),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.35)}`,
-              color: SUNRISE.rise2,
+              animationDelay: '80ms',
+              borderRadius: 20,
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+              background: hexToRgba(SUNRISE.night, 0.55),
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              boxShadow: `0 14px 30px -18px ${hexToRgba(SUNRISE.rise2, 0.4)}`,
             }}
           >
-            <Moon size={16} strokeWidth={1.8} />
-          </span>
-          <div className="flex-1">
-            {alarmInfo ? (
-              <>
+            <div className="flex-1 min-w-0 flex items-start gap-3 p-4">
+              <span
+                className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: hexToRgba(SUNRISE.rise2, 0.16),
+                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
+                  color: SUNRISE.rise2,
+                }}
+              >
+                <Moon size={16} strokeWidth={2} />
+              </span>
+              <div className="flex-1 min-w-0">
                 <div
-                  className="font-ui text-[11px] uppercase tracking-[0.26em] mb-0.5"
-                  style={{ color: 'var(--sunrise-text-muted)' }}
+                  className="font-ui text-[10px] uppercase tracking-[0.32em] font-[700] mb-0.5"
+                  style={{ color: SUNRISE_TEXT.muted }}
                 >
-                  Tu alarma
+                  tu alarma
                 </div>
                 <div
-                  className="font-ui text-[14px] font-[500]"
-                  style={{ color: 'var(--sunrise-text)' }}
+                  className="font-headline font-[600] text-[20px] leading-tight tabular-nums tracking-[-0.02em]"
+                  style={{ color: SUNRISE_TEXT.primary }}
                 >
-                  {alarmTimeStr} · {describeDays(alarmCfg.days)}
+                  {alarmTimeStr}
                 </div>
                 <div
-                  className="font-ui text-[11px] mt-0.5"
-                  style={{ color: 'var(--sunrise-text-muted)' }}
+                  className="font-mono text-[10.5px] tracking-wider mt-1 lowercase"
+                  style={{ color: SUNRISE_TEXT.muted }}
                 >
-                  {formatUntilAlarm(alarmInfo.msUntilRampStart, alarmCfg.rampSec)}
+                  {describeDays(alarmCfg.days).toLowerCase()} · {formatUntilAlarm(alarmInfo.msUntilRampStart, alarmCfg.rampSec).toLowerCase()}
                 </div>
-              </>
-            ) : (
-              <>
-                <div
-                  className="font-ui text-[13px] font-[500] mb-1"
-                  style={{ color: 'var(--sunrise-text)' }}
-                >
-                  Sin alarma armada
-                </div>
-                <button
-                  onClick={() => { haptics.tap(); onOpenAlarm(); }}
-                  className="font-ui text-[11px] tracking-[0.18em] uppercase"
-                  style={{ color: SUNRISE.rise2 }}
-                >
-                  Configurar alarma →
-                </button>
-              </>
-            )}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <button
+            onClick={() => { haptics.tap(); onOpenAlarm(); }}
+            className="w-full mb-5 overflow-hidden flex items-stretch text-left sunrise-fade-up transition-transform active:scale-[0.99]"
+            style={{
+              animationDelay: '80ms',
+              borderRadius: 20,
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+              background: hexToRgba(SUNRISE.night, 0.55),
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
+            <div className="flex-1 min-w-0 flex items-center gap-3 p-4">
+              <span
+                className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: hexToRgba(SUNRISE.rise2, 0.14),
+                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+                  color: SUNRISE.rise2,
+                }}
+              >
+                <Moon size={16} strokeWidth={2} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div
+                  className="font-headline font-[600] text-[16px] leading-tight lowercase tracking-[-0.015em]"
+                  style={{ color: SUNRISE_TEXT.primary }}
+                >
+                  sin alarma armada
+                </div>
+                <div
+                  className="mt-0.5 font-mono text-[10.5px] tracking-wider lowercase"
+                  style={{ color: SUNRISE_TEXT.muted }}
+                >
+                  configura tu próxima
+                </div>
+              </div>
+            </div>
+            <div
+              className="shrink-0 flex items-center justify-center px-4"
+              style={{ background: hexToRgba(SUNRISE.rise2, 0.14) }}
+            >
+              <ArrowUpRight size={18} strokeWidth={2.2} style={{ color: SUNRISE.rise2 }} />
+            </div>
+          </button>
+        )}
 
-        {/* ─── "Dormir ya" shortcut ─────────────── */}
+        {/* ─── "Dormir ya" hero CTA · split bento ─────────────── */}
         {cfg.lastTrackId && (
           <button
             onClick={handleDormirYa}
-            className="w-full rounded-2xl p-5 mb-5 flex items-center gap-4 text-left transition-transform active:scale-[0.98] sunrise-fade-up relative overflow-hidden"
+            className="w-full mb-5 overflow-hidden flex items-stretch text-left transition-transform active:scale-[0.99] sunrise-fade-up"
             style={{
               animationDelay: '120ms',
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
-              background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.rise2, 0.22)} 0%, ${hexToRgba(SUNRISE.dawn1, 0.15)} 100%)`,
+              borderRadius: 22,
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
               boxShadow: `0 14px 40px -12px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
             }}
           >
-            <span
-              className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+            {/* Left golden play block */}
+            <div
+              className="shrink-0 flex flex-col items-center justify-center px-5 py-5 gap-2"
               style={{
-                background: hexToRgba(SUNRISE.night, 0.55),
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.6)}`,
-                color: SUNRISE.rise2,
+                minWidth: 96,
+                background: SUNRISE.rise2,
+                color: SUNRISE.night,
               }}
             >
-              <Play size={20} strokeWidth={2} fill={SUNRISE.rise2} />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div
-                className="font-ui text-[10px] uppercase tracking-[0.32em] mb-0.5"
-                style={{ color: 'var(--sunrise-text-muted)' }}
+              <Play size={26} strokeWidth={2} fill={SUNRISE.night} style={{ color: SUNRISE.night }} />
+              <span
+                className="font-ui text-[9px] tracking-[0.3em] uppercase font-[700]"
+                style={{ color: SUNRISE.night, opacity: 0.7 }}
               >
-                Dormir ya
+                play
+              </span>
+            </div>
+            {/* Right info */}
+            <div
+              className="flex-1 min-w-0 flex flex-col justify-center px-4 py-4"
+              style={{
+                background: hexToRgba(SUNRISE.night, 0.55),
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+              }}
+            >
+              <div
+                className="font-ui text-[10px] uppercase tracking-[0.32em] font-[700] mb-0.5"
+                style={{ color: SUNRISE.rise2 }}
+              >
+                dormir ya
               </div>
               <div
-                className="font-display italic font-[400] text-[22px] leading-tight truncate"
-                style={{ color: 'var(--sunrise-text)' }}
+                className="font-headline font-[600] text-[22px] leading-tight lowercase tracking-[-0.025em] truncate"
+                style={{ color: SUNRISE_TEXT.primary }}
               >
-                {findSound(cfg.lastTrackId)?.label ?? 'Sonido'}
+                {(findSound(cfg.lastTrackId)?.label ?? 'sonido').toLowerCase()}
               </div>
               <div
-                className="font-ui text-[11px] mt-0.5"
-                style={{ color: 'var(--sunrise-text-muted)' }}
+                className="mt-0.5 font-mono text-[10.5px] tracking-wider lowercase"
+                style={{ color: SUNRISE_TEXT.muted }}
               >
-                {cfg.lastTimerMin === 0 ? 'Temporizador 30 min' : `Temporizador ${cfg.lastTimerMin} min`}
+                temporizador {cfg.lastTimerMin === 0 ? 30 : cfg.lastTimerMin} min
               </div>
             </div>
           </button>
         )}
 
         {/* ─── Sound picker ─────────────────────── */}
-        <Section title="Paisaje sonoro" delay={160}>
+        <Section title="paisaje sonoro" delay={160}>
           <SleepSoundPicker
             activeId={engineState.trackId}
             onPick={handlePickSound}
@@ -379,7 +441,7 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
 
         {/* ─── Volume + play/pause (only when a track is loaded) ─── */}
         {engineState.trackId && (
-          <Section title="Volumen" delay={200}>
+          <Section title="volumen" delay={200}>
             <div className="flex items-center gap-3">
               <button
                 onClick={handleTogglePlayback}
@@ -414,7 +476,7 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
         )}
 
         {/* ─── Sleep timer ─────────────────────── */}
-        <Section title="Temporizador de apagado" delay={240}>
+        <Section title="temporizador de apagado" delay={240}>
           <SleepTimerSelector
             value={cfg.lastTimerMin}
             onChange={handleTimerChange}
@@ -423,10 +485,10 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
           />
           {engineState.fadingOut && (
             <div
-              className="font-ui text-[10px] tracking-[0.2em] uppercase mt-2"
+              className="font-mono text-[10px] tracking-[0.24em] uppercase mt-2 font-[700] lowercase"
               style={{ color: SUNRISE.rise2 }}
             >
-              Bajando audio…
+              bajando audio…
             </div>
           )}
         </Section>
@@ -449,19 +511,20 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
 
         {/* ─── Dim hint ─────────────────────────── */}
         <div
-          className="flex items-center gap-2 px-4 py-3 rounded-xl sunrise-fade-up"
+          className="flex items-center gap-2 px-4 py-3 sunrise-fade-up"
           style={{
             animationDelay: '320ms',
-            border: '1px solid rgba(255,250,240,0.06)',
-            background: 'rgba(255,250,240,0.02)',
+            borderRadius: 14,
+            border: `1px solid ${hexToRgba(SUNRISE_TEXT.primary, 0.06)}`,
+            background: hexToRgba(SUNRISE.night, 0.4),
           }}
         >
-          <ZapOff size={12} strokeWidth={1.7} style={{ color: 'var(--sunrise-text-muted)' }} />
+          <ZapOff size={12} strokeWidth={1.9} style={{ color: SUNRISE_TEXT.muted }} />
           <span
-            className="font-ui text-[10px] leading-relaxed"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            className="font-mono text-[10px] leading-relaxed tracking-wider lowercase"
+            style={{ color: SUNRISE_TEXT.muted }}
           >
-            La pantalla se oscurece sola después de 20 s sin tocarla. Toca para restaurar.
+            la pantalla se oscurece sola tras 20 s sin tocarla. toca para restaurar.
           </span>
         </div>
       </div>
@@ -501,16 +564,19 @@ function Section({
 }) {
   return (
     <section
-      className="rounded-2xl p-4 mb-3 sunrise-fade-up"
+      className="p-4 mb-3 sunrise-fade-up"
       style={{
         animationDelay: `${delay}ms`,
-        border: '1px solid rgba(255,250,240,0.08)',
-        background: 'rgba(255,250,240,0.03)',
+        borderRadius: 20,
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
       <div
-        className="font-ui text-[10px] uppercase tracking-[0.32em] mb-3"
-        style={{ color: 'var(--sunrise-text-muted)' }}
+        className="font-ui text-[10px] uppercase tracking-[0.38em] mb-3 font-[700]"
+        style={{ color: SUNRISE_TEXT.muted }}
       >
         {title}
       </div>
@@ -533,33 +599,44 @@ function QuickAction({
   return (
     <button
       onClick={onClick}
-      className="rounded-2xl p-4 text-left transition-transform active:scale-[0.97]"
+      className="flex items-stretch overflow-hidden text-left transition-transform active:scale-[0.99]"
       style={{
-        border: '1px solid rgba(255,250,240,0.1)',
-        background: 'rgba(255,250,240,0.03)',
+        borderRadius: 18,
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        background: hexToRgba(SUNRISE.night, 0.55),
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <span
-        className="inline-flex items-center justify-center w-9 h-9 rounded-full mb-2"
-        style={{
-          background: hexToRgba(SUNRISE.rise2, 0.1),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.28)}`,
-          color: SUNRISE.rise2,
-        }}
-      >
-        {icon}
-      </span>
-      <div
-        className="font-ui text-[13px] font-[500]"
-        style={{ color: 'var(--sunrise-text)' }}
-      >
-        {title}
+      <div className="flex-1 min-w-0 px-4 py-3.5">
+        <span
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full mb-2"
+          style={{
+            background: hexToRgba(SUNRISE.rise2, 0.14),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.32)}`,
+            color: SUNRISE.rise2,
+          }}
+        >
+          {icon}
+        </span>
+        <div
+          className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.015em]"
+          style={{ color: SUNRISE_TEXT.primary }}
+        >
+          {title.toLowerCase()}
+        </div>
+        <div
+          className="mt-0.5 font-mono text-[10px] tracking-wider lowercase"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          {hint.toLowerCase()}
+        </div>
       </div>
       <div
-        className="font-ui text-[10.5px] mt-0.5"
-        style={{ color: 'var(--sunrise-text-muted)' }}
+        className="shrink-0 flex items-center justify-center px-3"
+        style={{ background: hexToRgba(SUNRISE.rise2, 0.12) }}
       >
-        {hint}
+        <ArrowUpRight size={16} strokeWidth={2.2} style={{ color: SUNRISE.rise2 }} />
       </div>
     </button>
   );

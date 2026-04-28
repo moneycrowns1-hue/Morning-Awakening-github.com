@@ -233,18 +233,20 @@ function TopicalView({
               {product.actives.map((a, i) => (
                 <div
                   key={i}
-                  className="rounded-lg px-3 py-2"
+                  className="rounded-xl px-3 py-2.5"
                   style={{
-                    background: hexToRgba(SUNRISE.predawn2, 0.4),
-                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
+                    background: hexToRgba(SUNRISE.night, 0.5),
+                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
                   }}
                 >
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span
-                      className="font-display italic font-[400] text-[14px] leading-tight"
+                      className="font-headline font-[600] text-[14px] leading-tight lowercase tracking-[-0.01em]"
                       style={{ color: SUNRISE_TEXT.primary }}
                     >
-                      {a.name}
+                      {a.name.toLowerCase()}
                     </span>
                     {a.concentration && (
                       <span
@@ -331,10 +333,12 @@ function TopicalView({
           <button
             type="button"
             onClick={onToggleInci}
-            className="w-full mt-4 px-3 py-2 rounded-lg flex items-center justify-between text-left"
+            className="w-full mt-4 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-left transition-transform active:scale-[0.99]"
             style={{
-              background: hexToRgba(SUNRISE.predawn2, 0.4),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
+              background: hexToRgba(SUNRISE.night, 0.5),
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             }}
           >
             <span
@@ -498,10 +502,10 @@ function Header({
           {kicker}
         </span>
         <div
-          className="font-display italic font-[400] text-[22px] leading-tight mt-0.5"
+          className="font-headline font-[600] text-[26px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
           style={{ color: SUNRISE_TEXT.primary }}
         >
-          {title}
+          {title.toLowerCase()}
         </div>
         {url && (
           <a
@@ -520,14 +524,14 @@ function Header({
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
-        className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-95"
+        className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 shrink-0"
         style={{
-          background: hexToRgba(SUNRISE.predawn2, 0.55),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
-          color: SUNRISE_TEXT.primary,
+          background: SUNRISE.rise2,
+          color: SUNRISE.night,
+          boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
         }}
       >
-        <X size={16} strokeWidth={1.85} />
+        <X size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
       </button>
     </div>
   );
@@ -599,11 +603,11 @@ function CautionsBox({ cautions }: { cautions: string[] }) {
 function Tag({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full"
+      className="font-mono text-[10px] tracking-wider lowercase px-2 py-0.5 rounded-full"
       style={{
-        background: hexToRgba(SUNRISE.predawn2, 0.5),
+        background: hexToRgba(SUNRISE.night, 0.5),
         color: SUNRISE_TEXT.soft,
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
       }}
     >
       {children}
@@ -614,23 +618,25 @@ function Tag({ children }: { children: React.ReactNode }) {
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div
-      className="rounded-lg px-3 py-2"
+      className="rounded-xl px-3 py-2.5"
       style={{
-        background: hexToRgba(SUNRISE.predawn2, 0.4),
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
+        background: hexToRgba(SUNRISE.night, 0.5),
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
       <span
-        className="font-ui text-[9px] tracking-[0.28em] uppercase block"
+        className="font-ui text-[9px] tracking-[0.3em] uppercase block"
         style={{ color: SUNRISE_TEXT.muted }}
       >
         {label}
       </span>
       <span
-        className="font-display italic font-[400] text-[14px] leading-tight"
+        className="font-headline font-[600] text-[14px] leading-tight lowercase tracking-[-0.01em] mt-0.5 inline-block"
         style={{ color: SUNRISE_TEXT.primary }}
       >
-        {value}
+        {value.toLowerCase()}
       </span>
     </div>
   );

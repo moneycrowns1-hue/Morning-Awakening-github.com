@@ -19,7 +19,7 @@
 
 import { useState } from 'react';
 import {
-  ArrowLeft, Sun, Moon, Droplet, Brain, Smile, Pill, Flame,
+  ArrowLeft, ArrowUpRight, Sun, Moon, Droplet, Brain, Smile, Pill, Flame,
   ChevronDown, Plus, Check, AlertTriangle, Activity,
   type LucideIcon,
 } from 'lucide-react';
@@ -121,9 +121,6 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
             <LoadingState />
           ) : (
             <>
-              {/* Modo + kicker */}
-              <ModeBadge briefing={briefing} />
-
               {/* Warnings (si hay) */}
               {briefing.warnings.length > 0 && (
                 <div className="mt-4 flex flex-col gap-2">
@@ -133,43 +130,37 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 </div>
               )}
 
-              {/* Status grid */}
-              <SectionLabel className="mt-6">Estado de hoy</SectionLabel>
+              {/* ESTADO DE HOY · 3 métricas + 4ta tile = motivo/modo (dorada) */}
+              <SectionLabel className="mt-4">Estado de hoy</SectionLabel>
               <div className="mt-2 grid grid-cols-2 gap-2.5">
-                {briefing.status.map(card => (
-                  <StatusCardView key={card.id} card={card} />
-                ))}
+                {briefing.status
+                  .filter(c => c.id !== 'flare') /* el modo card cubre el flare info */
+                  .slice(0, 3)
+                  .map(card => (
+                    <StatusCardView key={card.id} card={card} />
+                  ))}
+                <ModeStatusCard briefing={briefing} />
               </div>
 
-              {/* Recordatorios programados */}
-              {(reminders.length > 0 || notifPermission === 'default') && (
-                <div className="mt-6">
-                  <RemindersPanel
-                    reminders={reminders}
-                    permission={notifPermission}
-                    firedIds={firedReminderIds}
-                    onRequestPermission={() => { void requestNotifPermission(); }}
-                    onSnooze={snoozeReminder}
-                    onDismiss={dismissReminder}
-                  />
-                </div>
+              {/* QUICK LOG · strip + dropdown "más" */}
+              <div className="mt-5">
+                <QuickLogPanel coach={coach} />
+              </div>
+
+              {/* HERO · acción protagónica del día (la más urgente) */}
+              {briefing.actions.length > 0 && (
+                <HeroActionCard
+                  action={briefing.actions[0]}
+                  onSelectProduct={openProduct}
+                />
               )}
 
-              {/* Pastillas programadas */}
-              <div className="mt-6">
-                <PillSchedulePanel
-                  schedule={state.oralSchedule}
-                  onSet={coach.setOralSchedule}
-                  onClear={coach.clearOralSchedule}
-                />
-              </div>
-
-              {/* Acciones prioritarias */}
-              {briefing.actions.length > 0 && (
+              {/* Acciones restantes (más allá del hero) */}
+              {briefing.actions.length > 1 && (
                 <>
-                  <SectionLabel className="mt-6">Próximas acciones</SectionLabel>
+                  <SectionLabel className="mt-5">Siguientes</SectionLabel>
                   <div className="mt-2 flex flex-col gap-2">
-                    {briefing.actions.map(a => (
+                    {briefing.actions.slice(1).map(a => (
                       <ActionRow
                         key={a.id}
                         action={a}
@@ -181,7 +172,7 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
               )}
 
               {/* Rutinas AM/PM colapsables */}
-              <SectionLabel className="mt-6">Rutinas de hoy · modo {modeLabel(briefing.mode)}</SectionLabel>
+              <SectionLabel className="mt-5">Rutinas de hoy · modo {modeLabel(briefing.mode)}</SectionLabel>
               <div className="mt-2 flex flex-col gap-2.5">
                 <RoutineSection
                   slot="am"
@@ -199,9 +190,28 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 />
               </div>
 
-              {/* Quick log */}
-              <SectionLabel className="mt-6">Registrar rápido</SectionLabel>
-              <QuickLogPanel coach={coach} />
+              {/* Recordatorios programados (sólo si hay o falta permiso) */}
+              {(reminders.length > 0 || notifPermission === 'default') && (
+                <div className="mt-5">
+                  <RemindersPanel
+                    reminders={reminders}
+                    permission={notifPermission}
+                    firedIds={firedReminderIds}
+                    onRequestPermission={() => { void requestNotifPermission(); }}
+                    onSnooze={snoozeReminder}
+                    onDismiss={dismissReminder}
+                  />
+                </div>
+              )}
+
+              {/* Pastillas programadas */}
+              <div className="mt-5">
+                <PillSchedulePanel
+                  schedule={state.oralSchedule}
+                  onSet={coach.setOralSchedule}
+                  onClear={coach.clearOralSchedule}
+                />
+              </div>
 
               {/* Controles de modo (brote / Deriva-C) */}
               <CollapsibleSection
@@ -296,6 +306,128 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
 // SUB-COMPONENTES
 // ═══════════════════════════════════════════════════════════
 
+// Hero action card · estilo Image 1 (número · label · título grande · CTA con flecha)
+// Toma la primera acción del briefing y la pone como protagonista del día.
+function HeroActionCard({
+  action,
+  onSelectProduct,
+}: {
+  action: CoachAction;
+  onSelectProduct: (id: string) => void;
+}) {
+  const Icon = ACTION_ICON[action.kind] ?? Activity;
+  const isOverdue = action.urgency === 'overdue';
+  const accent = isOverdue ? '#ff6b6b' : SUNRISE.rise2;
+  const firstProductId = action.productIds?.[0];
+  const tappable = !!firstProductId;
+  return (
+    <button
+      type="button"
+      disabled={!tappable}
+      onClick={tappable ? () => onSelectProduct(firstProductId!) : undefined}
+      className="mt-4 w-full text-left transition-transform active:scale-[0.99] disabled:cursor-default"
+      style={{
+        background: accent,
+        color: SUNRISE.night,
+        padding: '18px 20px 16px',
+        borderRadius: 28,
+        boxShadow: `0 16px 36px -10px ${hexToRgba(accent, 0.55)}`,
+      }}
+    >
+      {/* Top row · number + kicker + arrow */}
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="font-mono text-[12px] font-[700] tabular-nums"
+            style={{ color: SUNRISE.night, opacity: 0.55 }}
+          >
+            01.
+          </span>
+          <span
+            className="font-ui text-[10px] tracking-[0.34em] uppercase font-[700] truncate"
+            style={{ color: SUNRISE.night, opacity: 0.72 }}
+          >
+            {isOverdue ? 'atraso · ahora' : 'siguiente acción'}
+          </span>
+        </div>
+        {tappable && (
+          <ArrowUpRight
+            size={20}
+            strokeWidth={2.4}
+            style={{ color: SUNRISE.night, flexShrink: 0 }}
+          />
+        )}
+      </div>
+
+      {/* Big title */}
+      <div
+        className="font-headline font-[700] leading-[0.95] lowercase tracking-[-0.025em]"
+        style={{
+          fontSize: 'clamp(2.1rem, 9vw, 2.8rem)',
+          color: SUNRISE.night,
+        }}
+      >
+        {action.title.toLowerCase()}
+      </div>
+
+      {/* Reason */}
+      <p
+        className="font-mono text-[12.5px] leading-[1.4] mt-2.5"
+        style={{ color: SUNRISE.night, opacity: 0.75 }}
+      >
+        {action.reason}
+      </p>
+
+      {/* Bottom row · icon + kind label + cta */}
+      <div
+        className="flex items-center justify-between mt-5 pt-3.5"
+        style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.night, 0.2)}` }}
+      >
+        <span className="inline-flex items-center gap-2 min-w-0">
+          <span
+            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: hexToRgba(SUNRISE.night, 0.16),
+              color: SUNRISE.night,
+            }}
+          >
+            <Icon size={13} strokeWidth={2.2} />
+          </span>
+          <span
+            className="font-ui text-[10px] tracking-[0.3em] uppercase font-[700] truncate"
+            style={{ color: SUNRISE.night, opacity: 0.7 }}
+          >
+            {kindLabel(action.kind)}
+          </span>
+        </span>
+        {tappable && (
+          <span
+            className="font-ui text-[11px] tracking-[0.3em] uppercase font-[700] shrink-0"
+            style={{ color: SUNRISE.night }}
+          >
+            ver detalle →
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function kindLabel(kind: CoachAction['kind']): string {
+  switch (kind) {
+    case 'flare_step': return 'brote';
+    case 'skincare_routine': return 'rutina';
+    case 'brushing': return 'cepillado';
+    case 'water': return 'hidratación';
+    case 'bruxism': return 'bruxismo';
+    case 'breathing': return 'respiración';
+    case 'meditation': return 'meditación';
+    case 'oral_take': return 'pastilla';
+    case 'todo': return 'tarea';
+    default: return kind;
+  }
+}
+
 function SectionLabel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <h2
@@ -322,71 +454,54 @@ function LoadingState() {
   );
 }
 
-function ModeBadge({ briefing }: { briefing: Briefing }) {
+// 4ta tile del grid "Estado de hoy" · dorada filled · ocupa el slot que
+// antes ocupaba la card de motivo+modo separada arriba.
+function ModeStatusCard({ briefing }: { briefing: Briefing }) {
   const isFlare = briefing.mode.startsWith('flare');
   const accent = isFlare ? '#ff6b6b' : SUNRISE.rise2;
   return (
     <div
-      className="mt-2 w-full overflow-hidden flex"
+      className="rounded-2xl p-3.5 flex flex-col gap-2.5"
       style={{
-        borderRadius: 22,
-        background: hexToRgba(SUNRISE.night, 0.55),
-        border: `1px solid ${hexToRgba(accent, 0.3)}`,
-        backdropFilter: 'blur(12px) saturate(120%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
-        minHeight: 100,
+        background: accent,
+        color: SUNRISE.night,
+        boxShadow: `0 10px 26px -10px ${hexToRgba(accent, 0.55)}`,
       }}
     >
-      {/* LEFT · motivo */}
       <div
-        className="flex-1 min-w-0 flex flex-col justify-center"
-        style={{ padding: '14px 16px' }}
-      >
-        <span
-          className="font-ui text-[10px] tracking-[0.32em] uppercase"
-          style={{ color: SUNRISE_TEXT.muted }}
-        >
-          motivo
-        </span>
-        <p
-          className="font-mono text-[12.5px] leading-snug mt-1.5"
-          style={{ color: SUNRISE_TEXT.soft }}
-        >
-          {briefing.modeReason}
-        </p>
-      </div>
-      {/* RIGHT · modo activo (solído accent) */}
-      <div
-        className="shrink-0 flex flex-col justify-between text-left"
+        className="w-9 h-9 rounded-full flex items-center justify-center"
         style={{
-          width: '40%',
-          maxWidth: 168,
-          padding: '14px 16px',
-          background: accent,
+          background: hexToRgba(SUNRISE.night, 0.16),
           color: SUNRISE.night,
         }}
       >
-        <span
-          className="font-ui text-[10px] tracking-[0.32em] uppercase font-[700]"
-          style={{ color: SUNRISE.night, opacity: 0.7 }}
-        >
-          modo
-        </span>
-        <div>
-          <div
-            className="font-headline font-[700] text-[20px] leading-[0.95] lowercase tracking-[-0.025em]"
-            style={{ color: SUNRISE.night }}
-          >
-            {modeLabel(briefing.mode).toLowerCase()}
-          </div>
-          <div
-            className="font-mono text-[10px] tabular-nums mt-1.5"
-            style={{ color: SUNRISE.night, opacity: 0.6 }}
-          >
-            {briefing.context.dateISO}
-          </div>
-        </div>
+        <Activity size={16} strokeWidth={2} />
       </div>
+      <span
+        className="font-ui text-[10px] tracking-[0.3em] uppercase font-[700]"
+        style={{ color: SUNRISE.night, opacity: 0.7 }}
+      >
+        modo
+      </span>
+      <span
+        className="font-headline font-[700] text-[20px] leading-tight lowercase tracking-[-0.02em] mt-auto"
+        style={{ color: SUNRISE.night }}
+      >
+        {modeLabel(briefing.mode).toLowerCase()}
+      </span>
+      <p
+        className="font-mono text-[10.5px] leading-[1.35]"
+        style={{
+          color: SUNRISE.night,
+          opacity: 0.7,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {briefing.modeReason}
+      </p>
     </div>
   );
 }

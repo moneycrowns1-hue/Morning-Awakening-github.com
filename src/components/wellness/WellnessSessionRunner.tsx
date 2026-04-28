@@ -3,21 +3,31 @@
 // ═══════════════════════════════════════════════════════════
 // WellnessSessionRunner · runner compartido por los 3 modos
 // del Hub Bienestar (Bruxismo, Meditación profunda, Drenaje
-// linfático). Renderiza:
-//   - Header con título + paso actual.
-//   - Countdown ring por paso (no por sesión total).
-//   - Animación de pulso sincronizada con el `cue` del paso.
-//   - Lista de pasos con tick verde para completados.
-//   - Botón "Saltar paso" + "Interrumpir sesión".
-// Al completar todos los pasos: gong + markHabit(habitId).
+// linfático).
+//
+// Diseño · masthead editorial NightMissionPhase:
+//   - Top folio con dot ámbar + caption mono "wellness · {kicker}"
+//     y numeral tabular "01—NN" del paso actual.
+//   - Hairline progress bar 1px ámbar (progreso global de la
+//     sesión, no del paso).
+//   - Hero · título lowercase grande con punto ámbar + orb
+//     central con pulso sincronizado al cue + tipógrafo del
+//     countdown debajo.
+//   - Step rows · jeton-style con numeral tabular + label +
+//     duración mono · hairline bottom border ámbar.
+//   - Footer · V5 hairline buttons (saltar · pausar/abandonar)
+//     con label mono debajo de ícono.
+//
+// Paleta · usa useNightPalette() para vivir en sync con la
+// paleta global elegida en NightWelcome / Settings.
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { ChevronLeft, SkipForward } from 'lucide-react';
+import { ChevronLeft, SkipForward, Check } from 'lucide-react';
 import { AudioEngine } from '@/lib/common/audioEngine';
 import { markHabit } from '@/lib/common/habits';
-import { NIGHT, NIGHT_TEXT } from '@/lib/night/nightTheme';
+import { useNightPalette } from '@/lib/night/nightPalette';
 import { hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
 import type { WellnessRoutine, WellnessStep, WellnessCue } from '@/lib/wellness/wellnessRoutines';
@@ -29,16 +39,19 @@ interface WellnessSessionRunnerProps {
 }
 
 export default function WellnessSessionRunner({ routine, onComplete, onCancel }: WellnessSessionRunnerProps) {
+  // Paleta activa global · sigue al picker de NightWelcome / Settings.
+  const { palette: N, paletteText: NT } = useNightPalette();
+
   const [stepIdx, setStepIdx] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(() => routine.steps[0]?.durationSec ?? 0);
   const [completing, setCompleting] = useState(false);
   const audioRef = useRef<AudioEngine | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const pulseRef = useRef<HTMLDivElement | null>(null);
+  const orbRef = useRef<HTMLDivElement | null>(null);
 
   const step: WellnessStep | undefined = routine.steps[stepIdx];
 
-  // Audio init + opening bowl.
+  // ── Audio init + opening bowl. ────────────────────────────
   useEffect(() => {
     const engine = new AudioEngine();
     engine.init();
@@ -52,7 +65,7 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
     };
   }, []);
 
-  // Entrance fade.
+  // ── Entrance fade. ─────────────────────────────────────────
   useLayoutEffect(() => {
     if (!containerRef.current) return;
     gsap.fromTo(
@@ -62,20 +75,19 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
     );
   }, []);
 
-  // Drive the pulse animation based on the current step's cue.
+  // ── Drive the pulse animation based on the current step's cue.
   useEffect(() => {
-    if (!pulseRef.current || !step) return;
-    const el = pulseRef.current;
+    if (!orbRef.current || !step) return;
+    const el = orbRef.current;
     gsap.killTweensOf(el);
     const cue = step.cue ?? 'rest';
     runCueAnimation(el, cue);
   }, [step]);
 
-  // Countdown.
+  // ── Countdown. ────────────────────────────────────────────
   useEffect(() => {
     if (completing || !step) return;
     if (secondsLeft <= 0) {
-      // Step finished. Advance or complete the routine.
       const nextIdx = stepIdx + 1;
       if (nextIdx >= routine.steps.length) {
         try { audioRef.current?.playGong(); } catch { /* ignore */ }
@@ -101,7 +113,7 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
   const handleSkipStep = () => {
     if (!step || completing) return;
     haptics.tap();
-    setSecondsLeft(0); // Triggers the effect above and advances.
+    setSecondsLeft(0);
   };
 
   const handleCancel = () => {
@@ -113,253 +125,377 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
     onCancel();
   };
 
-  const totalRing = 2 * Math.PI * 110;
-  const stepDuration = step?.durationSec ?? 1;
-  const progress = step ? 1 - secondsLeft / stepDuration : 1;
-  const dashOffset = totalRing * (1 - progress);
+  // ── Global session progress (0..1) ────────────────────────
+  // Suma de duraciones completadas + parte transcurrida del paso actual.
+  const totalSec = routine.steps.reduce((s, x) => s + x.durationSec, 0) || 1;
+  const elapsedSec =
+    routine.steps.slice(0, stepIdx).reduce((s, x) => s + x.durationSec, 0) +
+    ((step?.durationSec ?? 0) - secondsLeft);
+  const globalProgress = completing ? 1 : Math.max(0, Math.min(1, elapsedSec / totalSec));
 
   return (
     <div
       ref={containerRef}
       className="relative w-full h-full flex flex-col overflow-hidden"
-      style={{
-        color: NIGHT_TEXT.primary,
-        background: `radial-gradient(ellipse at 50% 35%, ${NIGHT.violet_1} 0%, ${NIGHT.abyss} 80%)`,
-      }}
+      style={{ color: NT.primary, background: N.void }}
     >
-      {/* Header */}
+      {/* ─── Header · MASTHEAD editorial ─── */}
       <div
-        className="relative z-10 flex items-center gap-3 px-4 pt-4 pb-2"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        <button
-          onClick={handleCancel}
-          aria-label="Volver"
-          className="rounded-full p-2 transition-colors hover:bg-white/5"
-          style={{ color: NIGHT_TEXT.soft }}
-        >
-          <ChevronLeft size={20} strokeWidth={1.75} />
-        </button>
-        <div className="flex flex-col flex-1 min-w-0">
-          <span
-            className="font-ui text-[10px] uppercase tracking-[0.34em]"
-            style={{ color: NIGHT_TEXT.muted }}
-          >
-            {routine.kicker}
+        {/* Top folio · dot ámbar + brand mono (izq) · numeral tabular (der) */}
+        <div className="flex items-center justify-between pb-2.5">
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: N.amber,
+                borderRadius: 99,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
+              }}
+              className="night-breath"
+            />
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[500]"
+              style={{ color: NT.muted, fontSize: 9 }}
+            >
+              wellness · {routine.kicker.toLowerCase()}
+            </span>
           </span>
           <span
-            className="font-display italic font-[400] text-[18px] leading-tight truncate"
-            style={{ color: NIGHT_TEXT.primary }}
+            className="font-mono tabular-nums tracking-[0.18em] font-[500]"
+            style={{ color: NT.muted, fontSize: 10 }}
           >
-            {routine.title}
+            <span style={{ color: NT.primary, fontWeight: 600 }}>
+              {String(Math.min(stepIdx + 1, routine.steps.length)).padStart(2, '0')}
+            </span>
+            <span style={{ color: hexToRgba(N.amber, 0.5), margin: '0 6px' }}>—</span>
+            {String(routine.steps.length).padStart(2, '0')}
           </span>
         </div>
-        <span
-          className="font-mono text-[11px] tabular-nums tracking-wider px-2.5 py-1 rounded-full"
-          style={{
-            background: hexToRgba(NIGHT.violet_2, 0.5),
-            border: `1px solid ${hexToRgba(NIGHT.moon_core, 0.18)}`,
-            color: NIGHT_TEXT.soft,
-          }}
-        >
-          {Math.min(stepIdx + 1, routine.steps.length)} / {routine.steps.length}
-        </span>
+        {/* Hairline progress · global · 1px con glow ámbar */}
+        <div className="relative h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }}>
+          <div
+            className="absolute inset-y-0 left-0"
+            style={{
+              width: `${globalProgress * 100}%`,
+              background: N.amber,
+              boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.5)}`,
+              transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
+            }}
+          />
+        </div>
       </div>
 
-      {/* Body (scroll) */}
-      <div
-        className="scroll-area flex-1 relative z-10 min-h-0 flex flex-col items-center px-5 pb-6"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
-      >
-        {/* Pulse ring */}
-        <div className="relative flex items-center justify-center mt-4 mb-4" style={{ width: 260, height: 260 }}>
-          <svg width={260} height={260} viewBox="0 0 260 260" className="absolute inset-0">
-            <defs>
-              <linearGradient id="wellness-ring" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={NIGHT.moon_halo} />
-                <stop offset="100%" stopColor={NIGHT.dusk_rose} />
-              </linearGradient>
-            </defs>
-            <circle
-              cx={130}
-              cy={130}
-              r={110}
-              fill="none"
-              stroke={hexToRgba(NIGHT.moon_core, 0.12)}
-              strokeWidth={2}
-            />
-            <circle
-              cx={130}
-              cy={130}
-              r={110}
-              fill="none"
-              stroke="url(#wellness-ring)"
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeDasharray={totalRing}
-              strokeDashoffset={dashOffset}
-              transform="rotate(-90 130 130)"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
-            />
-          </svg>
-          <div
-            ref={pulseRef}
-            className="w-32 h-32 rounded-full flex items-center justify-center"
+      {/* ─── Body unificado ──────────────────────────────────── */}
+      <div className="scroll-area flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6 pb-4">
+        {/* Top corners · numeral del paso (izq) · cue label (der) */}
+        <div className="mt-3 flex items-baseline justify-between">
+          <span
+            className="font-mono tabular-nums font-[600]"
             style={{
-              background: `radial-gradient(circle, ${hexToRgba(NIGHT.moon_halo, 0.22)} 0%, ${hexToRgba(NIGHT.dusk_rose, 0.1)} 55%, transparent 80%)`,
-              border: `1px solid ${hexToRgba(NIGHT.moon_halo, 0.4)}`,
-              boxShadow: `0 0 40px ${hexToRgba(NIGHT.moon_halo, 0.25)}`,
+              color: NT.primary,
+              fontSize: 13,
+              letterSpacing: '0.02em',
             }}
           >
-            <span
-              className="font-display italic text-[34px] font-[300] tabular-nums"
-              style={{ color: NIGHT_TEXT.primary }}
-            >
-              {completing ? '✓' : formatTimer(secondsLeft)}
-            </span>
-          </div>
+            {String(Math.min(stepIdx + 1, routine.steps.length)).padStart(2, '0')}
+            <span style={{ color: N.amber }}>.</span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · {cueLabel(step?.cue).toLowerCase()} ·
+          </span>
         </div>
 
-        {/* Current step block */}
-        {step && !completing && (
-          <div className="text-center max-w-[36ch] px-4">
-            <div
-              className="font-ui text-[10px] tracking-[0.36em] uppercase mb-2"
-              style={{ color: NIGHT.moon_halo }}
-            >
-              {cueLabel(step.cue)}
-            </div>
-            <div
-              className="font-display italic font-[400] text-[22px] leading-tight mb-2"
-              style={{ color: NIGHT_TEXT.primary }}
-            >
-              {step.label}
-            </div>
-            <p
-              className="font-ui text-[13px] leading-[1.55]"
-              style={{ color: NIGHT_TEXT.soft }}
-            >
-              {step.description}
-            </p>
-            {step.tip && (
-              <p
-                className="mt-3 font-ui text-[11px] leading-[1.5] italic"
-                style={{ color: NIGHT_TEXT.muted }}
-              >
-                {step.tip}
-              </p>
-            )}
-          </div>
-        )}
+        {/* CENTER · título hero + orb central + countdown */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-7 my-4">
+          {/* Hero title · paso actual lowercase con punto ámbar */}
+          <h1
+            className="font-headline font-[700] lowercase tracking-[-0.04em] text-center"
+            style={{
+              color: NT.primary,
+              fontSize: 'clamp(2rem, 7.5vw, 3rem)',
+              lineHeight: 0.95,
+              textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+              textWrap: 'balance' as never,
+              maxWidth: '14ch',
+            }}
+          >
+            {(completing ? 'sesión completa' : step?.label ?? '').toLowerCase()}
+            <span style={{ color: N.amber }}>.</span>
+          </h1>
 
-        {completing && (
-          <div className="text-center max-w-[32ch] px-4">
+          {/* Orb central · halo ámbar + pulso cue + countdown */}
+          <div className="relative" style={{ width: 160, height: 160 }}>
+            {/* Halo blur exterior */}
             <div
-              className="font-display italic font-[400] text-[22px] mb-2"
-              style={{ color: NIGHT_TEXT.primary }}
+              aria-hidden
+              className="absolute pointer-events-none rounded-full"
+              style={{
+                inset: -28,
+                background: `radial-gradient(circle, ${hexToRgba(N.amber, 0.32)} 0%, transparent 70%)`,
+                filter: 'blur(18px)',
+                opacity: completing ? 0.5 : 0.85,
+                transition: 'opacity 1s ease-in-out',
+              }}
+            />
+            {/* Orb sólido con gradiente cálido */}
+            <div
+              ref={orbRef}
+              className="absolute inset-0 rounded-full flex items-center justify-center"
+              style={{
+                background: `radial-gradient(circle at 38% 35%, #fff4e2 0%, ${N.amber_glow} 35%, ${N.amber} 70%, ${N.candle} 100%)`,
+                boxShadow: `inset -10px -10px 28px ${hexToRgba(N.candle, 0.5)}, inset 5px 5px 12px ${hexToRgba('#ffffff', 0.18)}, 0 0 44px ${hexToRgba(N.amber, 0.4)}`,
+              }}
             >
-              Sesión completa.
+              <span
+                className="font-headline font-[700] tabular-nums"
+                style={{
+                  color: N.void,
+                  fontSize: completing ? 36 : 30,
+                  letterSpacing: '-0.02em',
+                  textShadow: `0 1px 2px ${hexToRgba('#ffffff', 0.5)}`,
+                }}
+              >
+                {completing ? '✓' : formatTimer(secondsLeft)}
+              </span>
             </div>
+          </div>
+
+          {/* Description del paso · whisper editorial */}
+          {step && !completing && (
+            <div className="text-center max-w-[36ch] px-2">
+              <p
+                className="font-ui text-[12.5px] leading-[1.55]"
+                style={{ color: NT.soft }}
+              >
+                {step.description}
+              </p>
+              {step.tip && (
+                <p
+                  className="mt-2 font-mono uppercase tracking-[0.28em] font-[500]"
+                  style={{ color: hexToRgba(N.amber, 0.75), fontSize: 9 }}
+                >
+                  · {step.tip} ·
+                </p>
+              )}
+            </div>
+          )}
+
+          {completing && (
             <p
-              className="font-ui text-[13px] leading-[1.55]"
-              style={{ color: NIGHT_TEXT.soft }}
+              className="font-ui text-[12.5px] leading-[1.55] text-center max-w-[28ch]"
+              style={{ color: NT.soft }}
             >
               Hábito de hoy registrado. Vuelve cuando lo necesites.
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Step pip-list */}
-        <div className="mt-6 w-full max-w-md">
-          <ul className="flex flex-col gap-1.5">
+        {/* Step list · jeton-style con hairline bottom · solo visible si hay espacio */}
+        {!completing && routine.steps.length <= 8 && (
+          <div className="w-full mt-2">
             {routine.steps.map((s, i) => {
-              const done = i < stepIdx || (i === stepIdx && completing);
-              const active = i === stepIdx && !completing;
+              const done = i < stepIdx;
+              const active = i === stepIdx;
               return (
-                <li
+                <StepRow
                   key={s.id}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2"
-                  style={{
-                    background: active
-                      ? hexToRgba(NIGHT.moon_halo, 0.1)
-                      : 'transparent',
-                    border: `1px solid ${active ? hexToRgba(NIGHT.moon_halo, 0.3) : 'transparent'}`,
-                  }}
-                >
-                  <span
-                    className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px]"
-                    style={{
-                      background: done
-                        ? hexToRgba(NIGHT.moon_halo, 0.5)
-                        : active
-                        ? hexToRgba(NIGHT.moon_halo, 0.2)
-                        : hexToRgba(NIGHT.violet_2, 0.4),
-                      color: done ? NIGHT.abyss : NIGHT_TEXT.soft,
-                    }}
-                  >
-                    {done ? '✓' : i + 1}
-                  </span>
-                  <span
-                    className="font-ui text-[12px] truncate flex-1"
-                    style={{
-                      color: active ? NIGHT_TEXT.primary : done ? NIGHT_TEXT.muted : NIGHT_TEXT.soft,
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                  <span
-                    className="font-mono text-[10px] tabular-nums shrink-0"
-                    style={{ color: NIGHT_TEXT.muted }}
-                  >
-                    {Math.round(s.durationSec / 60) > 0
-                      ? `${Math.round(s.durationSec / 60)}m`
-                      : `${s.durationSec}s`}
-                  </span>
-                </li>
+                  index={i + 1}
+                  label={s.label}
+                  durationSec={s.durationSec}
+                  state={done ? 'done' : active ? 'active' : 'pending'}
+                  N={N}
+                  NT={NT}
+                />
               );
             })}
-          </ul>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Skip step button */}
+      {/* ─── Footer · V5 hairline controls ─────────────────── */}
       {!completing && step && (
         <div
-          className="relative z-10 px-5 pb-5 flex justify-center"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+          className="relative z-10 px-6 shrink-0"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
         >
-          <button
-            onClick={handleSkipStep}
-            className="rounded-full px-4 py-2.5 flex items-center gap-2 transition-transform active:scale-[0.97]"
-            style={{
-              background: hexToRgba(NIGHT.violet_2, 0.5),
-              border: `1px solid ${hexToRgba(NIGHT.moon_core, 0.22)}`,
-              color: NIGHT_TEXT.soft,
-            }}
-          >
-            <SkipForward size={14} strokeWidth={1.8} />
-            <span className="font-ui text-[11px] tracking-[0.28em] uppercase">
-              Saltar paso
+          <div className="flex items-center justify-between gap-3 pt-3">
+            <div className="flex items-stretch">
+              <V5HairlineButton
+                onClick={handleSkipStep}
+                label="saltar paso"
+                icon={<SkipForward size={14} strokeWidth={2.2} />}
+                N={N}
+                NT={NT}
+              />
+              <V5Divider N={N} />
+              <V5HairlineButton
+                onClick={handleCancel}
+                label="abandonar"
+                icon={<ChevronLeft size={14} strokeWidth={2.2} />}
+                N={N}
+                NT={NT}
+              />
+            </div>
+            <span
+              className="font-mono uppercase tracking-[0.4em] font-[600] shrink-0"
+              style={{ color: NT.muted, fontSize: 9, opacity: 0.6 }}
+            >
+              {Math.round((step.durationSec - secondsLeft) / step.durationSec * 100)}%
             </span>
-          </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+// ─── Sub-components ──────────────────────────────────────────
+
+interface PaletteProps {
+  N: ReturnType<typeof useNightPalette>['palette'];
+  NT: ReturnType<typeof useNightPalette>['paletteText'];
+}
+
+// Step row · jeton estilo NightMissionPhase StepCardRow
+function StepRow({
+  index,
+  label,
+  durationSec,
+  state,
+  N,
+  NT,
+}: {
+  index: number;
+  label: string;
+  durationSec: number;
+  state: 'done' | 'active' | 'pending';
+} & PaletteProps) {
+  const numeralColor =
+    state === 'active' ? N.amber :
+    state === 'done'   ? hexToRgba(N.amber, 0.45) :
+                         hexToRgba(N.amber, 0.3);
+  const labelColor =
+    state === 'active' ? NT.primary :
+    state === 'done'   ? NT.muted :
+                         NT.soft;
+  return (
+    <div
+      className="flex items-baseline gap-4 py-2.5"
+      style={{ borderBottom: `1px solid ${hexToRgba(N.amber, 0.1)}` }}
+    >
+      {/* Numeral tabular */}
+      <span
+        className="font-mono tabular-nums shrink-0"
+        style={{
+          color: numeralColor,
+          fontSize: 11,
+          letterSpacing: '0.1em',
+          fontWeight: state === 'active' ? 700 : 500,
+          minWidth: '2ch',
+        }}
+      >
+        {String(index).padStart(2, '0')}
+      </span>
+      {/* Label · lowercase, tighter tracking */}
+      <span
+        className="flex-1 font-headline font-[600] lowercase tracking-[-0.01em] truncate"
+        style={{
+          color: labelColor,
+          fontSize: 13.5,
+          textDecoration: state === 'done' ? 'line-through' : 'none',
+          textDecorationColor: hexToRgba(N.amber, 0.4),
+        }}
+      >
+        {label.toLowerCase()}
+      </span>
+      {/* Duration mono · suffix */}
+      <span
+        className="font-mono tabular-nums shrink-0"
+        style={{
+          color: state === 'active' ? hexToRgba(N.amber, 0.85) : NT.muted,
+          fontSize: 10,
+        }}
+      >
+        {formatStepDuration(durationSec)}
+      </span>
+      {/* Done check · pequeño */}
+      {state === 'done' && (
+        <Check size={11} strokeWidth={2.4} style={{ color: hexToRgba(N.amber, 0.7), marginLeft: -4 }} />
+      )}
+    </div>
+  );
+}
+
+// V5 hairline button · ícono arriba + label mono debajo, sin caja
+function V5HairlineButton({
+  onClick,
+  icon,
+  label,
+  N,
+  NT,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+} & PaletteProps) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="flex flex-col items-center gap-1.5 px-5 py-2 transition-opacity active:opacity-60"
+      style={{ color: N.amber }}
+    >
+      {icon}
+      <span
+        className="font-mono uppercase tracking-[0.28em] font-[600]"
+        style={{ color: NT.muted, fontSize: 8.5 }}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+// V5 vertical hairline divider entre controles
+function V5Divider({ N }: { N: PaletteProps['N'] }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 1,
+        background: hexToRgba(N.amber, 0.18),
+        margin: '6px 0',
+      }}
+    />
+  );
+}
+
 // ─── helpers ────────────────────────────────────────────────
 
 function formatTimer(sec: number): string {
+  if (sec < 60) return `${sec}s`;
   const m = Math.floor(sec / 60);
   const s = sec % 60;
-  if (m === 0) return `${s}s`;
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatStepDuration(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.round(sec / 60);
+  return `${m}m`;
 }
 
 function cueLabel(cue: WellnessCue | undefined): string {
   switch (cue) {
-    case 'inhale':   return 'Inhala · mantén · exhala';
+    case 'inhale':   return 'Inhala · sostén · exhala';
     case 'exhale':   return 'Exhalación larga';
     case 'hold':     return 'Retén';
     case 'massage':  return 'Masaje';

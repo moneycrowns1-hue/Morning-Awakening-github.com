@@ -427,6 +427,65 @@ html, body {
   filter: drop-shadow(0 0 14px rgba(244, 194, 103, 0.35));
 }
 
+/* ═══ NIGHT BREATHING PULSE ═══
+   Used as ambient "breathing light" behind the Night Welcome
+   layout. 8 s cycle = 7.5 breaths/min, inside the 5–10 bpm
+   coherent-breathing range that physiologically lowers heart
+   rate variability stress and primes parasympathetic activity.
+   Inhale (0→50%): glow expands + brightens. Exhale (50→100%):
+   contracts + dims. Color stays in warm-amber spectrum (>580 nm)
+   so it does not suppress melatonin. */
+@keyframes night-breath {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.86;
+    transform: scale(1.08);
+  }
+}
+.night-breath {
+  animation: night-breath 8s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+/* Slower, softer pulse used for the secondary halo behind
+   the CTA. 11 s cycle so the two breaths drift in/out of
+   sync — gives an organic, alive feel. */
+@keyframes night-breath-slow {
+  0%, 100% {
+    opacity: 0.30;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.62;
+    transform: scale(1.05);
+  }
+}
+.night-breath-slow {
+  animation: night-breath-slow 11s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-breath,
+  .night-breath-slow {
+    animation: none !important;
+    opacity: 0.55 !important;
+  }
+}
+
+/* Cross-fade applied to the BreathFace SVG group every time the
+   breath phase changes. Re-keying the <g> element triggers the
+   animation on the new face, giving an organic morph between
+   inhale / hold / exhale / rest expressions. */
+@keyframes maBreathFaceFade {
+  0%   { opacity: 0; transform: scale(0.92); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 /* Achievement toast entry animation. Drop-in from the top with
    a quick opacity, blur and translate, stay, then fade out. */
 @keyframes achievement-toast-enter {

@@ -124,7 +124,7 @@ export default function ConditionsSheet({
 
         {/* Header */}
         <div className="px-5 pt-2 pb-3 flex items-start justify-between gap-3">
-          <div>
+          <div className="flex-1 min-w-0">
             <span
               className="font-ui text-[10px] tracking-[0.42em] uppercase"
               style={{ color: SUNRISE_TEXT.muted }}
@@ -132,110 +132,173 @@ export default function ConditionsSheet({
               Condiciones
             </span>
             <div
-              className="font-display italic font-[400] text-[22px] leading-tight mt-0.5"
+              className="font-headline font-[600] text-[26px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
               style={{ color: SUNRISE_TEXT.primary }}
             >
-              Mi perfil
+              mi perfil clínico
             </div>
           </div>
           <button
             type="button"
             onClick={close}
             aria-label="Cerrar"
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 shrink-0"
             style={{
-              background: hexToRgba(SUNRISE.predawn2, 0.55),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
-              color: SUNRISE_TEXT.primary,
+              background: SUNRISE.rise2,
+              color: SUNRISE.night,
+              boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
             }}
           >
-            <X size={16} strokeWidth={1.85} />
+            <X size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
           </button>
         </div>
 
         {/* Body — scroll */}
         <div className="scroll-area flex-1 min-h-0 overflow-y-auto px-5 pb-6">
-          <p
-            className="font-mono text-[11px] leading-snug px-3 py-2 mb-3 rounded-lg"
+          {/* Microcopy explainer + status */}
+          <div
+            className="rounded-2xl p-3.5 mb-4"
             style={{
-              color: SUNRISE_TEXT.soft,
-              background: hexToRgba(SUNRISE.rise2, 0.06),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
+              background: hexToRgba(SUNRISE.night, 0.55),
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.18)}`,
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             }}
           >
-            Activar/desactivar condiciones cambia los ingredientes prohibidos
-            y reordena la rutina del día en tiempo real.
-          </p>
+            <p
+              className="font-mono text-[11.5px] leading-[1.45]"
+              style={{ color: SUNRISE_TEXT.soft }}
+            >
+              Marcá las condiciones que tenés. Esto{' '}
+              <span style={{ color: SUNRISE.rise2 }}>silencia ingredientes prohibidos</span>{' '}
+              en tu catálogo y{' '}
+              <span style={{ color: SUNRISE.rise2 }}>reordena la rutina del día</span>{' '}
+              en tiempo real.
+            </p>
+            <div
+              className="flex items-center gap-2 mt-2.5 pt-2.5"
+              style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}` }}
+            >
+              <span
+                className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
+                style={{ color: SUNRISE_TEXT.muted }}
+              >
+                tu perfil
+              </span>
+              <span
+                className="font-headline font-[700] text-[14px] lowercase tracking-[-0.01em] tabular-nums ml-auto"
+                style={{ color: SUNRISE.rise2 }}
+              >
+                {active.length}
+                <span style={{ color: SUNRISE_TEXT.muted, fontWeight: 400 }} className="ml-1">
+                  / {all.length} activas
+                </span>
+              </span>
+            </div>
+          </div>
 
-          <div className="flex flex-col gap-2.5">
-            {all.map(cond => {
-              const isActive = active.includes(cond.id);
-              return (
-                <button
-                  key={cond.id}
-                  type="button"
-                  onClick={() => { haptics.tick(); onToggle(cond.id); }}
-                  className="text-left rounded-xl p-3 flex items-start gap-3 transition-transform active:scale-[0.99]"
-                  style={{
-                    background: isActive
-                      ? hexToRgba(SUNRISE.rise2, 0.08)
-                      : hexToRgba(SUNRISE.predawn2, 0.45),
-                    border: `1px solid ${hexToRgba(SUNRISE.rise2, isActive ? 0.42 : 0.14)}`,
-                  }}
-                >
+          {/* Lista agrupada por dominio · Piel · Oral · Mente·cuerpo */}
+          {(['skin', 'oral', 'mind_body'] as const).map(domain => {
+            const items = all.filter(c => c.domain === domain);
+            if (items.length === 0) return null;
+            const domainActive = items.filter(c => active.includes(c.id)).length;
+            return (
+              <div key={domain} className="mb-4 last:mb-0">
+                <div className="flex items-center gap-2 mb-2 px-1">
                   <span
-                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{
-                      background: isActive
-                        ? hexToRgba(SUNRISE.rise2, 0.22)
-                        : hexToRgba(SUNRISE.rise2, 0.08),
-                      color: isActive ? SUNRISE.rise2 : SUNRISE_TEXT.muted,
-                      border: `1px solid ${hexToRgba(SUNRISE.rise2, isActive ? 0.5 : 0.2)}`,
-                    }}
+                    className="font-ui text-[9.5px] tracking-[0.34em] uppercase"
+                    style={{ color: SUNRISE_TEXT.muted }}
                   >
-                    {isActive
-                      ? <Check size={14} strokeWidth={2.4} />
-                      : <AlertCircle size={14} strokeWidth={1.7} />}
+                    {DOMAIN_LABEL[domain].toLowerCase()}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span
-                        className="font-display italic font-[400] text-[15px] leading-tight"
-                        style={{ color: SUNRISE_TEXT.primary }}
-                      >
-                        {cond.label}
-                      </span>
-                      <span
-                        className="font-ui text-[8.5px] tracking-[0.28em] uppercase px-1.5 py-0.5 rounded-full"
+                  <span
+                    className="font-mono text-[9.5px] tabular-nums"
+                    style={{ color: SUNRISE_TEXT.muted, opacity: 0.6 }}
+                  >
+                    · {domainActive}/{items.length}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {items.map(cond => {
+                    const isActive = active.includes(cond.id);
+                    return (
+                      <button
+                        key={cond.id}
+                        type="button"
+                        onClick={() => { haptics.tick(); onToggle(cond.id); }}
+                        className="text-left rounded-2xl p-3.5 flex items-start gap-3 transition-transform active:scale-[0.99]"
                         style={{
-                          background: hexToRgba(SUNRISE.cool, 0.12),
-                          color: SUNRISE.cool,
-                          border: `1px solid ${hexToRgba(SUNRISE.cool, 0.32)}`,
+                          background: isActive
+                            ? hexToRgba(SUNRISE.rise2, 0.12)
+                            : hexToRgba(SUNRISE.night, 0.5),
+                          border: `1px solid ${hexToRgba(SUNRISE.rise2, isActive ? 0.5 : 0.16)}`,
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          boxShadow: isActive
+                            ? `0 6px 18px -10px ${hexToRgba(SUNRISE.rise2, 0.5)}`
+                            : undefined,
                         }}
                       >
-                        {DOMAIN_LABEL[cond.domain]}
-                      </span>
-                    </div>
-                    <p
-                      className="font-mono text-[11px] leading-snug"
-                      style={{ color: SUNRISE_TEXT.muted }}
-                    >
-                      {cond.oneLiner}
-                    </p>
-                    {cond.forbiddenIngredients && cond.forbiddenIngredients.length > 0 && (
-                      <p
-                        className="font-mono text-[10px] tracking-wider mt-1.5"
-                        style={{ color: SUNRISE_TEXT.muted }}
-                      >
-                        ⊘ Evita: {cond.forbiddenIngredients.slice(0, 4).join(' · ')}
-                        {cond.forbiddenIngredients.length > 4 && '…'}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                        <span
+                          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{
+                            background: isActive ? SUNRISE.rise2 : hexToRgba(SUNRISE.rise2, 0.08),
+                            color: isActive ? SUNRISE.night : SUNRISE_TEXT.muted,
+                            border: isActive
+                              ? 'none'
+                              : `1px solid ${hexToRgba(SUNRISE.rise2, 0.2)}`,
+                          }}
+                        >
+                          {isActive
+                            ? <Check size={15} strokeWidth={2.6} style={{ color: SUNRISE.night }} />
+                            : <AlertCircle size={14} strokeWidth={1.7} />}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.01em]"
+                            style={{ color: SUNRISE_TEXT.primary }}
+                          >
+                            {cond.label.toLowerCase()}
+                          </div>
+                          <p
+                            className="font-mono text-[11px] leading-[1.4] mt-1"
+                            style={{ color: SUNRISE_TEXT.soft }}
+                          >
+                            {cond.oneLiner}
+                          </p>
+                          {cond.forbiddenIngredients && cond.forbiddenIngredients.length > 0 && (
+                            <div
+                              className="mt-2 inline-flex items-start gap-1.5 px-2 py-1 rounded-md"
+                              style={{
+                                background: isActive
+                                  ? hexToRgba('#ff6b6b', 0.1)
+                                  : hexToRgba(SUNRISE.night, 0.45),
+                                border: `1px solid ${hexToRgba('#ff6b6b', isActive ? 0.32 : 0.18)}`,
+                              }}
+                            >
+                              <span
+                                className="font-ui text-[8.5px] tracking-[0.28em] uppercase font-[700] shrink-0 mt-px"
+                                style={{ color: '#ff6b6b' }}
+                              >
+                                evita
+                              </span>
+                              <span
+                                className="font-mono text-[10px] leading-snug"
+                                style={{ color: SUNRISE_TEXT.muted }}
+                              >
+                                {cond.forbiddenIngredients.slice(0, 4).join(' · ')}
+                                {cond.forbiddenIngredients.length > 4 && '…'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

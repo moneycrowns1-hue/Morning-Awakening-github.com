@@ -14,7 +14,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useMemo } from 'react';
-import { Sun, Moon, Layers, Check, Sparkles } from 'lucide-react';
+import { Sun, Moon, Layers, Check, Sparkles, ArrowUpRight, AlertTriangle, Bell as BellIcon } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
 import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
@@ -131,30 +131,36 @@ export default function ProtocolsScreen({
         className="relative z-10 px-5 pt-5 max-w-3xl w-full mx-auto shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       >
-        <div className="flex items-baseline justify-between gap-3">
-          <div className="flex flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col flex-1 min-w-0">
             <span
               className="font-ui text-[10px] uppercase tracking-[0.42em]"
               style={{ color: SUNRISE_TEXT.muted }}
             >
               Protocolos
             </span>
-            <span
-              className="font-display italic font-[400] text-[26px] leading-tight mt-0.5"
+            <div
+              className="font-headline font-[600] text-[28px] md:text-[34px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
               style={{ color: SUNRISE_TEXT.primary }}
             >
-              Hoy
-            </span>
+              hoy
+            </div>
           </div>
           <span
-            className="shrink-0 inline-flex items-center font-ui text-[10px] tracking-[0.24em] uppercase px-3 py-1 rounded-full"
+            className="shrink-0 inline-flex items-center gap-1.5 font-ui text-[10px] tracking-[0.3em] uppercase px-3 py-1.5 rounded-full font-[600] mt-1"
             style={{
-              background: hexToRgba(SUNRISE.rise2, 0.12),
+              background: hexToRgba(SUNRISE.night, 0.55),
               color: SUNRISE.rise2,
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.34)}`,
+              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
             }}
           >
-            {dayLabel}
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: SUNRISE.rise2 }}
+            />
+            {dayLabel.toLowerCase()}
           </span>
         </div>
       </div>
@@ -198,131 +204,135 @@ function ProtocolCard({
   const isDone = status === 'done';
   const isClosed = status === 'window-closed';
 
-  const accent = isNow
-    ? SUNRISE.rise2
-    : isDone
-    ? SUNRISE.rise2
-    : SUNRISE_TEXT.soft;
-
-  const opacity = isClosed ? 0.6 : 1;
+  const opacity = isClosed ? 0.55 : 1;
 
   return (
     <button
       type="button"
       onClick={() => { haptics.tap(); onLaunch(); }}
-      className="text-left rounded-2xl p-5 flex items-start gap-4 transition-transform active:scale-[0.98] sunrise-fade-up"
+      className="text-left flex items-stretch overflow-hidden transition-transform active:scale-[0.99] sunrise-fade-up"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.65)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
         border: `1px solid ${isNow
           ? hexToRgba(SUNRISE.rise2, 0.55)
           : isDone
           ? hexToRgba(SUNRISE.rise2, 0.3)
           : hexToRgba(SUNRISE.rise2, 0.14)}`,
         boxShadow: isNow
-          ? `0 14px 40px -18px ${hexToRgba(SUNRISE.rise2, 0.55)}`
-          : `0 14px 40px -22px ${hexToRgba(SUNRISE.night, 0.7)}`,
+          ? `0 16px 36px -12px ${hexToRgba(SUNRISE.rise2, 0.5)}`
+          : `0 12px 32px -22px ${hexToRgba(SUNRISE.night, 0.6)}`,
         opacity,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <span
-        className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
-        style={{
-          background: hexToRgba(SUNRISE.rise2, isNow ? 0.22 : 0.12),
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, isNow ? 0.5 : 0.28)}`,
-          color: accent,
-        }}
-      >
-        <Icon size={22} strokeWidth={1.7} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-          <span
-            className="font-display italic font-[400] text-[20px] leading-tight"
+      {/* LEFT · dark glass content */}
+      <div className="flex-1 min-w-0 flex items-start gap-3.5 px-4 py-4">
+        <span
+          className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
+          style={{
+            background: hexToRgba(SUNRISE.rise2, isNow ? 0.2 : 0.12),
+            border: `1px solid ${hexToRgba(SUNRISE.rise2, isNow ? 0.5 : 0.28)}`,
+            color: SUNRISE.rise2,
+          }}
+        >
+          <Icon size={20} strokeWidth={2} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div
+            className="font-headline font-[600] text-[20px] leading-tight lowercase tracking-[-0.02em]"
             style={{ color: SUNRISE_TEXT.primary }}
           >
-            {title}
-          </span>
-          <StatusPill status={status} />
+            {title.toLowerCase()}
+          </div>
+          <div
+            className="mt-1 font-mono text-[10.5px] tracking-wider lowercase"
+            style={{ color: SUNRISE_TEXT.muted }}
+          >
+            {kicker.toLowerCase()}
+          </div>
+          <p
+            className="mt-2 font-ui text-[12.5px] leading-[1.45]"
+            style={{ color: SUNRISE_TEXT.soft }}
+          >
+            {description}
+          </p>
         </div>
-        <div
-          className="font-mono text-[10.5px] tracking-wider mb-1.5"
-          style={{ color: SUNRISE_TEXT.muted }}
-        >
-          {kicker}
-        </div>
-        <p
-          className="font-ui text-[12.5px] leading-[1.5]"
-          style={{ color: SUNRISE_TEXT.soft }}
-        >
-          {description}
-        </p>
       </div>
+      {/* RIGHT · status block */}
+      <StatusBlock status={status} />
     </button>
   );
 }
 
-function StatusPill({ status }: { status: Status }) {
+function StatusBlock({ status }: { status: Status }) {
   if (status === 'now') {
     return (
-      <span
-        className="inline-flex items-center gap-1 font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-        style={{
-          background: hexToRgba(SUNRISE.rise2, 0.22),
-          color: SUNRISE.rise2,
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
-        }}
+      <div
+        className="shrink-0 flex flex-col items-center justify-center gap-1.5 px-3"
+        style={{ minWidth: 78, background: SUNRISE.rise2 }}
       >
         <span
-          className="block w-1.5 h-1.5 rounded-full"
-          style={{
-            background: SUNRISE.rise2,
-            boxShadow: `0 0 6px ${SUNRISE.rise2}`,
-          }}
+          className="w-2 h-2 rounded-full"
+          style={{ background: SUNRISE.night, boxShadow: `0 0 8px ${hexToRgba(SUNRISE.night, 0.4)}` }}
         />
-        Activo ahora
-      </span>
+        <span
+          className="font-headline font-[700] text-[13px] lowercase tracking-[-0.01em] leading-none"
+          style={{ color: SUNRISE.night }}
+        >
+          ahora
+        </span>
+        <ArrowUpRight size={14} strokeWidth={2.4} style={{ color: SUNRISE.night, opacity: 0.7 }} />
+      </div>
     );
   }
   if (status === 'done') {
     return (
-      <span
-        className="inline-flex items-center gap-1 font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-        style={{
-          background: hexToRgba(SUNRISE.rise2, 0.16),
-          color: SUNRISE.rise2,
-          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.4)}`,
-        }}
+      <div
+        className="shrink-0 flex flex-col items-center justify-center gap-1 px-3"
+        style={{ minWidth: 78, background: hexToRgba(SUNRISE.rise2, 0.18) }}
       >
-        <Check size={10} strokeWidth={2.4} />
-        Hoy
-      </span>
+        <Check size={18} strokeWidth={2.6} style={{ color: SUNRISE.rise2 }} />
+        <span
+          className="font-ui text-[9px] tracking-[0.3em] uppercase font-[700]"
+          style={{ color: SUNRISE.rise2 }}
+        >
+          hecho
+        </span>
+      </div>
     );
   }
   if (status === 'window-closed') {
     return (
-      <span
-        className="inline-flex items-center font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-        style={{
-          color: SUNRISE_TEXT.muted,
-          border: `1px solid rgba(255,250,240,0.18)`,
-        }}
+      <div
+        className="shrink-0 flex flex-col items-center justify-center px-3"
+        style={{ minWidth: 78, background: hexToRgba(SUNRISE.rise2, 0.04) }}
       >
-        Fuera de ventana
-      </span>
+        <span
+          className="font-ui text-[9px] tracking-[0.28em] uppercase font-[600] text-center leading-tight"
+          style={{ color: SUNRISE_TEXT.muted }}
+        >
+          fuera de<br />ventana
+        </span>
+      </div>
     );
   }
   return (
-    <span
-      className="inline-flex items-center font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-      style={{
-        color: SUNRISE_TEXT.soft,
-        border: `1px solid rgba(255,250,240,0.22)`,
-      }}
+    <div
+      className="shrink-0 flex flex-col items-center justify-center px-3"
+      style={{ minWidth: 78, background: hexToRgba(SUNRISE.rise2, 0.06) }}
     >
-      Pendiente
-    </span>
+      <span
+        className="font-ui text-[9px] tracking-[0.3em] uppercase font-[700]"
+        style={{ color: SUNRISE_TEXT.soft }}
+      >
+        pendiente
+      </span>
+    </div>
   );
 }
+
 
 // ─── Coach card driven by engine briefing ────────────────────
 
@@ -350,87 +360,122 @@ function CoachProtocolCard({
   onLaunch: () => void;
 }) {
   const isFlare = mode.startsWith('flare');
-  const accent = isFlare ? '#ff6b6b' : SUNRISE.rise2;
+  const danger = '#ff6b6b';
+  const warn = '#ffb44d';
+  const accent = isFlare ? danger : SUNRISE.rise2;
   const label = COACH_MODE_LABEL[mode] ?? mode;
+  const hasAlerts = criticalCount > 0 || warningsCount > 0;
 
   return (
     <button
       type="button"
       onClick={() => { haptics.tap(); onLaunch(); }}
-      className="text-left rounded-2xl p-5 flex items-start gap-4 transition-transform active:scale-[0.98] sunrise-fade-up"
+      className="text-left flex items-stretch overflow-hidden transition-transform active:scale-[0.99] sunrise-fade-up mt-1"
       style={{
-        background: `linear-gradient(160deg, ${hexToRgba(SUNRISE.predawn2, 0.65)} 0%, ${hexToRgba(SUNRISE.predawn1, 0.35)} 100%)`,
+        borderRadius: 22,
+        background: hexToRgba(SUNRISE.night, 0.55),
         border: `1px solid ${hexToRgba(accent, isFlare ? 0.5 : 0.25)}`,
         boxShadow: isFlare
-          ? `0 14px 40px -18px ${hexToRgba(accent, 0.5)}`
-          : `0 14px 40px -22px ${hexToRgba(SUNRISE.night, 0.7)}`,
+          ? `0 16px 36px -12px ${hexToRgba(accent, 0.5)}`
+          : `0 12px 32px -22px ${hexToRgba(SUNRISE.night, 0.6)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <span
-        className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+      {/* LEFT · content */}
+      <div className="flex-1 min-w-0 flex items-start gap-3.5 px-4 py-4">
+        <span
+          className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center"
+          style={{
+            background: hexToRgba(accent, 0.16),
+            border: `1px solid ${hexToRgba(accent, 0.45)}`,
+            color: accent,
+          }}
+        >
+          <Sparkles size={20} strokeWidth={2} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <span
+              className="font-headline font-[600] text-[20px] leading-tight lowercase tracking-[-0.02em]"
+              style={{ color: SUNRISE_TEXT.primary }}
+            >
+              coach
+            </span>
+            <span
+              className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full font-[700]"
+              style={{
+                background: hexToRgba(accent, 0.18),
+                color: accent,
+                border: `1px solid ${hexToRgba(accent, 0.45)}`,
+              }}
+            >
+              {label.toLowerCase()}
+            </span>
+          </div>
+          <div
+            className="font-mono text-[10.5px] tracking-wider lowercase"
+            style={{ color: SUNRISE_TEXT.muted }}
+          >
+            skincare · oral · hidratación · {actionsCount} acción{actionsCount === 1 ? '' : 'es'}
+          </div>
+          {(criticalCount > 0 || warningsCount > 0) && (
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+              {criticalCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full font-[700]"
+                  style={{
+                    background: hexToRgba(danger, 0.2),
+                    color: danger,
+                    border: `1px solid ${hexToRgba(danger, 0.45)}`,
+                  }}
+                >
+                  <AlertTriangle size={9} strokeWidth={2.6} />
+                  {criticalCount} crítico{criticalCount === 1 ? '' : 's'}
+                </span>
+              )}
+              {warningsCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full font-[700]"
+                  style={{
+                    background: hexToRgba(warn, 0.2),
+                    color: warn,
+                    border: `1px solid ${hexToRgba(warn, 0.45)}`,
+                  }}
+                >
+                  <BellIcon size={9} strokeWidth={2.6} />
+                  {warningsCount} aviso{warningsCount === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
+          )}
+          <p
+            className="mt-2 font-ui text-[12.5px] leading-[1.45]"
+            style={{ color: SUNRISE_TEXT.soft }}
+          >
+            {modeReason}
+          </p>
+        </div>
+      </div>
+      {/* RIGHT · CTA block (golden when alerts, dark when normal) */}
+      <div
+        className="shrink-0 flex flex-col items-center justify-center gap-1.5 px-3"
         style={{
-          background: hexToRgba(accent, 0.16),
-          border: `1px solid ${hexToRgba(accent, 0.45)}`,
-          color: accent,
+          minWidth: 78,
+          background: hasAlerts ? accent : hexToRgba(accent, 0.12),
         }}
       >
-        <Sparkles size={22} strokeWidth={1.7} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-          <span
-            className="font-display italic font-[400] text-[20px] leading-tight"
-            style={{ color: SUNRISE_TEXT.primary }}
-          >
-            Coach
-          </span>
-          <span
-            className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-            style={{
-              background: hexToRgba(accent, 0.2),
-              color: accent,
-              border: `1px solid ${hexToRgba(accent, 0.45)}`,
-            }}
-          >
-            {label}
-          </span>
-          {criticalCount > 0 && (
-            <span
-              className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-              style={{
-                background: hexToRgba('#ff6b6b', 0.2),
-                color: '#ff6b6b',
-                border: `1px solid ${hexToRgba('#ff6b6b', 0.45)}`,
-              }}
-            >
-              {criticalCount} crítico{criticalCount === 1 ? '' : 's'}
-            </span>
-          )}
-          {warningsCount > 0 && (
-            <span
-              className="font-ui text-[9px] tracking-[0.28em] uppercase px-2 py-0.5 rounded-full"
-              style={{
-                background: hexToRgba('#ffb44d', 0.2),
-                color: '#ffb44d',
-                border: `1px solid ${hexToRgba('#ffb44d', 0.45)}`,
-              }}
-            >
-              {warningsCount} aviso{warningsCount === 1 ? '' : 's'}
-            </span>
-          )}
-        </div>
-        <div
-          className="font-mono text-[10.5px] tracking-wider mb-1.5"
-          style={{ color: SUNRISE_TEXT.muted }}
+        <ArrowUpRight
+          size={20}
+          strokeWidth={2.4}
+          style={{ color: hasAlerts ? SUNRISE.night : accent }}
+        />
+        <span
+          className="font-ui text-[9px] tracking-[0.3em] uppercase font-[700] text-center leading-tight"
+          style={{ color: hasAlerts ? SUNRISE.night : accent }}
         >
-          Skincare · oral · hidratación · {actionsCount} acción{actionsCount === 1 ? '' : 'es'}
-        </div>
-        <p
-          className="font-ui text-[12.5px] leading-[1.5]"
-          style={{ color: SUNRISE_TEXT.soft }}
-        >
-          {modeReason}
-        </p>
+          {hasAlerts ? 'abrir' : 'ver'}
+        </span>
       </div>
     </button>
   );

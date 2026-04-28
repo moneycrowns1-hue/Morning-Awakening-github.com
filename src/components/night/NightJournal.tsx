@@ -2,17 +2,18 @@
 
 // ═══════════════════════════════════════════════════════
 // NightJournal · short end-of-day mental download.
+// V5 cosmos · paleta dinámica (useNightPalette).
 // Three prompts rotate by date so the user isn't staring
 // at the same page every night. Entries are appended to
-// localStorage under 'morning-awakening-night-journal'
-// as {date, prompt, text} records — kept simple, no
-// sessionHistory integration yet.
+// localStorage under 'morning-awakening-night-journal'.
 // ═══════════════════════════════════════════════════════
 
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { haptics } from '@/lib/common/haptics';
-import { SUNRISE, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useNightPalette } from '@/lib/night/nightPalette';
+import NightStarfield from './NightStarfield';
 
 interface NightJournalProps {
   onClose: () => void;
@@ -47,13 +48,13 @@ function appendEntry(entry: JournalEntry): void {
     const raw = localStorage.getItem(STORE_KEY);
     const arr: JournalEntry[] = raw ? JSON.parse(raw) : [];
     arr.push(entry);
-    // Keep only the last 90 nights to bound storage.
     const trimmed = arr.slice(-90);
     localStorage.setItem(STORE_KEY, JSON.stringify(trimmed));
   } catch { /* ignore */ }
 }
 
 export default function NightJournal({ onClose }: NightJournalProps) {
+  const { palette: N, paletteText: NT } = useNightPalette();
   const prompt = useMemo(() => promptForToday(), []);
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
@@ -67,17 +68,15 @@ export default function NightJournal({ onClose }: NightJournalProps) {
       text: text.trim(),
     });
     setSaved(true);
-    // Give the user 900 ms to see the confirmation before closing.
     window.setTimeout(onClose, 900);
   };
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex flex-col px-6 pt-6 pb-8"
+      className="fixed inset-0 z-[70] flex flex-col px-6 pt-6 pb-8 overflow-hidden"
       style={{
-        background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.night, 0.94)}, ${hexToRgba(SUNRISE.predawn1, 0.96)})`,
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        background: `radial-gradient(ellipse at 50% 0%, ${N.ember_1} 0%, ${N.void} 70%)`,
+        color: NT.primary,
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)',
       }}
@@ -85,18 +84,51 @@ export default function NightJournal({ onClose }: NightJournalProps) {
       aria-modal="true"
       aria-labelledby="night-journal-title"
     >
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      {/* Starfield ambient */}
+      <div className="absolute inset-0 pointer-events-none opacity-60">
+        <NightStarfield count={50} shooting={false} />
+      </div>
+      {/* Soft amber glow at top */}
+      <div
+        aria-hidden
+        className="absolute pointer-events-none"
+        style={{
+          top: -120,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 380,
+          height: 240,
+          background: `radial-gradient(ellipse, ${hexToRgba(N.amber, 0.18)} 0%, transparent 70%)`,
+          filter: 'blur(20px)',
+        }}
+      />
+
+      {/* Header */}
+      <div className="relative z-10 flex items-start justify-between mb-7">
+        <div className="flex-1 pr-4">
           <div
-            className="font-ui text-[10px] tracking-[0.42em] uppercase"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            className="font-mono uppercase tracking-[0.42em] font-[600]"
+            style={{ color: hexToRgba(N.amber, 0.7), fontSize: 9 }}
           >
-            Escribir antes de dormir
+            vaciado mental
           </div>
+          <div
+            aria-hidden
+            className="mt-2 mb-3"
+            style={{
+              width: 28,
+              height: 1,
+              background: hexToRgba(N.amber, 0.55),
+            }}
+          />
           <h2
             id="night-journal-title"
-            className="font-display italic font-[400] text-[20px] leading-snug mt-1"
-            style={{ color: 'var(--sunrise-text)' }}
+            className="font-headline font-[500] leading-[1.2]"
+            style={{
+              color: NT.primary,
+              fontSize: 'clamp(20px, 5.5vw, 26px)',
+              letterSpacing: '-0.01em',
+            }}
           >
             {prompt}
           </h2>
@@ -106,49 +138,54 @@ export default function NightJournal({ onClose }: NightJournalProps) {
           aria-label="Cerrar journal"
           className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
           style={{
-            border: '1px solid rgba(255,250,240,0.12)',
-            background: 'rgba(255,250,240,0.04)',
-            color: 'var(--sunrise-text-soft)',
+            border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
+            background: hexToRgba(N.void, 0.4),
+            color: NT.soft,
           }}
         >
-          <X size={18} strokeWidth={1.8} />
+          <X size={16} strokeWidth={1.8} />
         </button>
       </div>
 
+      {/* Textarea */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Escribe sin pensar mucho…"
-        className="flex-1 rounded-2xl p-4 font-ui text-[14px] leading-relaxed resize-none outline-none"
+        className="relative z-10 flex-1 rounded-[18px] p-4 font-ui text-[14px] leading-relaxed resize-none outline-none transition-colors"
         style={{
-          border: '1px solid rgba(255,250,240,0.08)',
-          background: 'rgba(255,250,240,0.03)',
-          color: 'var(--sunrise-text)',
-          caretColor: SUNRISE.rise2,
+          border: `1px solid ${hexToRgba(N.amber, 0.14)}`,
+          background: hexToRgba(N.void, 0.55),
+          color: NT.primary,
+          caretColor: N.amber,
         }}
         autoFocus
       />
 
-      <div className="flex items-center justify-between mt-4">
+      {/* Footer */}
+      <div
+        className="relative z-10 flex items-center justify-between mt-5 pt-4"
+        style={{ borderTop: `1px solid ${hexToRgba(N.amber, 0.12)}` }}
+      >
         <span
-          className="font-mono text-[10px] tracking-[0.18em]"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="font-mono tabular-nums tracking-[0.18em]"
+          style={{ color: NT.muted, fontSize: 10 }}
         >
-          {text.length} caracteres
+          {String(text.length).padStart(3, '0')} caracteres
         </span>
         <button
           onClick={save}
           disabled={saved}
-          className="px-5 py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.97] disabled:opacity-60"
+          className="px-5 py-3 transition-transform active:scale-[0.97] disabled:opacity-60"
           style={{
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
-            background: saved
-              ? hexToRgba(SUNRISE.rise2, 0.28)
-              : `linear-gradient(180deg, ${hexToRgba(SUNRISE.rise2, 0.18)}, ${hexToRgba(SUNRISE.rise2, 0.32)})`,
-            color: 'var(--sunrise-text)',
+            background: saved ? hexToRgba(N.amber, 0.4) : N.amber,
+            color: N.void,
+            boxShadow: saved ? 'none' : `0 10px 28px -6px ${hexToRgba(N.amber, 0.5)}`,
           }}
         >
-          {saved ? 'Guardado ✓' : text.trim() ? 'Guardar y salir' : 'Saltar'}
+          <span className="font-ui font-[700] uppercase tracking-[0.3em]" style={{ fontSize: 11 }}>
+            {saved ? 'guardado' : text.trim() ? 'guardar y salir' : 'saltar'}
+          </span>
         </button>
       </div>
     </div>

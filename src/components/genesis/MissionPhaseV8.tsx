@@ -753,10 +753,10 @@ function MissionCoachCard({
           {meta.kicker}
         </div>
         <div
-          className="font-display italic font-[400] text-[15px] leading-tight mt-0.5"
+          className="font-headline font-[600] text-[16px] leading-tight lowercase tracking-[-0.015em] mt-0.5"
           style={{ color: 'var(--sunrise-text)' }}
         >
-          Abrir Coach
+          abrir coach
         </div>
         <p
           className="font-mono text-[11px] leading-snug mt-1"

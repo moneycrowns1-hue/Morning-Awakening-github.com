@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ChevronLeft, AlertCircle, BatteryCharging, Clock } from 'lucide-react';
-import { NIGHT, NIGHT_TEXT } from '@/lib/night/nightTheme';
+import { useNightPalette } from '@/lib/night/nightPalette';
 import { hexToRgba } from '@/lib/common/theme';
 import type { AlarmConfig } from '@/lib/alarm/alarmSchedule';
 import { computeSleepGate, gateStatus, loadSleepConfig, appendNightEntry } from '@/lib/night/sleepGate';
@@ -38,6 +38,7 @@ interface SlumberLockScreenProps {
 const IDLE_MS = 15000;
 
 export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockScreenProps) {
+  const { palette: N, paletteText: NT } = useNightPalette();
   const [dimmed, setDimmed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -130,7 +131,7 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
       className="relative w-full h-full flex items-center justify-center select-none"
       style={{
         background: '#000000',
-        color: NIGHT_TEXT.primary,
+        color: NT.primary,
       }}
     >
       <div
@@ -138,18 +139,22 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
         className="relative rounded-[28px] overflow-hidden px-6 pt-10 pb-6 flex flex-col items-center"
         style={{
           width: 'min(92%, 360px)',
-          background: `linear-gradient(180deg, ${hexToRgba(NIGHT.violet_1, 0.55)} 0%, ${hexToRgba(NIGHT.abyss, 0.85)} 65%, #050309 100%)`,
-          border: `1px solid ${hexToRgba(NIGHT.moon_halo, 0.08)}`,
-          boxShadow: `0 24px 60px -20px ${hexToRgba(NIGHT.moon_core, 0.35)}, inset 0 1px 0 ${hexToRgba('#ffffff', 0.04)}`,
+          background: `linear-gradient(180deg, ${hexToRgba(N.ember_1, 0.6)} 0%, ${hexToRgba(N.void, 0.9)} 65%, #050300 100%)`,
+          border: `1px solid ${hexToRgba(N.amber, 0.1)}`,
+          boxShadow: `0 24px 60px -20px ${hexToRgba(N.amber, 0.32)}, inset 0 1px 0 ${hexToRgba('#ffffff', 0.04)}`,
         }}
       >
         {/* Moon + star arc */}
-        <StarArc />
+        <StarArc amber={N.amber} amberGlow={N.amber_glow} primary={NT.primary} />
 
         {/* Title */}
         <h1
-          className="mt-5 font-display font-[500] text-[22px] text-center leading-tight"
-          style={{ color: NIGHT_TEXT.primary }}
+          className="mt-5 font-headline font-[500] text-[22px] text-center leading-tight"
+          style={{
+            color: NT.primary,
+            letterSpacing: '-0.01em',
+            textShadow: `0 0 24px ${hexToRgba(N.amber, 0.4)}`,
+          }}
         >
           ¡Que duermas bien!
         </h1>
@@ -158,17 +163,17 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
         {alarmConfig.enabled ? (
           <p
             className="mt-2 font-ui text-[12.5px] leading-[1.55] text-center max-w-[260px]"
-            style={{ color: NIGHT_TEXT.soft }}
+            style={{ color: NT.soft }}
           >
             El sonido de la alarma comenzará a subir de volumen a partir de las{' '}
-            <span style={{ color: NIGHT_TEXT.primary }}>{alarmTimes.rampLabel}</span>, para despertarte
+            <span style={{ color: NT.primary }}>{alarmTimes.rampLabel}</span>, para despertarte
             suavemente a las{' '}
-            <span style={{ color: NIGHT_TEXT.primary }}>{alarmTimes.peakLabel}</span>.
+            <span style={{ color: NT.primary }}>{alarmTimes.peakLabel}</span>.
           </p>
         ) : (
           <p
             className="mt-2 font-ui text-[12.5px] leading-[1.55] text-center max-w-[260px]"
-            style={{ color: NIGHT_TEXT.soft }}
+            style={{ color: NT.soft }}
           >
             No hay alarma activa. El silencio también es una forma de cuidado.
           </p>
@@ -180,51 +185,57 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
             onClick={() => { haptics.tap(); onExit(); }}
             className="mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
             style={{
-              background: hexToRgba(NIGHT.violet_2, 0.45),
-              border: `1px solid ${hexToRgba(NIGHT.moon_halo, 0.12)}`,
+              background: hexToRgba(N.void, 0.55),
+              border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
             }}
           >
-            <Clock size={14} strokeWidth={1.8} color={NIGHT_TEXT.soft} />
-            <span className="font-ui text-[13px]" style={{ color: NIGHT_TEXT.primary }}>
+            <Clock size={14} strokeWidth={1.8} color={NT.soft} />
+            <span className="font-mono tabular-nums text-[13px]" style={{ color: NT.primary }}>
               {alarmTimes.peakLabel}
             </span>
-            <ChevronLeft size={14} strokeWidth={2} color={NIGHT_TEXT.muted} style={{ transform: 'scaleX(-1)' }} />
+            <ChevronLeft size={14} strokeWidth={2} color={NT.muted} style={{ transform: 'scaleX(-1)' }} />
           </button>
         )}
 
         {/* Reminder rows */}
         <div className="mt-5 w-full flex flex-col gap-2">
           <ReminderRow
-            icon={<AlertCircle size={14} strokeWidth={1.8} color={NIGHT_TEXT.muted} />}
+            icon={<AlertCircle size={14} strokeWidth={1.8} color={NT.muted} />}
             label="No fuerces el cierre de la aplicación"
+            bg={hexToRgba(N.void, 0.5)}
+            chipBg={hexToRgba(N.amber, 0.08)}
+            color={NT.soft}
           />
           <ReminderRow
-            icon={<BatteryCharging size={14} strokeWidth={1.8} color={NIGHT_TEXT.muted} />}
+            icon={<BatteryCharging size={14} strokeWidth={1.8} color={NT.muted} />}
             label="Mantén el cargador conectado"
+            bg={hexToRgba(N.void, 0.5)}
+            chipBg={hexToRgba(N.amber, 0.08)}
+            color={NT.soft}
           />
         </div>
 
         {/* Back / Alarma encendida pill */}
         <button
           onClick={() => { haptics.tap(); onExit(); }}
-          className="mt-7 inline-flex items-center gap-2 rounded-full pl-3 pr-5 py-2.5 transition-transform active:scale-[0.97]"
+          className="mt-7 inline-flex items-center gap-2 pl-3 pr-5 py-2.5 transition-transform active:scale-[0.97]"
           style={{
-            background: `linear-gradient(180deg, ${hexToRgba(NIGHT.moon_halo, 0.18)} 0%, ${hexToRgba(NIGHT.dusk_rose, 0.38)} 100%)`,
-            border: `1px solid ${hexToRgba(NIGHT.moon_halo, 0.4)}`,
-            boxShadow: `0 8px 28px -10px ${hexToRgba(NIGHT.moon_core, 0.5)}`,
+            background: N.amber,
+            color: N.void,
+            boxShadow: `0 10px 28px -8px ${hexToRgba(N.amber, 0.55)}`,
           }}
         >
           <span
             className="w-6 h-6 rounded-full flex items-center justify-center"
             style={{
-              background: hexToRgba('#000', 0.25),
-              border: `1px solid ${hexToRgba(NIGHT.moon_halo, 0.25)}`,
+              background: hexToRgba(N.void, 0.85),
+              border: `1px solid ${hexToRgba(N.void, 0.4)}`,
             }}
           >
-            <ChevronLeft size={14} strokeWidth={2} color={NIGHT_TEXT.primary} />
+            <ChevronLeft size={14} strokeWidth={2.4} color={N.amber} />
           </span>
-          <span className="font-ui text-[13px]" style={{ color: NIGHT_TEXT.primary }}>
-            {alarmConfig.enabled ? 'Alarma encendida' : 'Buenas noches'}
+          <span className="font-ui font-[700] text-[12px] uppercase tracking-[0.28em]" style={{ color: N.void }}>
+            {alarmConfig.enabled ? 'alarma encendida' : 'buenas noches'}
           </span>
         </button>
       </div>
@@ -234,22 +245,34 @@ export default function SlumberLockScreen({ alarmConfig, onExit }: SlumberLockSc
 
 // ── subcomponents ──────────────────────────────────────────
 
-function ReminderRow({ icon, label }: { icon: React.ReactNode; label: string }) {
+function ReminderRow({
+  icon,
+  label,
+  bg,
+  chipBg,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  bg: string;
+  chipBg: string;
+  color: string;
+}) {
   return (
     <div
       className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5"
       style={{
-        background: hexToRgba(NIGHT.violet_2, 0.28),
+        background: bg,
         border: `1px solid ${hexToRgba('#ffffff', 0.04)}`,
       }}
     >
       <span
         className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-        style={{ background: hexToRgba(NIGHT.violet_1, 0.6) }}
+        style={{ background: chipBg }}
       >
         {icon}
       </span>
-      <span className="font-ui text-[12px]" style={{ color: NIGHT_TEXT.soft }}>
+      <span className="font-ui text-[12px]" style={{ color }}>
         {label}
       </span>
     </div>
@@ -257,7 +280,7 @@ function ReminderRow({ icon, label }: { icon: React.ReactNode; label: string }) 
 }
 
 /** Crescent moon with a soft arc of stars, matching the reference. */
-function StarArc() {
+function StarArc({ amber, amberGlow, primary }: { amber: string; amberGlow: string; primary: string }) {
   const ref = useRef<SVGSVGElement>(null);
   useEffect(() => {
     if (!ref.current) return;
@@ -283,13 +306,13 @@ function StarArc() {
       {/* two subtle arcs */}
       <path
         d="M10 78 C 60 10, 160 10, 210 78"
-        stroke={hexToRgba(NIGHT.moon_halo, 0.35)}
+        stroke={hexToRgba(amber, 0.4)}
         strokeWidth="0.7"
         fill="none"
       />
       <path
         d="M28 82 C 70 30, 150 30, 192 82"
-        stroke={hexToRgba(NIGHT.moon_halo, 0.18)}
+        stroke={hexToRgba(amber, 0.22)}
         strokeWidth="0.6"
         fill="none"
       />
@@ -301,7 +324,7 @@ function StarArc() {
           cx={s.x}
           cy={s.y}
           r={s.r}
-          fill={NIGHT_TEXT.primary}
+          fill={primary}
           opacity={s.o}
         />
       ))}
@@ -313,16 +336,16 @@ function StarArc() {
           <circle cx="116" cy="54" r="13" fill="black" />
         </mask>
         <radialGradient id="slumber-moon-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={NIGHT.moon_halo} stopOpacity="0.45" />
-          <stop offset="60%" stopColor={NIGHT.moon_halo} stopOpacity="0.1" />
-          <stop offset="100%" stopColor={NIGHT.moon_halo} stopOpacity="0" />
+          <stop offset="0%" stopColor={amber} stopOpacity="0.55" />
+          <stop offset="60%" stopColor={amberGlow} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={amber} stopOpacity="0" />
         </radialGradient>
       </defs>
       <circle cx="110" cy="58" r="22" fill="url(#slumber-moon-glow)" />
       <rect
         width="220"
         height="90"
-        fill={NIGHT.moon_core}
+        fill={amberGlow}
         mask="url(#slumber-crescent)"
       />
     </svg>

@@ -28,6 +28,11 @@ interface TimerRingProps {
   size?: number;
   paused?: boolean;
   onCentreClick?: () => void;
+  /** Force a specific accent colour (overrides the one derived from `stage`). */
+  accentOverride?: string;
+  /** Force the centre label / caption colours (defaults to sunrise CSS vars). */
+  labelColor?: string;
+  captionColor?: string;
 }
 
 export default function TimerRing({
@@ -38,8 +43,11 @@ export default function TimerRing({
   size = 220,
   paused = false,
   onCentreClick,
+  accentOverride,
+  labelColor,
+  captionColor,
 }: TimerRingProps) {
-  const { accent } = getStageColors(stage);
+  const accent = accentOverride ?? getStageColors(stage).accent;
   const clamped = Math.max(0, Math.min(1, progress));
   const STROKE = 4;
 
@@ -116,7 +124,7 @@ export default function TimerRing({
           className="font-mono font-[500] leading-none tracking-[-0.02em]"
           style={{
             fontSize: size * 0.22,
-            color: 'var(--sunrise-text)',
+            color: labelColor ?? 'var(--sunrise-text)',
           }}
         >
           {label}
@@ -124,7 +132,7 @@ export default function TimerRing({
         {caption && (
           <span
             className="mt-3 font-ui text-[10px] uppercase tracking-[0.4em]"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            style={{ color: captionColor ?? 'var(--sunrise-text-muted)' }}
           >
             {caption}
           </span>

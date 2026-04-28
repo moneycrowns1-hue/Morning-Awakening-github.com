@@ -3,37 +3,24 @@
 // ═══════════════════════════════════════════════════════
 // WelcomeScreen · editorial redesign v3 (Poppr-clean)
 //
-// Aggressive simplification: stripped rail, marquee,
-// chapter marker, vertical-rule quote block, full-width CTA.
+// Conectado a la paleta global vía useAppTheme():
+//   - bg = D.paper + radial accent 8% sutil (sin GradientBackground).
+//   - accents = D.accent (cambia con la paleta elegida en Settings).
+//   - texto = DT.primary / DT.soft / DT.muted.
 //
-// What remains, top → bottom:
-//   1. HEADER  · MA brand · time/weekday · streak (single
-//      compact horizontal row). The AppMenu trigger sits
-//      top-right (rendered by the parent).
-//   2. HERO    · "morning awakening." in Bricolage Grotesque
-//      at clamp(3.6rem,19vw,7rem). A small dorado CTA pill
-//      ("despertar →") is positioned absolutely over the
-//      baseline of the second line, mirroring the way Poppr
-//      drops "Discover what we do" inside its hero image.
-//   3. BACKDROP· tilted soft gradient card behind the title
-//      (echoes Poppr's tilted greenscreen photo) + a circle
-//      outline cut off by the bottom-left edge.
-//   4. FOOTER  · single-line greeting · single-line quote ·
-//      single-line calendar preview (tap → CalendarScreen).
-//
-// Coach / Nucleus / Night entrypoints removed from this
-// screen. They live in the AppMenu (badges flag urgency)
-// and inside their own dedicated screens. Props are kept in
-// the interface for backward compatibility.
+// Estructura:
+//   1. HEADER · MA brand · time/weekday · streak.
+//   2. HERO   · awaken / through · CTA · ritual.
+//   3. FOOTER · split bento card (greeting + quote · today).
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, CalendarDays, Flame } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/genesis/progression';
 import { haptics } from '@/lib/common/haptics';
-import { SUNRISE, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
 import { getNextHolidays } from '@/lib/common/holidaysEC';
 import { getDayContext, getDayProfileLabel } from '@/lib/common/dayProfile';
 
@@ -43,9 +30,9 @@ interface WelcomeScreenProps {
   onStart: () => void;
   /** Open the night-mode flow (used by the suggestion card). */
   onOpenNightMode?: () => void;
-  /** Open the NUCLEUS day-mode timeline screen (used by NucleusCompanion). */
+  /** Open the NUCLEUS day-mode timeline screen. */
   onOpenNucleus?: () => void;
-  /** Open the Coach screen (used by the briefing widget). */
+  /** Open the Coach screen. */
   onOpenCoach?: () => void;
   /** Open the full Calendar screen (from the footer preview). */
   onOpenCalendar?: () => void;
@@ -57,11 +44,12 @@ export default function WelcomeScreen({
   onStart,
   onOpenCalendar,
 }: WelcomeScreenProps) {
+  const { day: D, dayText: DT } = useAppTheme();
   const quote = useDailyQuote();
   const { time, weekday } = useClock();
   const firstName = useMemo(() => profile.name.split(' ')[0] ?? profile.name, [profile.name]);
 
-  // SSR-safe gate for time-dependent UI (calendar preview).
+  // SSR-safe gate for time-dependent UI.
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -70,16 +58,41 @@ export default function WelcomeScreen({
   return (
     <div
       className="relative w-full h-full flex flex-col overflow-hidden"
-      style={{ color: 'var(--sunrise-text)' }}
+      style={{ background: D.paper, color: DT.primary }}
     >
-      {/* Animated sunrise background */}
-      <GradientBackground stage="welcome" particleCount={45} />
-      <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
+      {/* ─── Background · paleta global ─────────────────── */}
+      {/* Soft warm radial top-center · acompaña al título */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.18)} 0%, transparent 55%)`,
+        }}
+      />
+      {/* Subtle diagonal tint layer · da textura sin animación */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.35)} 0%, transparent 40%, ${hexToRgba(D.accent_soft, 0.1)} 100%)`,
+        }}
+      />
+      {/* Outline circle bottom-left · echo poppr greenscreen */}
+      <div
+        aria-hidden
+        className="absolute pointer-events-none"
+        style={{
+          width: 'clamp(280px, 60vw, 480px)',
+          aspectRatio: '1',
+          left: '-18%',
+          bottom: '-20%',
+          borderRadius: '50%',
+          border: `1px solid ${hexToRgba(D.accent, 0.18)}`,
+          opacity: 0.7,
+        }}
+      />
 
-      {/* ═══ HEADER · brand · time · streak (compact row) ═══════
-           Single horizontal line on the left. Right corner is
-           reserved for the AppMenu trigger (rendered by the
-           parent at fixed top-right). */}
+      {/* ═══ HEADER · brand · time · streak ════════════════ */}
       <div
         className="relative z-10 px-5 sunrise-fade-up"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.9rem)' }}
@@ -87,14 +100,14 @@ export default function WelcomeScreen({
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-0.5">
             <span
-              className="font-ui text-[10px] tracking-[0.42em] uppercase"
-              style={{ color: 'var(--sunrise-text)' }}
+              className="font-mono uppercase tracking-[0.42em] font-[600]"
+              style={{ color: DT.primary, fontSize: 10 }}
             >
               MA · {year}
             </span>
             <span
-              className="font-mono text-[10px] leading-none mt-1"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono leading-none mt-1 tabular-nums"
+              style={{ color: DT.muted, fontSize: 10 }}
               suppressHydrationWarning
             >
               {time} / {weekday.slice(0, 3)}
@@ -102,23 +115,23 @@ export default function WelcomeScreen({
           </div>
           <div
             className="h-6 w-px"
-            style={{ background: hexToRgba(SUNRISE.rise2, 0.25) }}
+            style={{ background: hexToRgba(D.accent, 0.25) }}
           />
           <div className="flex items-center gap-1.5">
             <Flame
               size={11}
               strokeWidth={1.85}
-              style={{ color: streak > 0 ? SUNRISE.rise2 : 'var(--sunrise-text-muted)' }}
+              style={{ color: streak > 0 ? D.accent : DT.muted }}
             />
             <span
-              className="font-mono text-[11px] leading-none"
-              style={{ color: 'var(--sunrise-text-soft)' }}
+              className="font-mono tabular-nums leading-none"
+              style={{ color: DT.soft, fontSize: 11 }}
             >
               {streak.toString().padStart(2, '0')}
             </span>
             <span
-              className="font-ui text-[8.5px] tracking-[0.32em] uppercase"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono uppercase tracking-[0.32em] font-[600]"
+              style={{ color: DT.muted, fontSize: 8.5 }}
             >
               streak
             </span>
@@ -126,10 +139,7 @@ export default function WelcomeScreen({
         </div>
       </div>
 
-      {/* ═══ HERO · 3-word title centered + inline CTA pill ═══
-           Mirrors poppr.be's "conversion / through / immersion"
-           where the yellow CTA pill sits inline next to the
-           middle (connector) word. */}
+      {/* ═══ HERO · 3-line title con CTA inline ════════════ */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 min-h-0">
         <div
           className="font-headline flex flex-col items-center sunrise-fade-up"
@@ -137,22 +147,22 @@ export default function WelcomeScreen({
         >
           {/* Line 1 */}
           <div
-            className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
+            className="font-[700] leading-[0.86] tracking-[-0.045em] lowercase"
             style={{
               fontSize: 'clamp(3.8rem, 20vw, 7.5rem)',
-              color: 'var(--sunrise-text)',
+              color: DT.primary,
             }}
           >
             awaken
           </div>
 
-          {/* Line 2 · word + inline dorado CTA pill (wraps on narrow) */}
+          {/* Line 2 · word + inline CTA pill */}
           <div className="flex items-center justify-center gap-3 sm:gap-5 my-1 flex-wrap">
             <span
-              className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
+              className="font-[700] leading-[0.86] tracking-[-0.045em] lowercase"
               style={{
                 fontSize: 'clamp(3.4rem, 18vw, 7.5rem)',
-                color: 'var(--sunrise-text)',
+                color: DT.primary,
               }}
             >
               through
@@ -163,37 +173,33 @@ export default function WelcomeScreen({
               className="shrink-0 inline-flex items-center gap-2 rounded-full transition-transform active:scale-[0.96] sunrise-fade-up"
               style={{
                 padding: '13px 19px',
-                background: SUNRISE.rise2,
-                color: SUNRISE.night,
-                boxShadow: `0 10px 32px -6px ${hexToRgba(SUNRISE.rise2, 0.55)}`,
+                background: D.accent,
+                color: D.paper,
+                boxShadow: `0 10px 32px -6px ${hexToRgba(D.accent, 0.55)}`,
                 animationDelay: '320ms',
               }}
             >
-              <span className="font-ui font-[600] text-[12px] tracking-[0.22em] uppercase leading-none">
+              <span className="font-mono font-[700] tracking-[0.32em] uppercase leading-none" style={{ fontSize: 11 }}>
                 despertar
               </span>
-              <ArrowUpRight size={14} strokeWidth={2.2} />
+              <ArrowUpRight size={14} strokeWidth={2.4} />
             </button>
           </div>
 
           {/* Line 3 */}
           <div
-            className="font-[600] leading-[0.86] tracking-[-0.045em] lowercase"
+            className="font-[700] leading-[0.86] tracking-[-0.045em] lowercase"
             style={{
               fontSize: 'clamp(3.8rem, 20vw, 7.5rem)',
-              color: 'var(--sunrise-text)',
+              color: DT.primary,
             }}
           >
-            ritual<span style={{ color: SUNRISE.rise2 }}>.</span>
+            ritual<span style={{ color: D.accent }}>.</span>
           </div>
         </div>
       </div>
 
-      {/* ═══ FOOTER · split bento card ═══════════════════════════
-           Mirrors thecraftsmen.tech "fast support / happy to help"
-           pattern: dark text panel on the left (greeting + quote),
-           solid dorado action panel on the right (today's date,
-           tap → opens full Calendar screen). */}
+      {/* ═══ FOOTER · split bento card ═════════════════════ */}
       <div
         className="relative z-10 px-5 sunrise-fade-up"
         style={{
@@ -206,9 +212,10 @@ export default function WelcomeScreen({
             firstName={firstName.toLowerCase()}
             quote={quote}
             onOpenCalendar={onOpenCalendar}
+            D={D}
+            DT={DT}
           />
         ) : (
-          // SSR placeholder · same height to avoid layout shift
           <div style={{ height: 148 }} aria-hidden />
         )}
       </div>
@@ -216,16 +223,20 @@ export default function WelcomeScreen({
   );
 }
 
-// ─── split bento card (greeting + quote · today) ───────────
+// ─── split bento card ─────────────────────────────────────
 
 function QuoteCalendarCard({
   firstName,
   quote,
   onOpenCalendar,
+  D,
+  DT,
 }: {
   firstName: string;
   quote: { text: string; author: string };
   onOpenCalendar?: () => void;
+  D: ReturnType<typeof useAppTheme>['day'];
+  DT: ReturnType<typeof useAppTheme>['dayText'];
 }) {
   const today = useMemo(() => new Date(), []);
   const ctx = useMemo(() => getDayContext(today), [today]);
@@ -246,14 +257,14 @@ function QuoteCalendarCard({
       className="w-full overflow-hidden flex"
       style={{
         borderRadius: 22,
-        background: hexToRgba(SUNRISE.night, 0.55),
-        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+        background: hexToRgba(D.tint, 0.7),
+        border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
         backdropFilter: 'blur(12px) saturate(120%)',
         WebkitBackdropFilter: 'blur(12px) saturate(120%)',
         minHeight: 148,
       }}
     >
-      {/* LEFT · dark · greeting kicker + quote (info, non-interactive) */}
+      {/* LEFT · greeting + quote */}
       <div
         className="flex flex-col justify-between flex-1 min-w-0"
         style={{ padding: '16px 18px' }}
@@ -265,21 +276,22 @@ function QuoteCalendarCard({
               style={{
                 width: 7,
                 height: 7,
-                background: SUNRISE.rise2,
+                background: D.accent,
               }}
             />
             <span
-              className="font-ui text-[11px] tracking-[0.3em] uppercase truncate"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono uppercase tracking-[0.32em] font-[600] truncate"
+              style={{ color: DT.muted, fontSize: 10 }}
             >
               buenos días,{' '}
-              <span style={{ color: 'var(--sunrise-text)' }}>{firstName}</span>
+              <span style={{ color: DT.primary, fontWeight: 700 }}>{firstName}</span>
             </span>
           </div>
           <p
-            className="font-display italic font-[300] text-[16px] leading-[1.4]"
+            className="font-headline italic font-[400] leading-[1.4]"
             style={{
-              color: 'var(--sunrise-text-soft)',
+              color: DT.soft,
+              fontSize: 16,
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
@@ -290,14 +302,14 @@ function QuoteCalendarCard({
           </p>
         </div>
         <div
-          className="font-ui text-[10px] tracking-[0.32em] uppercase mt-2.5 truncate"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="font-mono uppercase tracking-[0.32em] font-[600] mt-2.5 truncate"
+          style={{ color: DT.muted, fontSize: 9.5 }}
         >
           — {quote.author.toLowerCase()}
         </div>
       </div>
 
-      {/* RIGHT · dorado · today (tap → opens Calendar) */}
+      {/* RIGHT · today (tap → Calendar) */}
       <button
         type="button"
         onClick={() => {
@@ -311,18 +323,18 @@ function QuoteCalendarCard({
           width: '42%',
           maxWidth: 188,
           padding: '16px 18px',
-          background: SUNRISE.rise2,
-          color: SUNRISE.night,
+          background: D.accent,
+          color: D.paper,
         }}
       >
         <div className="flex items-center justify-between">
-          <CalendarDays size={16} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
+          <CalendarDays size={16} strokeWidth={2.2} style={{ color: D.paper }} />
           {onOpenCalendar && (
             <ArrowUpRight
               size={17}
               strokeWidth={2.4}
               className="transition-transform group-active:translate-x-0.5 group-active:-translate-y-0.5"
-              style={{ color: SUNRISE.night }}
+              style={{ color: D.paper }}
             />
           )}
         </div>
@@ -331,21 +343,21 @@ function QuoteCalendarCard({
             className="font-headline font-[700] leading-[0.92] lowercase tracking-[-0.03em]"
             style={{
               fontSize: 'clamp(1.9rem, 7.5vw, 2.4rem)',
-              color: SUNRISE.night,
+              color: D.paper,
             }}
           >
             {weekdayShort.toLowerCase()} {dayNum}
           </div>
           <div
-            className="font-ui text-[11px] tracking-[0.26em] uppercase font-[600] mt-1.5 truncate"
-            style={{ color: SUNRISE.night, opacity: 0.72 }}
+            className="font-mono uppercase tracking-[0.28em] font-[700] mt-1.5 truncate"
+            style={{ color: D.paper, opacity: 0.75, fontSize: 10 }}
           >
             {monthShort.toLowerCase()} · {dayLabel.toLowerCase()}
           </div>
           {upcoming && (
             <div
-              className="font-mono text-[10px] tabular-nums mt-2 truncate"
-              style={{ color: SUNRISE.night, opacity: 0.6 }}
+              className="font-mono tabular-nums mt-2 truncate"
+              style={{ color: D.paper, opacity: 0.65, fontSize: 10 }}
             >
               +{upcoming.daysUntil}d {upcoming.name.toLowerCase()}
             </div>

@@ -1,21 +1,23 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════
-// AlarmScreen · full-screen alarm configurator. Inspired by
-// WonderWake (gentle crescendo) + Routinery (clean card
-// layout). Three main zones:
+// ═══════════════════════════════════════════════════════════
+// AlarmScreen · full-screen alarm configurator.
 //
-//   1. Hero · giant time display with a live halo that grows
-//      as the ramp duration increases. Tap to edit the hour.
-//   2. Controls · ramp duration slider, reaseguro slider,
-//      volume slider, chain-to-protocol toggle.
-//   3. Status & actions · next fire summary, test + manual
-//      fire, platform caveat note.
-// ═══════════════════════════════════════════════════════
+// Diseño · masthead editorial NightMissionPhase:
+//   - Top folio dot ámbar + caption "soporte · alarma".
+//   - Hairline progress bar (sin progreso real, decorativo).
+//   - Hero · giant time tabular-nums + halo ámbar pulsante.
+//   - Sections con SectionHeader newspaper "─ · NAME · ─".
+//   - PillSelector hairline + TimelineRow jeton + ToggleRow.
+//   - V5 actions footer.
+// Paleta · useNightPalette() para vivir en sync.
+// ═══════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Bell, BellOff, CalendarDays, ChevronLeft, Play, Sparkles, Sun } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
+import {
+  AlertTriangle, Bell, BellOff, CalendarDays, ChevronLeft,
+  Play, Sparkles, Sun,
+} from 'lucide-react';
 import { haptics } from '@/lib/common/haptics';
 import {
   describeAlarm,
@@ -25,7 +27,8 @@ import {
   type AlarmConfig,
 } from '@/lib/alarm/alarmSchedule';
 import { prefetchAlarmAudio, type PreviewResult } from '@/lib/alarm/alarmEngine';
-import { SUNRISE, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useNightPalette } from '@/lib/night/nightPalette';
 import AppCloseWarningModal, { shouldShowAppCloseWarning } from './AppCloseWarningModal';
 import { requestPermission, permissionStatus } from '@/lib/alarm/morningReminder';
 import WeekdaySelector from './WeekdaySelector';
@@ -35,9 +38,6 @@ interface AlarmScreenProps {
   onChange: (next: AlarmConfig) => void;
   onPreview: () => Promise<PreviewResult>;
   onFireNow: () => Promise<void>;
-  /** Fire with compressed timings (~1 min total) so every phase
-   *  (ramp → peak+coach → reaseguro → wake-up) is verifiable
-   *  in one sitting. */
   onFireTest: () => Promise<void>;
   onClose: () => void;
 }
@@ -50,32 +50,22 @@ export default function AlarmScreen({
   onFireTest,
   onClose,
 }: AlarmScreenProps) {
+  const { palette: N, paletteText: NT } = useNightPalette();
   const info = useMemo(() => nextFireInfo(config), [config]);
 
-  // Preview diagnostic — surfaced in the UI so we can debug iOS audio
-  // without Safari Web Inspector. Populated by the "Probar 6s" handler.
   const [previewState, setPreviewState] = useState<
     | { status: 'idle' }
     | { status: 'running' }
     | { status: 'done'; result: PreviewResult }
   >({ status: 'idle' });
 
-  // "No cierres la app" advisory modal. Shown the first time the
-  // user arms the alarm (enabled flips from false → true) and
-  // stays dismissed afterwards. Can be permanently silenced via
-  // the in-modal checkbox.
   const [showCloseWarning, setShowCloseWarning] = useState(false);
-
-  // Surface the current Notification permission so the UI can
-  // nudge the user towards granting it (fallback alarm at peak).
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | 'unsupported' | 'unknown'>('unknown');
+
   useEffect(() => {
     setNotifPerm(permissionStatus());
   }, []);
 
-  // Warm the HTTP cache for the 7 MB Tycho file (+ Zimmer + musica
-  // principal) the moment AlarmScreen mounts. This is the iOS fix for
-  // "Probar 6s" completing before the fetch even finished on cellular.
   useEffect(() => {
     void prefetchAlarmAudio();
   }, []);
@@ -93,20 +83,12 @@ export default function AlarmScreen({
     onChange({ ...config, ...patch });
   };
 
-  // Arming an alarm needs two side-effects beyond the config patch:
-  //   1. Ask for Notification permission so the SW fallback at peak
-  //      is actually delivered on iOS (silent otherwise).
-  //   2. Surface the "No cierres la app" advisory exactly once.
-  // Must run inside the tap gesture on iOS — do NOT await before
-  // calling requestPermission().
   const handleToggleEnabled = () => {
     haptics.tick();
     const next = !config.enabled;
     onChange({ ...config, enabled: next });
     if (next) {
       if (shouldShowAppCloseWarning()) setShowCloseWarning(true);
-      // Permission prompt: fire and forget; iOS will surface the
-      // native dialog inside this gesture.
       void requestPermission().then((p) => setNotifPerm(p));
     }
   };
@@ -114,102 +96,116 @@ export default function AlarmScreen({
   return (
     <div
       className="relative w-full h-full flex flex-col overflow-hidden"
-      style={{ color: 'var(--sunrise-text)' }}
+      style={{ color: NT.primary, background: N.void }}
     >
-      <GradientBackground stage="welcome" particleCount={40} />
-      <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
-
-      {/* Header */}
+      {/* ─── Header · MASTHEAD editorial ─── */}
       <div
-        className="relative z-10 flex items-center gap-3 px-4 pt-4 pb-2 sunrise-fade-up"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+        className="relative z-10 px-6 shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        <button
-          onClick={() => { haptics.tap(); onClose(); }}
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/5"
-          style={{ color: 'var(--sunrise-text-soft)' }}
-          aria-label="Volver"
-        >
-          <ChevronLeft size={22} strokeWidth={1.7} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div
-            className="font-ui text-[10px] uppercase tracking-[0.32em]"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+        <div className="flex items-center justify-between pb-2.5">
+          <button
+            onClick={() => { haptics.tap(); onClose(); }}
+            aria-label="Volver"
+            className="flex items-center gap-2 transition-opacity active:opacity-60"
+            style={{ color: NT.muted }}
           >
-            Despertar suave
-          </div>
-          <h1
-            className="font-display italic font-[400] text-[22px] leading-none mt-0.5 truncate"
-            style={{ color: 'var(--sunrise-text)' }}
+            <ChevronLeft size={14} strokeWidth={2.2} />
+            <span
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: N.amber,
+                borderRadius: 99,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
+              }}
+              className="night-breath"
+            />
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[500]"
+              style={{ color: NT.muted, fontSize: 9 }}
+            >
+              soporte · alarma
+            </span>
+          </button>
+          {/* Enable toggle · jeton mono */}
+          <button
+            onClick={handleToggleEnabled}
+            className="flex items-center gap-1.5 transition-opacity active:opacity-70"
+            style={{
+              padding: '6px 12px',
+              background: config.enabled ? hexToRgba(N.amber, 0.14) : 'transparent',
+              border: `1px solid ${config.enabled ? hexToRgba(N.amber, 0.55) : hexToRgba(N.amber, 0.18)}`,
+              color: config.enabled ? N.amber : NT.muted,
+            }}
           >
-            Alarma
-          </h1>
+            {config.enabled ? <Bell size={11} strokeWidth={2.2} /> : <BellOff size={11} strokeWidth={2.2} />}
+            <span className="font-mono uppercase tracking-[0.32em] font-[700]" style={{ fontSize: 9 }}>
+              {config.enabled ? 'armada' : 'apagada'}
+            </span>
+          </button>
         </div>
-        {/* Enable toggle */}
-        <button
-          onClick={handleToggleEnabled}
-          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-full transition-all"
-          style={{
-            border: `1px solid ${config.enabled ? hexToRgba(SUNRISE.rise2, 0.45) : 'rgba(255,250,240,0.12)'}`,
-            background: config.enabled ? hexToRgba(SUNRISE.rise2, 0.12) : 'rgba(255,250,240,0.04)',
-            color: config.enabled ? SUNRISE.rise2 : 'var(--sunrise-text-soft)',
-          }}
-        >
-          {config.enabled ? <Bell size={14} strokeWidth={1.9} /> : <BellOff size={14} strokeWidth={1.9} />}
-          <span className="font-ui text-[11px] tracking-[0.24em] uppercase">
-            {config.enabled ? 'Armada' : 'Apagada'}
-          </span>
-        </button>
+        <div className="h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }} />
       </div>
 
-      {/* Scrollable body */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-6">
-        {/* ─── Hero: time display with halo ─────────── */}
-        <div className="relative flex flex-col items-center justify-center py-8 sunrise-fade-up">
-          {/* Halo grows with ramp duration */}
+      {/* ─── Body scrolleable ────────────────────────────────── */}
+      <div className="scroll-area flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6 pb-4 overflow-y-auto">
+        {/* Top corners */}
+        <div className="mt-3 flex items-baseline justify-between">
+          <span
+            className="font-mono tabular-nums font-[600]"
+            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
+          >
+            ⏰
+            <span style={{ color: N.amber }}>.</span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · despertar suave ·
+          </span>
+        </div>
+
+        {/* ─── Hero · time display tabular ─────────── */}
+        <div className="relative flex flex-col items-center justify-center py-6 mt-4">
+          {/* Halo crece con ramp duration */}
           <div
             className="absolute rounded-full pointer-events-none"
             style={{
-              width: `${180 + rampMin * 10}px`,
-              height: `${180 + rampMin * 10}px`,
-              background: `radial-gradient(circle, ${hexToRgba(SUNRISE.rise2, 0.22)} 0%, ${hexToRgba(SUNRISE.dawn1, 0.08)} 40%, transparent 72%)`,
-              filter: 'blur(6px)',
-              opacity: config.enabled ? 1 : 0.35,
+              width: `${180 + rampMin * 8}px`,
+              height: `${180 + rampMin * 8}px`,
+              background: `radial-gradient(circle, ${hexToRgba(N.amber, 0.32)} 0%, ${hexToRgba(N.candle, 0.1)} 40%, transparent 72%)`,
+              filter: 'blur(8px)',
+              opacity: config.enabled ? 1 : 0.3,
               transition: 'all 0.5s ease',
-            }}
-          />
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{
-              width: '150px',
-              height: '150px',
-              background: `radial-gradient(circle, ${hexToRgba(SUNRISE.rise1, 0.35)} 0%, transparent 70%)`,
-              filter: 'blur(10px)',
-              opacity: config.enabled ? 1 : 0.25,
             }}
           />
           <label
             className="relative z-10 flex flex-col items-center cursor-pointer"
             htmlFor="alarm-time-input"
           >
-            <div
-              className="font-ui text-[10px] uppercase tracking-[0.42em] mb-2"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[600] mb-2"
+              style={{ color: NT.muted, fontSize: 9 }}
             >
-              Hora del peak
-            </div>
-            <div
-              className="font-display italic font-[300] text-[88px] leading-none tabular-nums"
+              hora del peak
+            </span>
+            <h1
+              className="font-headline font-[700] tabular-nums tracking-[-0.04em]"
               style={{
-                color: 'var(--sunrise-text)',
+                color: NT.primary,
+                fontSize: 'clamp(4rem, 14vw, 6rem)',
+                lineHeight: 0.95,
                 textShadow: config.enabled
-                  ? `0 0 32px ${hexToRgba(SUNRISE.rise2, 0.4)}`
+                  ? `0 0 40px ${hexToRgba(N.amber, 0.42)}`
                   : 'none',
               }}
             >
               {timeValue}
-            </div>
+              <span style={{ color: N.amber }}>.</span>
+            </h1>
             <input
               id="alarm-time-input"
               type="time"
@@ -221,285 +217,285 @@ export default function AlarmScreen({
               className="absolute inset-0 opacity-0 cursor-pointer"
               style={{ colorScheme: 'dark' }}
             />
-            <div
-              className="font-ui text-[11px] mt-2"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+            <span
+              className="font-mono uppercase tracking-[0.32em] font-[500] mt-2.5"
+              style={{ color: hexToRgba(N.amber, 0.65), fontSize: 9 }}
             >
-              Toca para cambiar
-            </div>
+              · toca para cambiar ·
+            </span>
           </label>
         </div>
 
         {/* ─── Timeline summary ─────────────────────── */}
-        <div
-          className="rounded-2xl p-4 mb-5 sunrise-fade-up"
-          style={{
-            animationDelay: '80ms',
-            border: '1px solid rgba(255,250,240,0.08)',
-            background: 'rgba(255,250,240,0.03)',
-          }}
-        >
-          <div
-            className="font-ui text-[10px] uppercase tracking-[0.32em] mb-3"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            Cómo despertarás
-          </div>
+        <SectionHeader N={N} NT={NT}>cómo despertarás</SectionHeader>
+        <div className="flex flex-col">
           <TimelineRow
             time={fmt(rampStart)}
-            dotColor={SUNRISE.dawn1}
-            label="Subida suave empieza"
-            hint={`Tycho · Sunrise Projector • ${rampMin} min fade in`}
+            label="subida suave empieza"
+            hint={`Tycho · Sunrise Projector · ${rampMin} min fade in`}
+            N={N}
+            NT={NT}
           />
           <TimelineRow
             time={timeValue}
-            dotColor={SUNRISE.rise2}
-            label="Peak · voz con propósito"
+            label="peak · voz con propósito"
             hint="La música baja y entra la voz coach"
             highlight
+            N={N}
+            NT={NT}
           />
           {config.reaseguroSec > 0 && (
             <TimelineRow
               time={fmt(reaseguroAt)}
-              dotColor={SUNRISE.dawn2}
-              label="Reaseguro"
+              label="reaseguro"
               hint="Hans Zimmer · Time (si no te despertaste)"
               last={!config.chainProtocol}
+              N={N}
+              NT={NT}
             />
           )}
           {config.chainProtocol && (
             <TimelineRow
               time="→"
-              dotColor={SUNRISE.rise1}
-              label="Despertar · orden del día"
+              label="despertar · orden del día"
               hint="musica principal.mp3 antes del protocolo"
               last
+              N={N}
+              NT={NT}
             />
           )}
           {config.reaseguroSec === 0 && (
-            <div
-              className="font-ui text-[10px] ml-6 mt-1"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+            <p
+              className="font-mono uppercase tracking-[0.28em] font-[500] mt-1"
+              style={{ color: NT.muted, fontSize: 9 }}
             >
-              Sin reaseguro. Activa abajo si quieres un respaldo audible.
-            </div>
+              · sin reaseguro · activa abajo si quieres respaldo audible ·
+            </p>
           )}
         </div>
 
         {/* ─── Weekday selector ─────────────────────── */}
-        <SectionCard
-          icon={<CalendarDays size={15} strokeWidth={1.9} />}
-          title="Días activos"
-          hint={describeDays(config.days)}
-          delay={100}
+        <SectionHeader
+          N={N}
+          NT={NT}
+          right={describeDays(config.days)}
+          icon={<CalendarDays size={11} strokeWidth={2.2} />}
         >
+          días activos
+        </SectionHeader>
+        <div className="pt-1">
           <WeekdaySelector
             value={config.days}
             onChange={(days) => update({ days })}
           />
           {!hasAnyDay(config) && (
             <p
-              className="font-ui text-[11px] leading-relaxed mt-3"
-              style={{ color: '#ffaaaa' }}
+              className="font-mono uppercase tracking-[0.28em] font-[600] mt-3"
+              style={{ color: '#ff7878', fontSize: 9 }}
             >
-              Sin días activos la alarma no sonará. Selecciona al menos uno.
+              · sin días activos la alarma no sonará ·
             </p>
           )}
-        </SectionCard>
+        </div>
 
         {/* ─── Ramp duration ────────────────────────── */}
-        <SectionCard
-          icon={<Sun size={15} strokeWidth={1.9} />}
-          title="Subida suave"
-          hint={`${rampMin} min antes del peak`}
-          delay={120}
+        <SectionHeader
+          N={N}
+          NT={NT}
+          right={`${rampMin} min antes`}
+          icon={<Sun size={11} strokeWidth={2.2} />}
         >
-          <PillSelector
-            value={config.rampSec}
-            options={[
-              { label: '2 min', value: 120 },
-              { label: '5 min', value: 300 },
-              { label: '10 min', value: 600 },
-              { label: '15 min', value: 900 },
-              { label: '20 min', value: 1200 },
-              { label: '30 min', value: 1800 },
-            ]}
-            onChange={(v) => update({ rampSec: v })}
-          />
-          <p
-            className="font-ui text-[11px] leading-relaxed mt-3"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            Sunrise Projector de Tycho en loop, subiendo desde el
-            silencio hasta el peak. Mientras más largo, más gradual el
-            despertar.
-          </p>
-        </SectionCard>
+          subida suave
+        </SectionHeader>
+        <PillSelector
+          value={config.rampSec}
+          options={[
+            { label: '2m', value: 120 },
+            { label: '5m', value: 300 },
+            { label: '10m', value: 600 },
+            { label: '15m', value: 900 },
+            { label: '20m', value: 1200 },
+            { label: '30m', value: 1800 },
+          ]}
+          onChange={(v) => update({ rampSec: v })}
+          N={N}
+          NT={NT}
+        />
+        <p
+          className="font-ui text-[11.5px] leading-[1.55] mt-3"
+          style={{ color: NT.muted }}
+        >
+          Sunrise Projector de Tycho en loop, subiendo desde el silencio
+          hasta el peak. Mientras más largo, más gradual el despertar.
+        </p>
 
         {/* ─── Reaseguro ────────────────────────────── */}
-        <SectionCard
-          icon={<Sparkles size={15} strokeWidth={1.9} />}
-          title="Reaseguro"
-          hint={config.reaseguroSec > 0 ? `+${reaseguroMin} min` : 'Apagado'}
-          delay={160}
+        <SectionHeader
+          N={N}
+          NT={NT}
+          right={config.reaseguroSec > 0 ? `+${reaseguroMin}m` : 'apagado'}
+          icon={<Sparkles size={11} strokeWidth={2.2} />}
         >
-          <PillSelector
-            value={config.reaseguroSec}
-            options={[
-              { label: 'No', value: 0 },
-              { label: '+3', value: 180 },
-              { label: '+5', value: 300 },
-              { label: '+8', value: 480 },
-              { label: '+12', value: 720 },
-              { label: '+15', value: 900 },
-            ]}
-            onChange={(v) => update({ reaseguroSec: v })}
-          />
-          <p
-            className="font-ui text-[11px] leading-relaxed mt-3"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            Si no descartaste la alarma pasado este tiempo después del
-            peak, entra Hans Zimmer — Time (crossfade 8s) más cinématico
-            para despertarte.
-          </p>
-        </SectionCard>
+          reaseguro
+        </SectionHeader>
+        <PillSelector
+          value={config.reaseguroSec}
+          options={[
+            { label: 'no', value: 0 },
+            { label: '+3m', value: 180 },
+            { label: '+5m', value: 300 },
+            { label: '+8m', value: 480 },
+            { label: '+12m', value: 720 },
+            { label: '+15m', value: 900 },
+          ]}
+          onChange={(v) => update({ reaseguroSec: v })}
+          N={N}
+          NT={NT}
+        />
+        <p
+          className="font-ui text-[11.5px] leading-[1.55] mt-3"
+          style={{ color: NT.muted }}
+        >
+          Si no descartaste la alarma pasado este tiempo después del peak,
+          entra Hans Zimmer — Time (crossfade 8s) más cinemático.
+        </p>
 
         {/* ─── Peak volume ──────────────────────────── */}
-        <SectionCard
-          icon={<Play size={14} strokeWidth={1.9} />}
-          title="Volumen peak"
-          hint={`${Math.round(config.peakVolume * 100)}%`}
-          delay={200}
+        <SectionHeader
+          N={N}
+          NT={NT}
+          right={`${Math.round(config.peakVolume * 100)}%`}
+          icon={<Play size={11} strokeWidth={2.2} />}
         >
-          <input
-            type="range"
-            min={0.3}
-            max={1}
-            step={0.05}
-            value={config.peakVolume}
-            onChange={(e) => update({ peakVolume: parseFloat(e.target.value) })}
-            className="w-full sunrise-slider"
-            aria-label="Volumen peak"
-          />
-          <p
-            className="font-ui text-[11px] leading-relaxed mt-3"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            Nivel máximo al que llegará la rampa. El volumen del
-            dispositivo también influye.
-          </p>
-        </SectionCard>
+          volumen peak
+        </SectionHeader>
+        <input
+          type="range"
+          min={0.3}
+          max={1}
+          step={0.05}
+          value={config.peakVolume}
+          onChange={(e) => update({ peakVolume: parseFloat(e.target.value) })}
+          className="w-full sunrise-slider mt-1"
+          aria-label="Volumen peak"
+        />
+        <p
+          className="font-ui text-[11.5px] leading-[1.55] mt-3"
+          style={{ color: NT.muted }}
+        >
+          Nivel máximo al que llegará la rampa. El volumen del dispositivo
+          también influye.
+        </p>
 
-        {/* ─── Chain to protocol ────────────────────── */}
+        {/* ─── Chain to protocol toggle ─────────────── */}
+        <SectionHeader N={N} NT={NT}>encadenar protocolo</SectionHeader>
         <button
           onClick={() => update({ chainProtocol: !config.chainProtocol })}
-          className="w-full flex items-center gap-3 p-4 rounded-2xl mb-5 text-left sunrise-fade-up"
-          style={{
-            animationDelay: '240ms',
-            border: `1px solid ${config.chainProtocol ? hexToRgba(SUNRISE.rise2, 0.35) : 'rgba(255,250,240,0.08)'}`,
-            background: config.chainProtocol ? hexToRgba(SUNRISE.rise2, 0.06) : 'rgba(255,250,240,0.03)',
-          }}
+          className="w-full text-left py-3.5 flex items-center gap-4 transition-opacity active:opacity-70"
+          style={{ borderBottom: `1px solid ${hexToRgba(N.amber, 0.1)}` }}
         >
           <span
             className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
             style={{
-              background: config.chainProtocol ? hexToRgba(SUNRISE.rise2, 0.18) : 'rgba(255,250,240,0.05)',
-              border: `1px solid ${config.chainProtocol ? hexToRgba(SUNRISE.rise2, 0.45) : 'rgba(255,250,240,0.12)'}`,
-              color: config.chainProtocol ? SUNRISE.rise2 : 'var(--sunrise-text-muted)',
+              background: config.chainProtocol ? hexToRgba(N.amber, 0.18) : hexToRgba(N.amber, 0.06),
+              border: `1px solid ${hexToRgba(N.amber, config.chainProtocol ? 0.5 : 0.18)}`,
+              color: config.chainProtocol ? N.amber : NT.muted,
             }}
           >
-            <Sun size={16} strokeWidth={1.9} />
+            <Sun size={15} strokeWidth={1.9} />
           </span>
-          <div className="flex-1 min-w-0">
-            <div
-              className="font-ui text-[13px] font-[500]"
-              style={{ color: 'var(--sunrise-text)' }}
+          <span className="flex-1 min-w-0">
+            <span
+              className="block font-headline font-[600] lowercase tracking-[-0.01em]"
+              style={{ color: NT.primary, fontSize: 14 }}
             >
-              Encadenar al protocolo
-            </div>
-            <div
-              className="font-ui text-[11px] mt-0.5 leading-snug"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              encadenar al protocolo
+            </span>
+            <span
+              className="block mt-0.5 font-ui leading-[1.5]"
+              style={{ color: NT.muted, fontSize: 11 }}
             >
-              Al descartar, reproduce la voz de orden del día (musica principal.mp3)
-              y luego abre el protocolo matutino.
-            </div>
-          </div>
-          <ToggleVisual active={config.chainProtocol} />
+              Al descartar, voz de orden del día y abre el protocolo matutino.
+            </span>
+          </span>
+          <ToggleVisual active={config.chainProtocol} N={N} />
         </button>
 
         {/* ─── Actions ──────────────────────────────── */}
-        <div className="flex gap-2 mb-5 sunrise-fade-up" style={{ animationDelay: '280ms' }}>
+        <SectionHeader N={N} NT={NT}>acciones</SectionHeader>
+        <div className="flex gap-2">
           <button
             onClick={() => {
               haptics.tap();
               setPreviewState({ status: 'running' });
-              // Fire-and-display — onPreview itself unlocks audio
-              // synchronously inside this click handler.
               void onPreview().then((result) => {
                 setPreviewState({ status: 'done', result });
               });
             }}
             disabled={previewState.status === 'running'}
-            className="flex-1 py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98] disabled:opacity-60"
+            className="flex-1 font-mono font-[600] tracking-[0.28em] uppercase transition-opacity active:opacity-70 disabled:opacity-40"
             style={{
-              border: '1px solid rgba(255,250,240,0.15)',
-              background: 'rgba(255,250,240,0.04)',
-              color: 'var(--sunrise-text-soft)',
+              padding: '12px 16px',
+              background: 'transparent',
+              border: `1px solid ${hexToRgba(N.amber, 0.25)}`,
+              color: NT.soft,
+              fontSize: 9.5,
             }}
           >
-            {previewState.status === 'running' ? 'Sonando…' : 'Probar 6s'}
+            {previewState.status === 'running' ? 'sonando…' : 'probar 6s'}
           </button>
           <button
             onClick={() => { haptics.warn(); void onFireNow(); }}
-            className="flex-1 py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98]"
+            className="flex-1 font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985]"
             style={{
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
-              background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.rise2, 0.18)}, ${hexToRgba(SUNRISE.rise2, 0.32)})`,
-              color: 'var(--sunrise-text)',
+              padding: '12px 16px',
+              background: N.amber,
+              color: N.void,
+              fontSize: 10,
+              boxShadow: `0 6px 18px -6px ${hexToRgba(N.amber, 0.5)}`,
             }}
           >
-            Empezar ahora
+            empezar ahora
           </button>
         </div>
 
-        {/* ─── Test completo (compressed ~1 min) ────── */}
+        {/* Test 1 min · dashed */}
         <button
           onClick={() => { haptics.tick(); void onFireTest(); }}
-          className="w-full py-3 rounded-full font-ui text-[12px] tracking-[0.22em] uppercase transition-transform active:scale-[0.98] mb-5 sunrise-fade-up"
+          className="w-full mt-2 font-mono font-[600] tracking-[0.28em] uppercase transition-opacity active:opacity-70"
           style={{
-            animationDelay: '300ms',
-            border: `1px dashed ${hexToRgba(SUNRISE.dawn2, 0.5)}`,
-            background: hexToRgba(SUNRISE.dawn2, 0.08),
-            color: 'var(--sunrise-text-soft)',
+            padding: '12px 16px',
+            background: 'transparent',
+            border: `1px dashed ${hexToRgba(N.amber, 0.4)}`,
+            color: NT.soft,
+            fontSize: 9.5,
           }}
         >
-          Test completo · 1 min (ramp → peak → reaseguro)
+          test completo · 1 min · ramp → peak → reaseguro
         </button>
 
-        {/* ─── Preview diagnostic ───────────────────── */}
+        {/* Preview diagnostic */}
         {previewState.status === 'done' && (
           <div
-            className="rounded-xl p-3 mb-4 sunrise-fade-up"
+            className="mt-3 px-4 py-3"
             style={{
               border: `1px solid ${previewState.result.ok
-                ? hexToRgba(SUNRISE.rise2, 0.35)
+                ? hexToRgba(N.amber, 0.35)
                 : 'rgba(255, 120, 120, 0.35)'}`,
               background: previewState.result.ok
-                ? hexToRgba(SUNRISE.rise2, 0.06)
+                ? hexToRgba(N.amber, 0.06)
                 : 'rgba(255, 120, 120, 0.06)',
             }}
           >
             <div
-              className="font-ui text-[10px] uppercase tracking-[0.28em] mb-1"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono uppercase tracking-[0.32em] font-[700] mb-1"
+              style={{ color: NT.muted, fontSize: 9 }}
             >
-              {previewState.result.ok ? 'Preview OK' : 'Preview falló'}
+              {previewState.result.ok ? '· preview OK ·' : '· preview falló ·'}
             </div>
             <div
-              className="font-mono text-[11px] leading-relaxed"
-              style={{ color: 'var(--sunrise-text-soft)' }}
+              className="font-mono leading-relaxed"
+              style={{ color: NT.soft, fontSize: 11 }}
             >
               play started: <b>{previewState.result.playStarted ? 'sí' : 'NO'}</b>{' '}
               · buffered: <b>{previewState.result.bufferedSec.toFixed(1)}s</b>
@@ -509,46 +505,29 @@ export default function AlarmScreen({
                 </>
               )}
             </div>
-            {!previewState.result.ok && !previewState.result.playStarted && !previewState.result.error && (
-              <div
-                className="font-ui text-[10px] mt-1 leading-relaxed"
-                style={{ color: 'var(--sunrise-text-muted)' }}
-              >
-                play() no se ejecutó. Toca el botón más fuerte/directo — iOS necesita el gesto exactamente sobre el botón.
-              </div>
-            )}
-            {!previewState.result.ok && previewState.result.bufferedSec < 1 && (
-              <div
-                className="font-ui text-[10px] mt-1 leading-relaxed"
-                style={{ color: 'var(--sunrise-text-muted)' }}
-              >
-                No se buffereó audio. Revisa conexión. El archivo Tycho pesa 7 MB.
-              </div>
-            )}
           </div>
         )}
 
-        {/* ─── Status ───────────────────────────────── */}
+        {/* Status active card */}
         {config.enabled && (
           <div
-            className="rounded-2xl p-4 sunrise-fade-up flex items-start gap-3"
+            className="mt-5 px-4 py-3.5 flex items-start gap-3"
             style={{
-              animationDelay: '320ms',
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.25)}`,
-              background: hexToRgba(SUNRISE.rise2, 0.05),
+              border: `1px solid ${hexToRgba(N.amber, 0.28)}`,
+              background: hexToRgba(N.amber, 0.05),
             }}
           >
-            <Bell size={14} strokeWidth={1.9} style={{ color: SUNRISE.rise2, marginTop: 2 }} />
+            <Bell size={13} strokeWidth={1.9} style={{ color: N.amber, marginTop: 2 }} />
             <div>
               <div
-                className="font-ui text-[12px] font-[500]"
-                style={{ color: 'var(--sunrise-text)' }}
+                className="font-headline font-[600] lowercase tracking-[-0.01em]"
+                style={{ color: NT.primary, fontSize: 13 }}
               >
-                {describeAlarm(config)}
+                {describeAlarm(config).toLowerCase()}
               </div>
               <div
-                className="font-ui text-[10px] mt-0.5"
-                style={{ color: 'var(--sunrise-text-muted)' }}
+                className="font-ui mt-0.5"
+                style={{ color: NT.muted, fontSize: 11 }}
               >
                 {formatCountdown(info.msUntilRampStart, info.offsetSec)}
               </div>
@@ -556,91 +535,85 @@ export default function AlarmScreen({
           </div>
         )}
 
-        {/* ─── Honesty card: why an alarm can fail on iOS ── */}
+        {/* Honesty card */}
         <div
-          className="mt-5 rounded-2xl p-4 sunrise-fade-up flex items-start gap-3"
+          className="mt-3 px-4 py-3.5 flex items-start gap-3"
           style={{
-            animationDelay: '360ms',
-            border: `1px solid ${hexToRgba(SUNRISE.dawn2, 0.4)}`,
-            background: hexToRgba(SUNRISE.dawn2, 0.05),
+            border: `1px solid ${hexToRgba(N.candle, 0.4)}`,
+            background: hexToRgba(N.candle, 0.05),
           }}
         >
-          <AlertTriangle size={14} strokeWidth={1.9} style={{ color: SUNRISE.dawn2, marginTop: 2 }} />
+          <AlertTriangle size={13} strokeWidth={1.9} style={{ color: N.candle, marginTop: 2 }} />
           <div>
             <div
-              className="font-ui text-[12px] font-[500] mb-2"
-              style={{ color: 'var(--sunrise-text)' }}
+              className="font-headline font-[600] lowercase tracking-[-0.01em] mb-2"
+              style={{ color: NT.primary, fontSize: 13 }}
             >
-              Para que suene de verdad
+              para que suene de verdad
             </div>
             <ol
-              className="font-ui text-[10.5px] leading-[1.55] space-y-1 list-decimal pl-4"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-ui leading-[1.55] space-y-1 list-decimal pl-4"
+              style={{ color: NT.muted, fontSize: 10.5 }}
             >
               <li>Instala la app al home screen (Compartir → Añadir a inicio).</li>
               <li>Acepta el permiso de notificaciones la primera vez que armes la alarma.</li>
               <li>
-                Deja la app <b>abierta en primer plano</b> al dormir — iOS
-                detiene el audio de cualquier PWA en segundo plano. Puedes
-                bloquear el iPad, el audio sigue sonando; solo <b>no cierres
-                la app</b> deslizándola fuera del selector.
+                Deja la app <b>abierta en primer plano</b> al dormir — iOS detiene
+                el audio de cualquier PWA en segundo plano. Bloquear el iPad
+                está OK; <b>no cierres la app</b> deslizándola fuera.
               </li>
               <li>
-                Como respaldo, al llegar al peak se dispara una notificación
-                del sistema (banner + sonido corto del sistema) aunque iOS
-                haya matado el proceso durante la noche.
+                Como respaldo, al peak se dispara una notificación del sistema
+                (banner + sonido corto) aunque iOS haya matado el proceso.
               </li>
             </ol>
             <div
-              className="font-ui text-[10px] leading-relaxed mt-2 pt-2"
+              className="font-ui leading-[1.55] mt-2 pt-2"
               style={{
-                color: 'var(--sunrise-text-muted)',
-                borderTop: '1px solid rgba(255,250,240,0.06)',
+                color: NT.muted,
+                fontSize: 10,
+                borderTop: `1px solid ${hexToRgba(N.amber, 0.1)}`,
               }}
             >
               Si no sonó nada, lo más probable es que iOS haya descargado la
-              pestaña (PWA cerrada o iPad reiniciado). Usa el test de 1 min
-              arriba para confirmar que audio + notificación funcionan antes
-              de confiarle una noche entera.
+              pestaña. Usa el test de 1 min arriba para confirmar.
             </div>
           </div>
         </div>
 
-        {/* ─── Notification permission hint ──────────
-            Only surfaces when the user armed the alarm but the OS
-            hasn't granted notifications. Gives a manual "Activar
-            notificaciones" button so the prompt can be retried
-            (requestPermission() must run inside a user gesture;
-            this button IS that gesture). */}
+        {/* Notification permission hint */}
         {config.enabled && (notifPerm === 'default' || notifPerm === 'denied') && (
           <div
-            className="mt-3 rounded-2xl p-4 sunrise-fade-up flex items-start gap-3"
+            className="mt-3 px-4 py-3.5 flex items-start gap-3"
             style={{
-              animationDelay: '400ms',
               border: `1px solid ${notifPerm === 'denied'
                 ? 'rgba(255, 120, 120, 0.35)'
-                : hexToRgba(SUNRISE.rise2, 0.35)}`,
+                : hexToRgba(N.amber, 0.35)}`,
               background: notifPerm === 'denied'
                 ? 'rgba(255, 120, 120, 0.05)'
-                : hexToRgba(SUNRISE.rise2, 0.05),
+                : hexToRgba(N.amber, 0.05),
             }}
           >
-            <Bell size={13} strokeWidth={1.9} style={{
-              color: notifPerm === 'denied' ? '#ff7878' : SUNRISE.rise2,
-              marginTop: 2,
-            }} />
+            <Bell
+              size={13}
+              strokeWidth={1.9}
+              style={{
+                color: notifPerm === 'denied' ? '#ff7878' : N.amber,
+                marginTop: 2,
+              }}
+            />
             <div className="flex-1">
               <div
-                className="font-ui text-[11px] font-[500] mb-1"
-                style={{ color: 'var(--sunrise-text)' }}
+                className="font-headline font-[600] lowercase tracking-[-0.01em] mb-1"
+                style={{ color: NT.primary, fontSize: 12.5 }}
               >
                 {notifPerm === 'denied'
-                  ? 'Notificaciones bloqueadas'
-                  : 'Activa las notificaciones'}
+                  ? 'notificaciones bloqueadas'
+                  : 'activa las notificaciones'}
               </div>
               <div
-                className="font-ui text-[10px] leading-relaxed mb-2"
-                style={{ color: 'var(--sunrise-text-muted)' }}
+                className="font-ui leading-[1.55] mb-2"
+                style={{ color: NT.muted, fontSize: 10.5 }}
               >
                 {notifPerm === 'denied'
                   ? 'iOS está bloqueando las notificaciones de esta app. Ajustes del sistema → Notificaciones → Morning Awakening → Permitir.'
@@ -652,22 +625,25 @@ export default function AlarmScreen({
                     haptics.tap();
                     void requestPermission().then((p) => setNotifPerm(p));
                   }}
-                  className="px-3 py-1.5 rounded-full font-ui text-[11px] tracking-[0.18em] uppercase transition-transform active:scale-[0.97]"
+                  className="font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985]"
                   style={{
-                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.55)}`,
-                    background: hexToRgba(SUNRISE.rise2, 0.18),
-                    color: 'var(--sunrise-text)',
+                    padding: '8px 16px',
+                    background: N.amber,
+                    color: N.void,
+                    fontSize: 9,
                   }}
                 >
-                  Activar notificaciones
+                  activar notificaciones
                 </button>
               )}
             </div>
           </div>
         )}
+
+        <div className="h-4" />
       </div>
 
-      {/* "No cierres la app" one-shot advisory */}
+      {/* "No cierres la app" advisory */}
       {showCloseWarning && (
         <AppCloseWarningModal onClose={() => setShowCloseWarning(false)} />
       )}
@@ -675,62 +651,50 @@ export default function AlarmScreen({
   );
 }
 
-// ─────────────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────
 
-function SectionCard({
-  icon,
-  title,
-  hint,
-  delay = 0,
+interface PaletteProps {
+  N: ReturnType<typeof useNightPalette>['palette'];
+  NT: ReturnType<typeof useNightPalette>['paletteText'];
+}
+
+// Newspaper section header: ─ · NAME · ─── (con ícono opcional + right caption)
+function SectionHeader({
   children,
+  N,
+  NT,
+  icon,
+  right,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  hint?: string;
-  delay?: number;
   children: React.ReactNode;
-}) {
+  icon?: React.ReactNode;
+  right?: string;
+} & PaletteProps) {
   return (
-    <section
-      className="rounded-2xl p-4 mb-3 sunrise-fade-up"
-      style={{
-        animationDelay: `${delay}ms`,
-        border: '1px solid rgba(255,250,240,0.08)',
-        background: 'rgba(255,250,240,0.03)',
-      }}
-    >
-      <header className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{
-              background: 'rgba(255,250,240,0.05)',
-              color: 'var(--sunrise-text-soft)',
-              border: '1px solid rgba(255,250,240,0.1)',
-            }}
-          >
-            {icon}
-          </span>
-          <span
-            className="font-ui text-[13px] font-[500]"
-            style={{ color: 'var(--sunrise-text)' }}
-          >
-            {title}
-          </span>
-        </div>
-        {hint && (
-          <span
-            className="font-mono text-[11px]"
-            style={{ color: 'var(--sunrise-text-muted)' }}
-          >
-            {hint}
-          </span>
-        )}
-      </header>
-      {children}
-    </section>
+    <div className="flex items-center gap-3 pt-7 pb-3">
+      <span className="flex items-center gap-1.5 shrink-0" style={{ color: hexToRgba(N.amber, 0.85) }}>
+        {icon}
+        <span
+          className="font-mono uppercase tracking-[0.42em] font-[700]"
+          style={{ color: NT.muted, fontSize: 9 }}
+        >
+          {children}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        className="flex-1 h-[1px]"
+        style={{ background: hexToRgba(N.amber, 0.12) }}
+      />
+      {right && (
+        <span
+          className="font-mono tabular-nums tracking-[0.18em] font-[600] shrink-0"
+          style={{ color: NT.soft, fontSize: 10 }}
+        >
+          {right}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -738,11 +702,13 @@ function PillSelector({
   value,
   options,
   onChange,
+  N,
+  NT,
 }: {
   value: number;
   options: Array<{ label: string; value: number }>;
   onChange: (v: number) => void;
-}) {
+} & PaletteProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((o) => {
@@ -751,11 +717,13 @@ function PillSelector({
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className="px-3 py-1.5 rounded-full font-ui text-[11px] tracking-[0.1em] transition-all active:scale-[0.97]"
+            className="font-mono uppercase tracking-[0.22em] font-[600] transition-transform active:scale-[0.97]"
             style={{
-              border: `1px solid ${active ? hexToRgba(SUNRISE.rise2, 0.55) : 'rgba(255,250,240,0.1)'}`,
-              background: active ? hexToRgba(SUNRISE.rise2, 0.14) : 'rgba(255,250,240,0.03)',
-              color: active ? 'var(--sunrise-text)' : 'var(--sunrise-text-soft)',
+              padding: '8px 14px',
+              fontSize: 10,
+              background: active ? hexToRgba(N.amber, 0.16) : 'transparent',
+              border: `1px solid ${active ? hexToRgba(N.amber, 0.55) : hexToRgba(N.amber, 0.18)}`,
+              color: active ? N.amber : NT.soft,
             }}
           >
             {o.label}
@@ -768,81 +736,81 @@ function PillSelector({
 
 function TimelineRow({
   time,
-  dotColor,
   label,
   hint,
   last,
   highlight,
+  N,
+  NT,
 }: {
   time: string;
-  dotColor: string;
   label: string;
   hint: string;
   last?: boolean;
   highlight?: boolean;
-}) {
+} & PaletteProps) {
   return (
-    <div className="flex items-start gap-3 relative">
-      <div className="flex flex-col items-center shrink-0" style={{ width: 48 }}>
+    <div
+      className="flex items-baseline gap-4 py-2.5"
+      style={{ borderBottom: last ? 'none' : `1px solid ${hexToRgba(N.amber, 0.1)}` }}
+    >
+      <span
+        className="font-mono tabular-nums shrink-0"
+        style={{
+          color: highlight ? N.amber : hexToRgba(N.amber, 0.5),
+          fontSize: highlight ? 12.5 : 11,
+          letterSpacing: '0.05em',
+          fontWeight: highlight ? 700 : 500,
+          minWidth: '5ch',
+        }}
+      >
+        {time}
+      </span>
+      <span className="flex-1 min-w-0">
         <span
-          className="font-mono text-[12px]"
-          style={{ color: highlight ? 'var(--sunrise-text)' : 'var(--sunrise-text-soft)' }}
+          className="block font-headline font-[600] lowercase tracking-[-0.01em]"
+          style={{ color: highlight ? NT.primary : NT.soft, fontSize: 13.5 }}
         >
-          {time}
+          {label.toLowerCase()}
         </span>
-      </div>
-      <div className="relative flex flex-col items-center shrink-0" style={{ width: 12 }}>
         <span
-          className="block rounded-full mt-1.5"
-          style={{
-            width: highlight ? 10 : 7,
-            height: highlight ? 10 : 7,
-            background: dotColor,
-            boxShadow: highlight ? `0 0 10px ${hexToRgba(dotColor, 0.7)}` : 'none',
-          }}
-        />
-        {!last && (
-          <span
-            className="absolute top-4 block w-px"
-            style={{
-              bottom: -10,
-              background: 'rgba(255,250,240,0.12)',
-            }}
-          />
-        )}
-      </div>
-      <div className="flex-1 pb-3">
-        <div
-          className="font-ui text-[12px] font-[500]"
-          style={{ color: highlight ? 'var(--sunrise-text)' : 'var(--sunrise-text-soft)' }}
-        >
-          {label}
-        </div>
-        <div
-          className="font-ui text-[10px] mt-0.5"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="block mt-0.5 font-ui leading-[1.45]"
+          style={{ color: NT.muted, fontSize: 10.5 }}
         >
           {hint}
-        </div>
-      </div>
+        </span>
+      </span>
+      {highlight && (
+        <span
+          aria-hidden
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 99,
+            background: N.amber,
+            boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.7)}`,
+            marginTop: 6,
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function ToggleVisual({ active }: { active: boolean }) {
+function ToggleVisual({ active, N }: { active: boolean } & { N: PaletteProps['N'] }) {
   return (
     <span
-      className="shrink-0 w-10 h-6 rounded-full relative transition-colors"
+      className="shrink-0 w-12 h-7 rounded-full p-[3px] transition-colors"
       style={{
-        background: active ? hexToRgba(SUNRISE.rise2, 0.45) : 'rgba(255,250,240,0.1)',
+        background: active ? N.amber : hexToRgba(N.amber, 0.14),
+        boxShadow: active ? `0 4px 12px -2px ${hexToRgba(N.amber, 0.4)}` : 'none',
       }}
     >
       <span
-        className="absolute top-[2px] w-[20px] h-[20px] rounded-full transition-all"
+        className="block w-[22px] h-[22px] rounded-full transition-transform"
         style={{
-          left: active ? 18 : 2,
-          background: active ? SUNRISE.rise2 : 'rgba(255,250,240,0.5)',
-          boxShadow: active ? `0 0 6px ${hexToRgba(SUNRISE.rise2, 0.6)}` : 'none',
+          background: active ? N.void : hexToRgba(N.amber, 0.4),
+          transform: active ? 'translateX(20px)' : 'translateX(0)',
         }}
       />
     </span>
