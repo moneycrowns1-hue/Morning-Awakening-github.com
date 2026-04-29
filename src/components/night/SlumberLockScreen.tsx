@@ -23,7 +23,7 @@ import gsap from 'gsap';
 import { ChevronLeft, AlertCircle, BatteryCharging, Clock } from 'lucide-react';
 import { useNightPalette } from '@/lib/night/nightPalette';
 import { hexToRgba } from '@/lib/common/theme';
-import type { AlarmConfig } from '@/lib/alarm/alarmSchedule';
+import type { AlarmConfig } from '@/lib/ritual/ritualSchedule';
 import { computeSleepGate, gateStatus, loadSleepConfig, appendNightEntry } from '@/lib/night/sleepGate';
 import { loadHealthSnapshot } from '@/lib/common/healthkitBridge';
 import { markHabit } from '@/lib/common/habits';

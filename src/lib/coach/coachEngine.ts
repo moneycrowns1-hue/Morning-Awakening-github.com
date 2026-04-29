@@ -67,6 +67,13 @@ import {
 } from './subRoutines';
 import { pickTipOfTheDay, type Tip, type TipTags } from './tipsBank';
 import { pickComboOfTheDay, type Combo, type ComboCtx } from './combos';
+import { detectStackIssues } from './stackIssues';
+import { applySwaps } from './swapEngine';
+import {
+  evaluateRotation,
+  applyRotationToRoutine,
+  type RotationDecision,
+} from './rotationEngine';
 
 // ═══════════════════════════════════════════════════════════
 // TIPOS DE SALIDA
@@ -124,7 +131,7 @@ export interface BriefingSignals {
   checkIn: DailyCheckIn | null;
   /** Versión resuelta con defaults aplicados. */
   resolved: ResolvedSignals;
-  /** Contexto climático auto-derivado para Quito. */
+  /** Contexto climático auto-derivado para Ambato. */
   climate: ClimateContext;
   /** Señales derivadas de Apple Health/Fitness. */
   health: DerivedHealthSignals;
@@ -575,9 +582,12 @@ function effectiveWaterTarget(
   rationale: string[],
 ): number {
   let target = WATER_TARGET_ML;
-  if (climate.humidity === 'dry') {
+  if (climate.veryDry) {
+    target += 500;
+    rationale.push('+0.5 L de agua porque Ambato está en pico de sequedad (Jun-Sep).');
+  } else if (climate.humidity === 'dry') {
     target += 300;
-    rationale.push('+0.3 L de agua porque la estación es seca en Quito.');
+    rationale.push('+0.3 L de agua porque el ambiente está seco hoy.');
   }
   if (climate.uvLabel === 'high') {
     target += 200;
@@ -738,9 +748,36 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     );
   }
 
-  // 2. Rutinas filtradas
-  const am = filterRoutine(ROUTINES[`am_${mode}`], state.conditions, flareActive);
-  const pm = filterRoutine(ROUTINES[`pm_${mode}`], state.conditions, flareActive);
+  // 2. Rutinas filtradas + swaps dinámicos por grupo
+  const baseAm = filterRoutine(ROUTINES[`am_${mode}`], state.conditions, flareActive);
+  const basePm = filterRoutine(ROUTINES[`pm_${mode}`], state.conditions, flareActive);
+  const swapCtx = {
+    signals: resolved,
+    climate,
+    conditions: state.conditions,
+    flareActive,
+  };
+  const amResult = applySwaps(baseAm, swapCtx);
+  const pmResult = applySwaps(basePm, swapCtx);
+  let am = amResult.routine;
+  let pm = pmResult.routine;
+  for (const d of [...amResult.decisions, ...pmResult.decisions]) {
+    rationale.push(d.reason);
+  }
+
+  // 2b. Rotación de activos · descansa retinoides/ácidos por
+  //     cooldown y avisa rachas largas de corticoide.
+  const rotationDecisions: RotationDecision[] = evaluateRotation({
+    log: state.activesLog,
+    now,
+    am,
+    pm,
+  });
+  if (rotationDecisions.length > 0) {
+    am = applyRotationToRoutine(am, rotationDecisions);
+    pm = applyRotationToRoutine(pm, rotationDecisions);
+    for (const d of rotationDecisions) rationale.push(d.reason);
+  }
 
   // 3. Targets dinámicos
   const waterTarget = effectiveWaterTargetWithHealth(climate, health, rationale);
@@ -774,6 +811,7 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     health,
     flareActive,
     manualActive,
+    dismissals: state.dismissals,
   };
   const activeSubRoutines = evaluateSubRoutines(subCtx);
   // Anti-duplicación de acciones: si ya hay un id idéntico se omite.
@@ -810,9 +848,18 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     waterMl,
     targetMl,
   );
+  const rotationWarnings: CoachWarning[] = rotationDecisions
+    .filter((d) => d.action === 'warn')
+    .map((d) => ({
+      id: `rotation_${d.category}`,
+      severity: d.warnSeverity ?? 'caution',
+      message: d.reason,
+    }));
   const warnings = [
     ...detectOralConflicts(state, dateISO),
     ...detectStockWarnings(state),
+    ...detectStackIssues({ am, pm, flareActive, climate }),
+    ...rotationWarnings,
   ];
 
   // 11. Tip del día + combo del día
@@ -826,7 +873,13 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     conditions: state.conditions,
     activeSubRoutines: subIds,
     contextTags,
-    recentSeen: state.tipsSeen.map((t) => t.id),
+    // Excluimos los marcados HOY: la selección debe permanecer
+    // estable aunque el usuario haga acciones que refresquen el
+    // briefing (logWater, setCheckIn, etc.). Solo cuentan los
+    // de días previos para anti-repetición real.
+    recentSeen: state.tipsSeen
+      .filter((t) => t.dateISO !== dateISO)
+      .map((t) => t.id),
   });
 
   const comboCtx: ComboCtx = {

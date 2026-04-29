@@ -10,6 +10,7 @@
 // toggleables desde acá (vienen del estado del mundo).
 // ═══════════════════════════════════════════════════════════════
 
+import { X } from 'lucide-react';
 import { hexToRgba } from '@/lib/common/theme';
 import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
@@ -20,23 +21,39 @@ interface SubRoutineChipRowProps {
   activeIds: Set<SubRoutineId>;
   /** IDs que están ahí porque el usuario las activó manualmente. */
   manualIds: Set<SubRoutineId>;
+  /** IDs auto que el usuario ya dismisó hoy (hide de la fila). */
+  dismissedToday: Set<SubRoutineId>;
   onActivate: (id: SubRoutineId, ttlH: number) => void;
   onDeactivate: (id: SubRoutineId) => void;
+  /**
+   * El usuario descarta una auto-rutina hoy. Se llama una sola
+   * vez por id (idempotente arriba). El chip desaparece de la
+   * fila inmediatamente. La penalty futura es responsabilidad
+   * del log persistente.
+   */
+  onDismissAuto: (id: SubRoutineId) => void;
 }
 
 export default function SubRoutineChipRow({
   activeIds,
   manualIds,
+  dismissedToday,
   onActivate,
   onDeactivate,
+  onDismissAuto,
 }: SubRoutineChipRowProps) {
   const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
 
   // Solo mostramos las que el usuario PUEDE activar manualmente.
   const manualEnabled = SUB_ROUTINES.filter((sr) => sr.manualEnabled);
-  // Y también las auto activas (no toggleables) que conviene mostrar.
+  // Y también las auto activas (no toggleables) que conviene mostrar,
+  // excluyendo las que el usuario ya dismisó en este día.
   const autoActive = SUB_ROUTINES.filter(
-    (sr) => activeIds.has(sr.id) && !manualIds.has(sr.id) && !sr.manualEnabled,
+    (sr) =>
+      activeIds.has(sr.id) &&
+      !manualIds.has(sr.id) &&
+      !sr.manualEnabled &&
+      !dismissedToday.has(sr.id),
   );
 
   const allChips: SubRoutine[] = [...manualEnabled, ...autoActive];
@@ -98,6 +115,36 @@ export default function SubRoutineChipRow({
                   }}
                 >
                   auto
+                </span>
+              )}
+              {active && !isManual && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Descartar ${sr.label}`}
+                  title="No me aplica hoy"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    haptics.tap();
+                    onDismissAuto(sr.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      haptics.tap();
+                      onDismissAuto(sr.id);
+                    }
+                  }}
+                  className="ml-0.5 inline-flex items-center justify-center rounded-full transition-transform active:scale-[0.9] cursor-pointer"
+                  style={{
+                    width: 16,
+                    height: 16,
+                    background: hexToRgba(SUNRISE.night, 0.16),
+                    color: SUNRISE.night,
+                  }}
+                >
+                  <X size={10} strokeWidth={2.5} />
                 </span>
               )}
             </button>

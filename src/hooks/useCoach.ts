@@ -33,6 +33,8 @@ import {
   markTipSeen as persistTipSeen,
   activateManualSubRoutine as persistActivateSub,
   deactivateManualSubRoutine as persistDeactivateSub,
+  logActiveApplication as persistLogActive,
+  logSubRoutineDismissal as persistSubDismissal,
   type CoachState,
   type DerivaCState,
   type BruxismDayEntry,
@@ -61,6 +63,8 @@ const EMPTY_STATE: CoachState = {
   signals: null,
   tipsSeen: [],
   manualSubRoutines: [],
+  activesLog: [],
+  dismissals: [],
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -126,6 +130,19 @@ export interface UseCoachReturn {
   activateSubRoutine: (id: SubRoutineId, ttlH: number) => void;
   /** Desactiva una sub-rutina manualmente (toggle off). */
   deactivateSubRoutine: (id: SubRoutineId) => void;
+  /**
+   * Loguea una aplicación de un activo rotable. Si el producto
+   * no es rotable (humectante/SPF/etc.) es no-op silencioso.
+   * Devuelve `true` si efectivamente se logueó.
+   */
+  logActiveApplication: (productId: string) => boolean;
+  /**
+   * Marca una sub-rutina como ignorada hoy (telemetría pasiva).
+   * Idempotente por (id, fecha). Persistencia silenciosa: NO
+   * refrescamos el snapshot — el efecto se siente al día
+   * siguiente cuando el motor recalcula con el nuevo log.
+   */
+  logSubRoutineDismissal: (id: SubRoutineId) => void;
   refresh: () => void;
 }
 
@@ -209,8 +226,12 @@ export function useCoach(): UseCoachReturn {
   );
 
   const markTipSeen = useCallback((id: string) => {
+    // Persistencia silenciosa: NO refrescamos el snapshot. Si lo
+    // hiciéramos, el motor recomputaría el briefing, el selector
+    // excluiría este tip recién visto y elegiría otro → loop
+    // infinito de TipCard montándose con tip distinto cada vez.
+    // El historial solo importa para días futuros.
     persistTipSeen(id);
-    refreshFromDisk();
   }, []);
 
   const activateSubRoutine = useCallback((id: SubRoutineId, ttlH: number) => {
@@ -221,6 +242,21 @@ export function useCoach(): UseCoachReturn {
   const deactivateSubRoutine = useCallback((id: SubRoutineId) => {
     persistDeactivateSub(id);
     refreshFromDisk();
+  }, []);
+
+  const logActiveApplication = useCallback((productId: string): boolean => {
+    const ok = persistLogActive(productId);
+    if (ok) refreshFromDisk();
+    return ok;
+  }, []);
+
+  const logSubRoutineDismissal = useCallback((id: SubRoutineId) => {
+    // Persistencia silenciosa intencional: si refrescáramos,
+    // el motor recalcularía evaluateSubRoutines con el dismissal
+    // ya contado y la sub-rutina podría desaparecer en pleno
+    // día — inconsistencia visual. La penalty entra a partir de
+    // mañana cuando se vuelve a cargar el estado.
+    persistSubDismissal(id);
   }, []);
 
   const refresh = useCallback(() => {
@@ -254,6 +290,8 @@ export function useCoach(): UseCoachReturn {
     markTipSeen,
     activateSubRoutine,
     deactivateSubRoutine,
+    logActiveApplication,
+    logSubRoutineDismissal,
     refresh,
   };
 }

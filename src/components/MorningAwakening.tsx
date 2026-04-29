@@ -4,12 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import gsap from 'gsap';
 import {
   MISSIONS,
+  type Mission,
   type StreakData,
   DEFAULT_STREAK_DATA,
   getToday,
   isYesterday,
   isToday,
 } from '@/lib/genesis/constants';
+import { adaptGenesisProtocol, type GenesisAdaptedPlan } from '@/lib/genesis/genesisAdapter';
+import { getDayProfile } from '@/lib/common/dayProfile';
 import { AudioEngine } from '@/lib/common/audioEngine';
 import { Operator } from '@/lib/genesis/operator';
 import {
@@ -43,13 +46,16 @@ import {
   persistNewlyUnlocked,
 } from '@/lib/genesis/achievements';
 import AchievementToast from './common/AchievementToast';
-import AlarmScreen from './alarm/AlarmScreen';
-import WonderwakeClockScreen from './alarm/WonderwakeClockScreen';
-import { consumeHealthHashIfPresent } from '@/lib/common/healthkitBridge';
-import AlarmRingingOverlay from './alarm/AlarmRingingOverlay';
+import MorningRitualScreen from './ritual/MorningRitualScreen';
+import MorningRitualOverlay from './ritual/MorningRitualOverlay';
+import MorningRitualPrompt from './ritual/MorningRitualPrompt';
+import { consumeHealthHashIfPresent, loadHealthSnapshot } from '@/lib/common/healthkitBridge';
 import NightProtocolFlow from './night/NightProtocolFlow';
-import { useAlarmController } from '@/lib/alarm/useAlarmController';
-import { unlockAlarmAudio } from '@/lib/alarm/alarmEngine';
+import { useMorningRitual } from '@/lib/ritual/useMorningRitual';
+import { unlockRitualAudio } from '@/lib/ritual/ritualEngine';
+import { adaptRitualParams } from '@/lib/ritual/ritualAdapter';
+import { formatTargetHHMM } from '@/lib/ritual/ritualSchedule';
+import { loadCheckIn } from '@/lib/coach/state';
 import { stopSleepEngine } from '@/lib/night/sleepEngine';
 import { markHabit } from '@/lib/common/habits';
 import NucleusTimelineScreen from './nucleus/NucleusTimelineScreen';
@@ -102,8 +108,10 @@ export default function MorningAwakening() {
   const [sessionXp, setSessionXp] = useState(0);
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
   const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
-  const [showAlarm, setShowAlarm] = useState(false);
-  const [showAlarmDetails, setShowAlarmDetails] = useState(false);
+  // Plan Génesis resuelto al iniciar (snapshot al momento del tap).
+  // Si null, se cae al catálogo entero (modo `full`) por compat.
+  const [genesisPlan, setGenesisPlan] = useState<GenesisAdaptedPlan | null>(null);
+  const [showRitualSettings, setShowRitualSettings] = useState(false);
   const [showNightMode, setShowNightMode] = useState(false);
   const [showNucleusMode, setShowNucleusMode] = useState(false);
   const [showNSDR, setShowNSDR] = useState(false);
@@ -118,20 +126,19 @@ export default function MorningAwakening() {
   // Whether the fullscreen overlay menu is open.
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Gentle alarm controller — owns AlarmEngine, silent keepalive, wake
-  // lock and the ringing overlay state. Config changes persist through
-  // the hook itself (saveAlarm inside setConfig).
-  const alarm = useAlarmController();
+  // Morning ritual controller — NO timer, NO wake lock, NO keepalive.
+  // Only fires when the user explicitly opens it. Persistence is
+  // handled inside the hook (saveRitual on setConfig + push sync).
+  const ritual = useMorningRitual();
 
-  // If the gentle alarm starts while Night Mode audio is playing,
-  // kill the ambient loop so the alarm ramp is clearly audible
-  // (otherwise they'd mix and the peak would sound muddy).
+  // If the ritual starts while Night Mode audio is playing,
+  // kill the ambient loop so the ramp is clearly audible.
   useEffect(() => {
-    if (alarm.isRinging) {
+    if (ritual.isRunning) {
       stopSleepEngine();
       setShowNightMode(false);
     }
-  }, [alarm.isRinging]);
+  }, [ritual.isRunning]);
 
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
@@ -247,7 +254,39 @@ export default function MorningAwakening() {
   // speech twice (which surfaced as "voz de fase 1 duplicada").
   const initializingRef = useRef(false);
 
-  // ═══════════════ Initialize audio + operator ═══════════════
+  // ==============================================================
+  // Génesis adapter · resuelve el plan al momento del tap del botón.
+  // Mismo patrón que el ritual matutino: snapshot al iniciar, sin
+  // recomputar mientras el flow corre. Persiste el override per-día.
+  // ==============================================================
+  const buildGenesisPlan = useCallback((): GenesisAdaptedPlan => {
+    let userOverride: GenesisAdaptedPlan['mode'] | null = null;
+    try {
+      const today = getToday();
+      const raw = window.localStorage.getItem(`ma-genesis-mode-day-${today}`);
+      if (raw === 'full' || raw === 'express' || raw === 'recovery') {
+        userOverride = raw;
+      }
+    } catch { /* ignore */ }
+    return adaptGenesisProtocol({
+      now: new Date(),
+      health: loadHealthSnapshot(),
+      checkIn: loadCheckIn(),
+      dayProfile: getDayProfile(),
+      userOverride,
+    });
+  }, []);
+
+  // Plan visible para la WelcomeScreen (preview del adapter sin
+  // arrancar todavía). Recomputa cuando el usuario vuelve a IDLE.
+  const previewPlan = appState === 'IDLE' ? buildGenesisPlan() : null;
+
+  // Sesión actual: missions a usar y conteo total. Si no hay plan
+  // (camino legacy / primer mount) cae al catálogo completo.
+  const sessionMissions: Mission[] = genesisPlan?.missions ?? MISSIONS;
+  const sessionTotalPhases = sessionMissions.length;
+
+  // ============= Initialize audio + operator =============
   const handleInitialize = useCallback(async () => {
     if (initializingRef.current) return;
     if (appState !== 'IDLE') return;
@@ -265,6 +304,11 @@ export default function MorningAwakening() {
       operatorRef.current = new Operator(audioRef.current);
       operatorRef.current.setEnabled(settings.voiceEnabled);
     }
+    // Resolver el plan Génesis ANTES de cualquier await: necesitamos
+    // el snapshot del modo / fases para esta sesión. Es pure y barato.
+    const plan = buildGenesisPlan();
+    setGenesisPlan(plan);
+
     // iOS Safari: unlock SpeechSynthesis inside this user-gesture click.
     operatorRef.current.unlockForIOS();
     // Critical on iPad: await the AudioContext.resume() while we're
@@ -315,11 +359,12 @@ export default function MorningAwakening() {
       setSessionXp(0);
       setSkippedPhases([]);
     }
-  }, [profile, streakData.streak, settings, appState]);
+  }, [profile, streakData.streak, settings, appState, buildGenesisPlan]);
 
-  // ═══════════════ Award XP ═══════════════
+  // =============== Award XP ===============
   const grantReward = useCallback((missionIdx: number) => {
-    const mission = MISSIONS[missionIdx];
+    const mission = sessionMissions[missionIdx];
+    if (!mission) return;
     const award = computeReward(mission, streakData.streak);
     const prevLevel = profile.level;
     const updated = applyAward(profile, award, mission);
@@ -339,17 +384,21 @@ export default function MorningAwakening() {
       setLevelUp({ from: prevLevel, to: updated.level });
       audioRef.current?.playGong();
     }
-  }, [profile, streakData.streak]);
+  }, [profile, streakData.streak, sessionMissions]);
 
-  // ═══════════════ Mission complete ═══════════════
+  // =============== Mission complete ===============
   const handleMissionComplete = useCallback(() => {
     grantReward(missionIndex);
 
     const nextIndex = missionIndex + 1;
 
-    if (nextIndex >= MISSIONS.length) {
+    if (nextIndex >= sessionTotalPhases) {
       audioRef.current?.playGong();
-      operatorRef.current?.speak('Protocolo Génesis completo. Trece fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.', { rate: 0.9 });
+      // Mensaje de cierre adaptado: cantidad de fases real, no hardcoded.
+      const closingLine = sessionTotalPhases >= MISSIONS.length
+        ? 'Protocolo Génesis completo. Trece fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.'
+        : `Protocolo Génesis completo. ${sessionTotalPhases} fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.`;
+      operatorRef.current?.speak(closingLine, { rate: 0.9 });
 
       const today = getToday();
       const newData: StreakData = {
@@ -366,8 +415,8 @@ export default function MorningAwakening() {
       // Persist the session for SummaryScreen mini-chart + HistoryScreen.
       const durationSec = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
       const score = computeQualityScore({
-        phasesCompleted: MISSIONS.length - skippedPhases.length,
-        totalPhases: MISSIONS.length,
+        phasesCompleted: sessionTotalPhases - skippedPhases.length,
+        totalPhases: sessionTotalPhases,
         skippedCount: skippedPhases.length,
         durationSec,
         streak: newData.streak,
@@ -378,7 +427,7 @@ export default function MorningAwakening() {
         durationSec,
         score,
         skippedPhases,
-        phasesCompleted: MISSIONS.length - skippedPhases.length,
+        phasesCompleted: sessionTotalPhases - skippedPhases.length,
         xp: sessionXp,
         streak: newData.streak,
       });
@@ -420,7 +469,7 @@ export default function MorningAwakening() {
         setMissionIndex(nextIndex);
       }
     }
-  }, [missionIndex, streakData, saveStreak, grantReward, startTime, skippedPhases, sessionXp]);
+  }, [missionIndex, streakData, saveStreak, grantReward, startTime, skippedPhases, sessionXp, sessionTotalPhases]);
 
   const handleAudioTransition = useCallback(() => {
     audioRef.current?.playTransition();
@@ -484,35 +533,44 @@ export default function MorningAwakening() {
     setXpToasts(ts => ts.filter(t => t.id !== id));
   }, []);
 
-  // ═══════════════ Alarm dismiss / snooze ═══════════════
-  // When the user dismisses the ringing alarm, optionally chain
-  // straight into the morning protocol (config.chainProtocol).
-  // handleInitialize needs the click to happen inside a user gesture
-  // for iOS AudioContext unlock — the dismiss button IS that gesture.
-  const handleAlarmDismiss = useCallback(async () => {
-    // Unlock the shared AudioContext inside the tap gesture BEFORE
-    // any await. iOS needs this or the wake-up stem won't play.
-    unlockAlarmAudio();
-    const shouldChain = alarm.config.chainProtocol && appState === 'IDLE';
+  // ═══════════════ Ritual lifecycle ═══════════════
+  // Cuando el ritual termina (botón "comenzar Génesis" o "cerrar
+  // ritual" del overlay), opcionalmente encadena Génesis. El click
+  // ES el gesto que iOS necesita para destrabar audio del wakeup.
+  const handleRitualClose = useCallback(async () => {
+    unlockRitualAudio();
+    const shouldChain = ritual.config.chainProtocol && appState === 'IDLE';
     if (shouldChain) {
-      // Close any fullscreens that would mask the protocol start.
-      setShowAlarm(false);
+      setShowRitualSettings(false);
       setShowHistory(false);
       setShowSettings(false);
-      // Play the wake-up voice stem first (musica principal.mp3 has
-      // voice+music mixed in). When it ends, start the protocol.
-      await alarm.dismissWithWakeup(() => {
+      await ritual.dismissWithWakeup(() => {
         void handleInitialize();
       });
     } else {
-      // No chain → just stop.
-      alarm.dismiss();
+      ritual.dismiss();
     }
-  }, [alarm, appState]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ritual, appState]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ═══════════════ Adaptive params + start ═══════════════
+  // Centraliza la lógica de "qué parámetros pasar al ritual"
+  // leyendo health + signals para adaptar ramp / volumen / tono.
+  const buildAdaptiveParams = useCallback(() => {
+    const health = loadHealthSnapshot();
+    const checkIn = loadCheckIn();
+    return adaptRitualParams(ritual.config, health, checkIn?.stress ?? null);
+  }, [ritual.config]);
+
+  // Start del ritual desde un gesto del usuario (banner del welcome
+  // o botón "comenzar ahora" de la pantalla de config).
+  const handleStartRitual = useCallback(() => {
+    const params = buildAdaptiveParams();
+    void ritual.start(params);
+  }, [ritual, buildAdaptiveParams]);
 
   const totalElapsed = startTime > 0 ? Math.floor((Date.now() - startTime) / 1000) : 0;
   const currentPhase =
-    appState === 'COMPLETE' ? MISSIONS.length :
+    appState === 'COMPLETE' ? sessionTotalPhases :
     appState === 'MISSION'  ? missionIndex + 1 : 0;
 
   // ═══ v8 IDLE: sunrise welcome screen (early return) ═══
@@ -539,27 +597,17 @@ export default function MorningAwakening() {
           />
         ) : showHistory ? (
           <HistoryScreen onClose={() => setShowHistory(false)} />
-        ) : showAlarm ? (
-          showAlarmDetails ? (
-            <AlarmScreen
-              config={alarm.config}
-              onChange={alarm.setConfig}
-              onPreview={alarm.preview}
-              onFireNow={alarm.fireNow}
-              onFireTest={alarm.fireTest}
-              onClose={() => setShowAlarmDetails(false)}
-            />
-          ) : (
-            <WonderwakeClockScreen
-              alarmConfig={alarm.config}
-              onToggleAlarm={(enabled) => alarm.setConfig({ ...alarm.config, enabled })}
-              onOpenDetails={() => setShowAlarmDetails(true)}
-              onClose={() => { setShowAlarm(false); setShowAlarmDetails(false); }}
-            />
-          )
+        ) : showRitualSettings ? (
+          <MorningRitualScreen
+            config={ritual.config}
+            onChange={ritual.setConfig}
+            onPreview={ritual.preview}
+            onStartNow={handleStartRitual}
+            onClose={() => setShowRitualSettings(false)}
+          />
         ) : showNightMode ? (
           <NightProtocolFlow
-            alarmConfig={alarm.config}
+            alarmConfig={ritual.config}
             voiceEnabled={settings.voiceEnabled}
             masterVolume={settings.masterVolume}
             onClose={() => setShowNightMode(false)}
@@ -598,15 +646,32 @@ export default function MorningAwakening() {
           <>
             {/* ── Tab content (the AppDock at the bottom switches it) ── */}
             {activeTab === 'home' && (
-              <WelcomeScreen
-                profile={profile}
-                streak={streakData.streak}
-                onStart={handleInitialize}
-                onOpenNightMode={() => setShowNightMode(true)}
-                onOpenNucleus={() => setShowNucleusMode(true)}
-                onOpenCoach={() => setShowCoach(true)}
-                onOpenCalendar={() => setShowCalendar(true)}
-              />
+              <div className="w-full h-full flex flex-col">
+                {/* Prompt del ritual matutino — sólo visible dentro de
+                    la ventana ±60/90min del target, y mientras el
+                    ritual no esté ya corriendo. Tap arranca el audio
+                    desde el gesto del usuario (única vía iOS-segura). */}
+                {ritual.shouldOffer && !ritual.isRunning && (
+                  <MorningRitualPrompt
+                    targetHHMM={formatTargetHHMM(ritual.config)}
+                    rationale={buildAdaptiveParams().rationale || undefined}
+                    onStart={handleStartRitual}
+                  />
+                )}
+                <div className="flex-1 min-h-0">
+                  <WelcomeScreen
+                    profile={profile}
+                    streak={streakData.streak}
+                    onStart={handleInitialize}
+                    onOpenNightMode={() => setShowNightMode(true)}
+                    onOpenNucleus={() => setShowNucleusMode(true)}
+                    onOpenCoach={() => setShowCoach(true)}
+                    onOpenCalendar={() => setShowCalendar(true)}
+                    adaptiveHint={previewPlan?.rationale || undefined}
+                    adaptiveMode={previewPlan?.mode}
+                  />
+                </div>
+              </div>
             )}
             {activeTab === 'protocols' && (
               <ProtocolsScreen
@@ -623,9 +688,9 @@ export default function MorningAwakening() {
                 onLaunchLymphatic={() => setShowLymphatic(true)}
                 onLaunchNSDR={() => setShowNSDR(true)}
                 onLaunchCoach={() => setShowCoach(true)}
-                onOpenAlarm={() => setShowAlarm(true)}
+                onOpenAlarm={() => setShowRitualSettings(true)}
                 onOpenFitness={() => setShowFitnessModal(true)}
-                alarmArmed={alarm.config.enabled}
+                alarmArmed={ritual.config.enabled}
               />
             )}
             {activeTab === 'profile' && (
@@ -677,17 +742,17 @@ export default function MorningAwakening() {
           <OnboardingModal onComplete={handleOnboardingComplete} />
         )}
 
-        {/* Alarm ringing overlay — takes over when the gentle alarm
-            actually fires, even if another IDLE full-screen was open. */}
-        {alarm.isRinging && (
-          <AlarmRingingOverlay
-            stage={alarm.stage}
-            intensity={alarm.intensity}
-            audioStarted={alarm.audioStarted}
-            onTapToWake={() => { void alarm.tapToWake(); }}
-            onDismiss={handleAlarmDismiss}
-            onSnooze={() => alarm.snooze(9)}
-            willChainProtocol={alarm.config.chainProtocol}
+        {/* Ritual overlay — takes over when the user starts the
+            morning ritual, even if another IDLE full-screen was open. */}
+        {ritual.isRunning && (
+          <MorningRitualOverlay
+            stage={ritual.stage}
+            intensity={ritual.intensity}
+            audioStarted={ritual.audioStarted}
+            onTapToWake={() => { void ritual.tapToWake(); }}
+            onClose={handleRitualClose}
+            willChainProtocol={ritual.config.chainProtocol}
+            rationale={buildAdaptiveParams().rationale || undefined}
           />
         )}
       </div>
@@ -703,11 +768,13 @@ export default function MorningAwakening() {
           so no washi-bg / sumi-stroke / vignette chrome is needed here
           anymore. */}
       <div ref={containerRef} className="flex-1 flex flex-col relative z-10 min-h-0 overflow-hidden">
-        {/* ═══ MISSION ═══ */}
-        {appState === 'MISSION' && (
+        {/* === MISSION === */}
+        {appState === 'MISSION' && sessionMissions[missionIndex] && (
           <MissionPhaseV8
-            key={MISSIONS[missionIndex].id}
-            mission={MISSIONS[missionIndex]}
+            key={sessionMissions[missionIndex].id}
+            mission={sessionMissions[missionIndex]}
+            totalPhases={sessionTotalPhases}
+            phaseDisplay={missionIndex + 1}
             onComplete={handleMissionComplete}
             audioTransition={handleAudioTransition}
             operator={operatorRef.current}
@@ -717,7 +784,7 @@ export default function MorningAwakening() {
           />
         )}
 
-        {/* ═══ COMPLETE ═══ */}
+        {/* === COMPLETE === */}
         {appState === 'COMPLETE' && (
           <SummaryScreenV8
             streakData={streakData}
@@ -725,7 +792,7 @@ export default function MorningAwakening() {
             profile={profile}
             sessionXp={sessionXp}
             skippedPhases={skippedPhases}
-            totalPhases={MISSIONS.length}
+            totalPhases={sessionTotalPhases}
             onProceed={handleProceedToStudy}
           />
         )}
@@ -781,18 +848,18 @@ export default function MorningAwakening() {
         );
       })}
 
-      {/* Alarm ringing overlay — same as IDLE branch, also available
-          during MISSION/COMPLETE so an alarm fired mid-protocol or
-          post-summary still gets focus. */}
-      {alarm.isRinging && (
-        <AlarmRingingOverlay
-          stage={alarm.stage}
-          intensity={alarm.intensity}
-          audioStarted={alarm.audioStarted}
-          onTapToWake={() => { void alarm.tapToWake(); }}
-          onDismiss={handleAlarmDismiss}
-          onSnooze={() => alarm.snooze(9)}
-          willChainProtocol={alarm.config.chainProtocol}
+      {/* Ritual overlay — same as IDLE branch, also available
+          during MISSION/COMPLETE in the rare case the user starts
+          the ritual right when Génesis is closing. */}
+      {ritual.isRunning && (
+        <MorningRitualOverlay
+          stage={ritual.stage}
+          intensity={ritual.intensity}
+          audioStarted={ritual.audioStarted}
+          onTapToWake={() => { void ritual.tapToWake(); }}
+          onClose={handleRitualClose}
+          willChainProtocol={ritual.config.chainProtocol}
+          rationale={buildAdaptiveParams().rationale || undefined}
         />
       )}
     </div>

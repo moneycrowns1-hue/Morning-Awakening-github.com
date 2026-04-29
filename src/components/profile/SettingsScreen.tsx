@@ -25,7 +25,7 @@ import {
   loadConfig as loadReminderConfig,
   permissionStatus,
   type ReminderConfig,
-} from '@/lib/alarm/morningReminder';
+} from '@/lib/ritual/morningPing';
 import {
   isNucleusEnabled,
   setNucleusEnabled,

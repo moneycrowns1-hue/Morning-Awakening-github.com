@@ -18,6 +18,8 @@ import type { ClimateContext } from '../common/climateEC';
 import type { DerivedHealthSignals } from './healthSignals';
 import type { CoachAction, Urgency } from './coachEngine';
 import type { Priority, Domain } from './criticalHabits';
+import type { DismissalLog } from './dismissalLog';
+import { shouldSuppressAuto, dismissalPenalty } from './dismissalLog';
 
 // ─── IDs ────────────────────────────────────────────────────
 
@@ -69,6 +71,11 @@ export interface SubRoutineCtx {
   flareActive: boolean;
   /** IDs activadas manualmente por el usuario y aún vigentes. */
   manualActive: Set<SubRoutineId>;
+  /**
+   * Historial de dismissals (sub-rutinas que se mostraron y no
+   * se consumieron) usado para penalizar relevancia futura.
+   */
+  dismissals: DismissalLog;
 }
 
 // ─── Definition ─────────────────────────────────────────────
@@ -197,7 +204,7 @@ export const SUB_ROUTINES: SubRoutine[] = [
       action(
         'sub_highuv_reapply',
         'Re-aplicar SPF (UV pico)',
-        'En franja 10–15 h en Quito el UV es alto; sin reaplicar, la protección efectiva cae a la mitad.',
+        'En franja 10–15 h en Ambato el UV es alto; sin reaplicar, la protección efectiva cae a la mitad.',
         { priority: 'critical', urgency: 'now', domain: 'skin', kind: 'skincare_routine' },
       ),
       action(
@@ -402,15 +409,31 @@ export const SUB_ROUTINE_BY_ID: Record<SubRoutineId, SubRoutine> = SUB_ROUTINES
   }, {} as Record<SubRoutineId, SubRoutine>);
 
 /**
- * Recorre todas las sub-rutinas y devuelve las que están activas
- * (auto-disparadas o manualmente activas).
+ * Recorre todas las sub-rutinas y devuelve las que están activas.
+ *
+ * Reglas:
+ *  · Manual gana siempre (intent explícito del usuario).
+ *  · Auto-trigger se respeta solo si la dismissalPenalty no llega
+ *    a 1 (≥5 dismissals en 14 días → suprimir auto).
+ *  · Penaltys parciales (0.4 / 0.7) NO suprimen pero podrían
+ *    consumirse en otro lugar (ranking de tips, etc.). Aquí
+ *    son visibles vía `dismissalPenalty()` para inspección.
  */
 export function evaluateSubRoutines(ctx: SubRoutineCtx): SubRoutine[] {
   const out: SubRoutine[] = [];
   for (const sr of SUB_ROUTINES) {
-    const auto = sr.auto(ctx);
     const manual = ctx.manualActive.has(sr.id);
-    if (auto || manual) out.push(sr);
+    if (manual) {
+      out.push(sr);
+      continue;
+    }
+    const auto = sr.auto(ctx);
+    if (!auto) continue;
+    if (shouldSuppressAuto(ctx.dismissals, sr.id, ctx.now)) continue;
+    out.push(sr);
   }
   return out;
 }
+
+/** Re-export del helper para que el motor pueda anotar rationale. */
+export { dismissalPenalty };

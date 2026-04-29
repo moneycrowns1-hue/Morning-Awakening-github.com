@@ -108,9 +108,9 @@ export const TIPS: Tip[] = [
     tags: { fns: ['sunscreen_broad'], context: ['uv_high'], subRoutines: ['high_uv', 'post_gym'] },
   },
   {
-    id: 'tip_spf_quito_cloudy',
-    text: 'En Quito, días nublados pasan 80% del UV. SPF también esos días.',
-    domain: 'skin', source: 'clima · Quito',
+    id: 'tip_spf_ambato_cloudy',
+    text: 'En Ambato, días nublados pasan 80% del UV. SPF también esos días.',
+    domain: 'skin', source: 'clima · Ambato',
     tags: { context: ['humid'] },
   },
   {
@@ -168,9 +168,9 @@ export const TIPS: Tip[] = [
 
   // ── Hidratación sistémica ─────────────────────────────────
   {
-    id: 'tip_water_quito_dry',
-    text: 'En estación seca de Quito, sumar 0.3 L mantiene la barrera epidérmica funcional.',
-    domain: 'hydration', source: 'clima · Quito',
+    id: 'tip_water_ambato_dry',
+    text: 'En estación seca de Ambato, sumar 0.3 L mantiene la barrera epidérmica funcional. En pico (Jun-Sep), sumar 0.5 L.',
+    domain: 'hydration', source: 'clima · Ambato',
     tags: { context: ['dry'] },
   },
   {

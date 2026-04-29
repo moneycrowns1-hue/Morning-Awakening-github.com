@@ -38,10 +38,10 @@ import {
 } from '@/lib/night/nightMode';
 import { getSleepEngine, type SleepEngineState } from '@/lib/night/sleepEngine';
 import {
-  describeDays,
-  loadAlarm,
-  nextFireInfo,
-} from '@/lib/alarm/alarmSchedule';
+  loadRitual,
+  nextTargetAt,
+  formatTargetHHMM,
+} from '@/lib/ritual/ritualSchedule';
 import NightStarfield from './NightStarfield';
 import SleepSoundPicker from './SleepSoundPicker';
 import SleepTimerSelector from './SleepTimerSelector';
@@ -164,16 +164,20 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
   }, [patchCfg]);
 
   const handleTogglePlayback = useCallback(() => {
-    const engine = getSleepEngine();
     haptics.tick();
+    const engine = getSleepEngine();
     if (engineState.playing) engine.pause();
     else void engine.resume();
   }, [engineState.playing]);
 
-  // ── Alarm reminder info ───────────────────────────
-  const alarmCfg = loadAlarm();
-  const alarmInfo = alarmCfg.enabled && alarmCfg.days.some(Boolean) ? nextFireInfo(alarmCfg) : null;
-  const alarmTimeStr = `${String(alarmCfg.hour).padStart(2, '0')}:${String(alarmCfg.minute).padStart(2, '0')}`;
+  // ── Ritual reminder info ───────────────────────────────
+  // El ritual matutino ya no tiene reaseguro/días: si está
+  // habilitado, mostramos cuánto falta para el target.
+  const alarmCfg = loadRitual();
+  const alarmInfo = alarmCfg.enabled
+    ? { msUntilTarget: nextTargetAt(alarmCfg).getTime() - Date.now() }
+    : null;
+  const alarmTimeStr = formatTargetHHMM(alarmCfg);
 
   // ── Current clock ─────────────────────────────────
   const hh = String(clock.getHours()).padStart(2, '0');
@@ -318,7 +322,7 @@ export default function NightModeScreen({ operatorName, onClose, onOpenAlarm }: 
                   className="font-mono text-[10.5px] tracking-wider mt-1 lowercase"
                   style={{ color: SUNRISE_TEXT.muted }}
                 >
-                  {describeDays(alarmCfg.days).toLowerCase()} · {formatUntilAlarm(alarmInfo.msUntilRampStart, alarmCfg.rampSec).toLowerCase()}
+                  {formatUntilAlarm(alarmInfo.msUntilTarget).toLowerCase()}
                 </div>
               </div>
             </div>
@@ -541,10 +545,9 @@ function firstName(full: string): string {
   return full.split(' ')[0] ?? full;
 }
 
-function formatUntilAlarm(msUntilRampStart: number, rampSec: number): string {
-  if (!Number.isFinite(msUntilRampStart)) return 'Sin próxima alarma programada.';
-  const peakMs = msUntilRampStart + rampSec * 1000;
-  const totalMin = Math.round(peakMs / 60_000);
+function formatUntilAlarm(msUntilTarget: number): string {
+  if (!Number.isFinite(msUntilTarget)) return 'Sin próximo ritual programado.';
+  const totalMin = Math.round(msUntilTarget / 60_000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   if (h >= 1) return `Sonará en ${h}h ${m}m.`;

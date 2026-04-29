@@ -10,13 +10,14 @@
 // (MorningAwakening) so the alarm can still ring over the top.
 // ═══════════════════════════════════════════════════════════
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import NightWelcomeScreen, { type NightMode } from './NightWelcomeScreen';
 import NightMissionPhase from './NightMissionPhase';
 import NightSummaryScreen from './NightSummaryScreen';
 import SlumberLockScreen from './SlumberLockScreen';
-import { getNightMissions, type NightMission } from '@/lib/night/nightConstants';
-import type { AlarmConfig } from '@/lib/alarm/alarmSchedule';
+import type { NightMission } from '@/lib/night/nightConstants';
+import type { NightAdaptedPlan } from '@/lib/night/nightAdapter';
+import type { AlarmConfig } from '@/lib/ritual/ritualSchedule';
 import { AudioEngine } from '@/lib/common/audioEngine';
 import { Operator } from '@/lib/genesis/operator';
 import { markHabit, isHabitDone } from '@/lib/common/habits';
@@ -42,12 +43,15 @@ export default function NightProtocolFlow({
   onClose,
 }: NightProtocolFlowProps) {
   const [state, setState] = useState<FlowState>('WELCOME');
-  const [mode, setMode] = useState<NightMode>('full');
+  // Plan resuelto por el adapter cuando el usuario entra al protocolo.
+  // Mientras está null el flow sigue en WELCOME, así que es seguro.
+  const [plan, setPlan] = useState<NightAdaptedPlan | null>(null);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const audioRef = useRef<AudioEngine | null>(null);
   const operatorRef = useRef<Operator | null>(null);
 
-  const missions = useMemo(() => getNightMissions(mode), [mode]);
+  const mode: NightMode = plan?.mode ?? 'full';
+  const missions: NightMission[] = plan?.missions ?? [];
   const currentMission: NightMission | undefined = missions[phaseIdx];
 
   const completedToday = typeof window !== 'undefined' ? isHabitDone('night_protocol') : false;
@@ -74,8 +78,8 @@ export default function NightProtocolFlow({
     await audioRef.current.resume();
   };
 
-  const handleEnter = async (m: NightMode) => {
-    setMode(m);
+  const handleEnter = async (nextPlan: NightAdaptedPlan) => {
+    setPlan(nextPlan);
     setPhaseIdx(0);
     await ensureAudio();
     setState('MISSION');

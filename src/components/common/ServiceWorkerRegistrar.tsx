@@ -23,7 +23,7 @@ export default function ServiceWorkerRegistrar() {
           // This is necessary because SW timeouts don't survive browser
           // restarts — the page has to tell it again every load.
           try {
-            const { rehydrateReminder } = await import('@/lib/alarm/morningReminder');
+            const { rehydrateReminder } = await import('@/lib/ritual/morningPing');
             await rehydrateReminder();
           } catch { /* ignore */ }
           // Same idea for NUCLEUS day-mode pings: the SW timeouts get

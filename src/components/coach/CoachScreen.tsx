@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import {
   ArrowLeft, ArrowUpRight, Sun, Moon, Droplet, Brain, Smile, Pill, Flame,
-  ChevronDown, ChevronUp, Plus, Check, AlertTriangle, Activity,
+  ChevronDown, ChevronUp, Plus, Check, AlertTriangle, Activity, History,
   type LucideIcon,
 } from 'lucide-react';
 import { hexToRgba } from '@/lib/common/theme';
@@ -29,11 +29,14 @@ import { haptics } from '@/lib/common/haptics';
 import { useCoach } from '@/hooks/useCoach';
 import { CONDITIONS, type ConditionId } from '@/lib/coach/conditions';
 import { findTopical } from '@/lib/coach/catalog';
-import type { Routine } from '@/lib/coach/routines';
+import type { Routine, RoutineStep } from '@/lib/coach/routines';
+import type { SubRoutineId } from '@/lib/coach/subRoutines';
+import { rotationCategoryFor, CATEGORY_LABEL } from '@/lib/coach/activesLog';
 import type { CoachAction, StatusCard, Briefing } from '@/lib/coach/coachEngine';
 import type { BrushingSlot } from '@/lib/coach/brushing';
 import { CURRENT_PLAN } from '@/lib/coach/brushing';
 import ConditionsSheet from './ConditionsSheet';
+import WeeklyHistorySheet from './WeeklyHistorySheet';
 import ProductDetailSheet from './ProductDetailSheet';
 import QuickLogPanel from './QuickLogPanel';
 import FlareControls from './FlareControls';
@@ -64,9 +67,27 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
 
   const [openSection, setOpenSection] = useState<'am' | 'pm' | 'controls' | null>(null);
   const [conditionsOpen, setConditionsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
+  // Sub-rutinas auto que el usuario descartó visualmente HOY.
+  // No reset entre re-renders del briefing (mismo componente);
+  // el motor del día siguiente las penalizará vía dismissalLog.
+  const [dismissedToday, setDismissedToday] = useState<Set<SubRoutineId>>(
+    () => new Set<SubRoutineId>(),
+  );
+
   const openProduct = (id: string) => { haptics.tap(); setActiveProductId(id); };
+
+  const dismissAutoSubRoutine = (id: SubRoutineId) => {
+    coach.logSubRoutineDismissal(id);
+    setDismissedToday((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
 
   const toggle = (s: typeof openSection) => {
     haptics.tick();
@@ -173,8 +194,10 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 <SubRoutineChipRow
                   activeIds={new Set(briefing.activeSubRoutines.map(s => s.id))}
                   manualIds={new Set(state.manualSubRoutines.map(m => m.id))}
+                  dismissedToday={dismissedToday}
                   onActivate={coach.activateSubRoutine}
                   onDeactivate={coach.deactivateSubRoutine}
+                  onDismissAuto={dismissAutoSubRoutine}
                 />
               </div>
 
@@ -256,6 +279,7 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                   open={openSection === 'am'}
                   onToggle={() => toggle('am')}
                   onSelectProduct={openProduct}
+                  onLogApplied={coach.logActiveApplication}
                 />
                 <RoutineSection
                   slot="pm"
@@ -263,6 +287,7 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                   open={openSection === 'pm'}
                   onToggle={() => toggle('pm')}
                   onSelectProduct={openProduct}
+                  onLogApplied={coach.logActiveApplication}
                 />
               </div>
 
@@ -357,6 +382,61 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 </div>
               </button>
 
+              {/* Histórico semanal — abre bottom sheet GSAP */}
+              <button
+                type="button"
+                onClick={() => { haptics.tap(); setHistoryOpen(true); }}
+                className="w-full mt-2.5 overflow-hidden flex transition-transform active:scale-[0.995]"
+                style={{
+                  borderRadius: 22,
+                  border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+                }}
+              >
+                <div
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                  style={{
+                    padding: '14px 16px',
+                    background: hexToRgba(SUNRISE.night, 0.55),
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                  }}
+                >
+                  <span
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{
+                      background: hexToRgba(SUNRISE.rise2, 0.16),
+                      color: SUNRISE.rise2,
+                    }}
+                  >
+                    <History size={16} strokeWidth={2} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="font-headline font-[600] text-[18px] leading-tight lowercase tracking-[-0.02em]"
+                      style={{ color: SUNRISE_TEXT.primary }}
+                    >
+                      últimos 7 días
+                    </div>
+                    <div
+                      className="font-mono text-[10.5px] tracking-wider mt-0.5"
+                      style={{ color: SUNRISE_TEXT.muted }}
+                    >
+                      hábitos · activos · rachas
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className="shrink-0 flex items-center justify-center"
+                  style={{
+                    width: 64,
+                    background: SUNRISE.rise2,
+                    color: SUNRISE.night,
+                  }}
+                >
+                  <ArrowUpRight size={20} strokeWidth={2.5} style={{ color: SUNRISE.night }} />
+                </div>
+              </button>
+
               <div className="h-12" />
             </>
           )}
@@ -369,6 +449,11 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
         active={state.conditions}
         onToggle={coach.toggleCondition}
         onClose={() => setConditionsOpen(false)}
+      />
+      <WeeklyHistorySheet
+        open={historyOpen}
+        state={state}
+        onClose={() => setHistoryOpen(false)}
       />
       <ProductDetailSheet
         productId={activeProductId}
@@ -825,12 +910,15 @@ function RoutineSection({
   open,
   onToggle,
   onSelectProduct,
+  onLogApplied,
 }: {
   slot: 'am' | 'pm';
   routine: Routine;
   open: boolean;
   onToggle: () => void;
   onSelectProduct: (id: string) => void;
+  /** Log de aplicación de un activo rotable (retinoide/AHA/BHA/corticoide). */
+  onLogApplied: (productId: string) => boolean;
 }) {
   const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const Icon = slot === 'am' ? Sun : Moon;
@@ -925,63 +1013,145 @@ function RoutineSection({
               {routine.rationale}
             </p>
           )}
-          {routine.steps.map((step, idx) => {
-            const product = step.productId ? findTopical(step.productId) : null;
-            const stepTappable = !!step.productId;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={stepTappable ? () => onSelectProduct(step.productId!) : undefined}
-                disabled={!stepTappable}
-                className={`flex items-start gap-3 px-1 py-1 rounded-lg text-left ${stepTappable ? 'transition-transform active:scale-[0.99]' : ''}`}
-                style={{
-                  background: stepTappable ? hexToRgba(SUNRISE.rise2, 0.04) : 'transparent',
-                  border: stepTappable
-                    ? `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}`
-                    : '1px solid transparent',
-                }}
-              >
-                <span
-                  className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px]"
-                  style={{
-                    background: hexToRgba(SUNRISE.rise2, 0.14),
-                    color: SUNRISE.rise2,
-                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
-                  }}
-                >
-                  {idx + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="font-mono text-[12px] leading-snug"
-                    style={{ color: SUNRISE_TEXT.primary }}
-                  >
-                    {step.action}
-                  </div>
-                  {product && (
-                    <div
-                      className="font-mono text-[10px] tracking-wider mt-0.5"
-                      style={{ color: SUNRISE_TEXT.muted }}
-                    >
-                      {product.name}
-                      {step.applySkinState && ` · ${labelForSkinState(step.applySkinState)}`}
-                      {step.optional && ' · opcional'}
-                    </div>
-                  )}
-                  {step.note && (
-                    <div
-                      className="font-mono text-[10px] tracking-wider mt-0.5 italic"
-                      style={{ color: SUNRISE_TEXT.muted }}
-                    >
-                      {step.note}
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+          {routine.steps.map((step, idx) => (
+            <RoutineStepRow
+              key={idx}
+              step={step}
+              index={idx}
+              onSelectProduct={onSelectProduct}
+              onLogApplied={onLogApplied}
+            />
+          ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Fila individual de un paso de rutina. Tap en la zona principal
+ * abre el sheet del producto. Si el producto es un activo rotable
+ * (retinoide / AHA / BHA / corticoide), aparece un sub-botón
+ * "apliqué" que loguea la aplicación al `activesLog` para que el
+ * rotation engine sepa cuándo descansar.
+ */
+function RoutineStepRow({
+  step,
+  index,
+  onSelectProduct,
+  onLogApplied,
+}: {
+  step: RoutineStep;
+  index: number;
+  onSelectProduct: (id: string) => void;
+  onLogApplied: (productId: string) => boolean;
+}) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
+  const [logged, setLogged] = useState(false);
+
+  const product = step.productId ? findTopical(step.productId) : null;
+  const stepTappable = !!step.productId;
+  const rotationCategory = step.productId
+    ? rotationCategoryFor(step.productId)
+    : null;
+  const showLogButton = !!rotationCategory;
+
+  const onRowClick = () => {
+    if (!stepTappable) return;
+    onSelectProduct(step.productId!);
+  };
+
+  const onLogClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!step.productId) return;
+    haptics.tap();
+    const ok = onLogApplied(step.productId);
+    if (ok) setLogged(true);
+  };
+
+  return (
+    <div
+      role={stepTappable ? 'button' : undefined}
+      tabIndex={stepTappable ? 0 : undefined}
+      onClick={onRowClick}
+      onKeyDown={(e) => {
+        if (!stepTappable) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onRowClick();
+        }
+      }}
+      className={`flex items-start gap-3 px-1 py-1 rounded-lg text-left ${stepTappable ? 'transition-transform active:scale-[0.99] cursor-pointer' : ''}`}
+      style={{
+        background: stepTappable ? hexToRgba(SUNRISE.rise2, 0.04) : 'transparent',
+        border: stepTappable
+          ? `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}`
+          : '1px solid transparent',
+      }}
+    >
+      <span
+        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px]"
+        style={{
+          background: hexToRgba(SUNRISE.rise2, 0.14),
+          color: SUNRISE.rise2,
+          border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
+        }}
+      >
+        {index + 1}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div
+          className="font-mono text-[12px] leading-snug"
+          style={{ color: SUNRISE_TEXT.primary }}
+        >
+          {step.action}
+        </div>
+        {product && (
+          <div
+            className="font-mono text-[10px] tracking-wider mt-0.5"
+            style={{ color: SUNRISE_TEXT.muted }}
+          >
+            {product.name}
+            {step.applySkinState && ` · ${labelForSkinState(step.applySkinState)}`}
+            {step.optional && ' · opcional'}
+            {rotationCategory && ` · ${CATEGORY_LABEL[rotationCategory]}`}
+          </div>
+        )}
+        {step.note && (
+          <div
+            className="font-mono text-[10px] tracking-wider mt-0.5 italic"
+            style={{ color: SUNRISE_TEXT.muted }}
+          >
+            {step.note}
+          </div>
+        )}
+      </div>
+      {showLogButton && (
+        <button
+          type="button"
+          onClick={onLogClick}
+          aria-pressed={logged}
+          aria-label={logged ? 'Aplicación registrada' : 'Marcar como aplicado'}
+          title={logged ? 'Registrado' : 'Marcar como aplicado'}
+          className="shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 transition-transform active:scale-[0.95] self-center"
+          style={{
+            background: logged
+              ? SUNRISE.rise2
+              : hexToRgba(SUNRISE.rise2, 0.06),
+            border: `1px solid ${
+              logged ? SUNRISE.rise2 : hexToRgba(SUNRISE.rise2, 0.3)
+            }`,
+            color: logged ? SUNRISE.night : SUNRISE.rise2,
+          }}
+        >
+          <Check size={11} strokeWidth={2.4} />
+          <span
+            className="font-mono uppercase tracking-[0.2em] font-[600]"
+            style={{ fontSize: 9 }}
+          >
+            {logged ? 'hecho' : 'apliqué'}
+          </span>
+        </button>
       )}
     </div>
   );

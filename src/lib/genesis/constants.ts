@@ -15,6 +15,9 @@ export interface SubStep {
 
 export type AudioLayer = 'ignition' | 'bridge' | 'cognitive';
 
+/** Modos del protocolo Génesis (resueltos por `genesisAdapter`). */
+export type GenesisMode = 'full' | 'express' | 'recovery';
+
 export interface Mission {
   id: string;
   phase: number;
@@ -39,6 +42,13 @@ export interface Mission {
   kanji: string;
   /** Romanized reading / meaning short label. */
   kanjiReading: string;
+  /**
+   * Modos en los que se incluye esta fase. Por defecto `['full']`
+   * en cada definición de abajo explícito. El adapter usa esto para
+   * filtrar la lista según el contexto (sleep debt, time pressure,
+   * day profile).
+   */
+  includeIn: GenesisMode[];
   /** Full commentator-style briefing for this phase, spoken ONCE at
    *  phase start. Concatenates the intro, the narration (benefit +
    *  science) and any mid-phase coaching notes into a single block so
@@ -65,6 +75,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase uno. Génesis. Así empieza todo, Jugador. Antes de abrir los ojos del todo, dedica el primer pensamiento del día a Dios. Gratitud antes que cualquier otra cosa — ese es el anclaje espiritual que define el propósito de las próximas horas. Ahora pies al suelo, sin negociar. Abre persianas y ventana: en Ambato, a esta altitud, purgar el CO₂ acumulado es vital para que el cerebro despierte de verdad. Tiende la cama, impecable. Esa cama hecha es la primera victoria del día, y tu cerebro la registra. Acabas de decirle a tu mente: hoy gano yo. Vamos.',
     directive: 'Inicialización del sistema: gratitud a Dios, higiene ambiental (persianas + ventana para purgar CO₂ en altitud), primera victoria (cama tendida).',
     duration: 60,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'INITIALIZING GÉNESIS PROTOCOL v5.0...',
     completionLog: 'OPERATOR ONLINE. FIRST VICTORY REGISTERED.',
     scienceNote: 'Posponer la alarma fragmenta el sueño REM. El ritual de apertura (gratitud espiritual + luz + ventilación + cama) encadena varios Quick Wins en los primeros 60 segundos. En altitud (+2500 m) el CO₂ nocturno del cuarto se acumula más rápido — ventilar es el primer oxígeno real del día.',
@@ -92,6 +103,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase dos. Aqua. Durante la noche perdiste casi un litro de agua, y tu cerebro lo nota. Toma quinientos mililitros, con una pizca de sal marina. Sin prisa. Siente cómo vuelves a ti. Cada célula te lo está pidiendo. Bebe con calma; los próximos noventa minutos dependen de este vaso.',
     directive: 'Ingiere el vaso de agua preparado la noche anterior (500 ml con pizca de sal marina). Tu cuerpo perdió ~1 litro durante el sueño.',
     duration: 60,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'HYDRATION PROTOCOL ENGAGED.',
     completionLog: 'HYDRATION COMPLETE. CELLULAR FUNCTION RESTORED.',
     scienceNote: 'Deshidratación leve (-2%) reduce la función cognitiva un 25%. El agua con sal aporta electrolitos para absorción celular óptima. Prepáralo la noche anterior.',
@@ -113,6 +125,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase tres. Flex. Tu cuerpo lleva ocho horas inmóvil. Caderas cerradas. Columna rígida. Isquiotibiales dormidos. Ocho minutos de movilidad consciente: ni uno más, ni uno menos. Abre lo que el escritorio te ha ido cerrando. Respira en cada estiramiento, profundo y largo. Esto no es calentar; es reclamar tu cuerpo antes de pedirle algo difícil.',
     directive: 'Lubricación biomecánica: rotaciones articulares completas, deep squat sostenido, gato-camello e isquiotibiales dinámicos. 8 minutos.',
     duration: 480,
+    includeIn: ['full', 'recovery'],
     systemLog: 'MOBILITY CALIBRATION — ANTI-SEDENTARY PROTOCOL.',
     completionLog: 'PHYSICAL SYSTEMS CALIBRATED. INJURY RISK -50%.',
     scienceNote: 'Estar sentado acorta los flexores de cadera y comprime los discos lumbares. La movilidad matutina contrarresta esto, activa el sistema propioceptivo y reduce el riesgo de lesiones un 50% antes del cardio.',
@@ -140,6 +153,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase cuatro. Surge. Sal. Al frío. A la calle. Diez minutos corriendo: hoy sprint, o zona dos si toca recuperar; tú sabes cómo vienes. Postura alta, cadencia constante, respira por la nariz si puedes. Mientras corres, tu cuerpo está fabricando B D N F, neuronas nuevas en tu hipocampo. Te estás haciendo literalmente más inteligente. No lo olvides cuando duela. Esta intensidad es la que se queda contigo todo el día.',
     directive: 'Pico termogénico: 2 min aceleración progresiva + 6 min ritmo intenso + 2 min desaceleración. 10 minutos totales.',
     duration: 600,
+    includeIn: ['full'],
     systemLog: 'CARDIO TRAINING — OUTDOOR RUN INITIATED.',
     completionLog: 'ENDORPHIN RELEASE. CORE TEMP ELEVATED.',
     scienceNote: 'Correr libera BDNF (hace crecer neuronas nuevas en el hipocampo). IMPORTANTE en altitud: tus pulmones trabajan más duro. Si notas niebla mental después, baja a Zona 2. La periodización previene el agotamiento del sistema nervioso central.',
@@ -168,6 +182,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase cinco. Forge. Aquí no hay excusas, Jugador. Veinticinco minutos de tensión mecánica pura — la intensidad es innegociable. Empuje. Tracción. Piernas. Núcleo. Descansos cortos, sesenta segundos y ni uno más. Forma antes que carga, siempre. En ayunas tu cuerpo está liberando testosterona, hormona de crecimiento y — lo más importante — B D N F: el fertilizante de neuronas nuevas que vas a necesitar hoy en histología y anatomía. Cada serie que levantas en serio es plasticidad neuronal que se traduce, horas después, en retención de lo que estudies. Cierra con el núcleo. Gánate el desayuno.',
     directive: 'Tensión mecánica: 25 minutos de hipertrofia con tu app de fuerza. Intensidad innegociable — buscas BDNF para la plasticidad neuronal que usarás en histología y anatomía.',
     duration: 1500,
+    includeIn: ['full'],
     systemLog: 'STRENGTH TRAINING SEQUENCE — FORGE MODE ACTIVE.',
     completionLog: 'MUSCULAR STIMULUS APPLIED. BDNF FLOWING.',
     scienceNote: '25 minutos en ayunas es el límite perfecto para evitar degradación muscular excesiva. El entrenamiento de fuerza libera testosterona, hormona de crecimiento y BDNF — tu cerebro funciona mejor después de levantar pesas.',
@@ -193,6 +208,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase seis. Pneuma. Cierra los ojos. Siéntate cómodo. Tres rondas: respiraciones profundas y sostenidas, y luego retén sin aire. Tu sangre se alcaliniza, la noradrenalina se dispara, tu sistema autónomo se recalibra. En altitud no fuerces nada; escucha a tu cuerpo, él sabe. Si aparece el hormigueo en las manos, es normal, solo respira. Estás limpiando por dentro.',
     directive: 'Alcalinización: 3 rondas de 30 respiraciones + retención + inhalación de rescate (15 s). En altitud NO fuerces la retención.',
     duration: 600,
+    includeIn: ['full', 'recovery'],
     systemLog: 'WIM HOF PROTOCOL — ALTITUDE-CALIBRATED.',
     completionLog: 'AUTONOMIC SYSTEM CALIBRATED. NOREPINEPHRINE +300%.',
     scienceNote: 'AJUSTE DE ALTITUD: A +2500m tu SpO₂ base es menor. Llegarás a hipoxia más rápido en las retenciones. Si sientes mareo agudo antes de los 60-90s, inhala. El estímulo (alcalinizar sangre + adrenalina) se logra en menos tiempo por la altura.',
@@ -216,6 +232,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase siete. Cryo. Ahora viene la que te pone a prueba, Jugador. Entras al agua fría. Tres minutos. Tu cuerpo va a gritar que salgas; no salgas. Exhala lento. Resiste el primer impulso. Ahí, justo ahí, es donde se entrena el control emocional para todo el día. La dopamina que liberas aquí te acompaña dos, tres horas. Y termina en frío: no negocies con el calor al final. Se gana dentro.',
     directive: 'Shock neuroquímico: entra de golpe, 30 s controlando respiración, 2.5 min estático bajo el chorro, 2 min secado rápido + vestimenta de trabajo.',
     duration: 300,
+    includeIn: ['full'],
     systemLog: 'COLD EXPOSURE — HORMETIC STRESS MAXIMUM.',
     completionLog: 'DOPAMINE +250% (2-3h). RECOVERY ACCELERATED.',
     scienceNote: 'Post-ejercicio el contraste térmico es más potente. Dopamina +250% sostenida 2-3 horas. El frío acelera la recuperación muscular, reduce inflamación y entrena el control prefrontal sobre la respuesta de lucha/huida.',
@@ -246,6 +263,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase ocho. Refuel. Tu cuerpo acaba de romper músculo; ahora toca reconstruirlo. Proteína, carbohidratos complejos, grasas saludables. Come sin pantallas, sin prisa. Mastica despacio. Al terminar, la higiene de transición: lávate la cara con agua fresca y aplica hidratante con protector solar. Enjuágate la boca solo con agua — no te cepilles todavía. El ácido de la comida bajó el pH del esmalte, y cepillar ahora lo desgasta. Esperamos al final del protocolo para el cepillado de élite.',
     directive: 'Repostaje + skincare matutino completo: desayuno enfocado (proteína, carbos complejos, grasas), rutina facial de 6 pasos sobre piel post-ducha (poros abiertos = absorción máxima) y enjuague bucal con agua — sin cepillarte los dientes todavía.',
     duration: 900,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'ANABOLIC WINDOW — NUTRIENT DELIVERY ACTIVE.',
     completionLog: 'FUEL LOADED. GLYCOGEN STORES REPLENISHED.',
     scienceNote: 'La ventana anabólica post-ejercicio es el momento óptimo para nutrientes. La piel post-ducha tiene poros dilatados y barrera hidratada — los activos (ácidos suaves, péptidos, ceramidas) penetran 2–3× más. Tras comer, el pH bucal baja por ~30 min: cepillarse inmediatamente erosiona el esmalte. Enjuagar con agua limpia residuos sin abrasión, y el cepillado se pospone al ANCLAJE FINAL, cuando el pH se ha recuperado.',
@@ -282,6 +300,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase nueve. Helio. Busca la luz natural: ventana abierta, ojos al horizonte. Cinco minutos de luz directa le dicen al núcleo supraquiasmático que es de día en serio — el cortisol matutino alcanza su pico, la melatonina se retira. En altitud esta luz es más pura y más rápida. Mientras tanto, organiza tu escritorio: dark mode absoluto en los monitores, libros de histología y visores médicos listos para cuando arranques. Un entorno inmaculado es una mente sin fricciones.',
     directive: 'Sincronización circadiana + locus: mira al horizonte por la ventana abierta, organiza el escritorio, configura dark mode absoluto y deja libros y visores médicos listos para estudiar.',
     duration: 300,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'CIRCADIAN SYNC + LOCUS — ENVIRONMENT RESET.',
     completionLog: 'CIRCADIAN ANCHORED. WORKSPACE FRICTION: ZERO.',
     scienceNote: 'En altitud la atmósfera es más delgada: la radiación lumínica del amanecer es más potente y nítida. 5 minutos de luz directa anclan el ritmo circadiano de forma fulminante. El entorno médico pre-configurado reduce la carga cognitiva parasitaria antes del estudio.',
@@ -309,6 +328,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase diez. Silentium. Siéntate. Espalda recta. Ojos cerrados. Audio de alta fidelidad en los auriculares. Cinco minutos para estabilizar la dopamina antes del bombardeo de información académica que viene. Ancla la atención al aire entrando y saliendo por la nariz. La mente va a irse — vuélvela, sin juicio. Los estoicos lo llamaban premeditatio malorum: anticipar las fricciones del día para no reaccionar cuando lleguen. Imagínate resolviendo con frialdad lo que sabes que te va a costar. Luego, silencio puro.',
     directive: 'Aislamiento sensorial: auriculares + audio de alta fidelidad, postura inamovible, ojos cerrados. Silencio mental para estabilizar la dopamina antes del estudio.',
     duration: 300,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'SENSORY ISOLATION — DEEP REVERB ENGAGED.',
     completionLog: 'DOPAMINE STABILIZED. ATTENTION ANCHORED.',
     scienceNote: 'La meditación con audio envolvente colapsa la señal ambiental y fuerza al córtex a replegarse sobre un único estímulo. Estabilizar la dopamina antes de estudiar aumenta la capacidad de sostener foco académico 40-90 min sin búsqueda de recompensa.',
@@ -337,6 +357,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase once. Axis. Coge el papel. A mano, siempre a mano — la letra activa áreas del cerebro que el teclado nunca alcanzará. Anota la fecha y define las tres Ranas del día: las tareas académicas críticas, las que si solo hicieras esas, el día ya sería una victoria. Tres, no cuatro. Lo que no cabe en tres líneas, hoy no importa. Este es el eje sobre el que giran las próximas doce horas. Escríbelo.',
     directive: 'Proyección táctica: journaling en papel. Anota la fecha y define tus 3 Ranas — las tareas académicas críticas e innegociables del día.',
     duration: 300,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'COGNITIVE CLARITY MODULE — TASK MAPPING.',
     completionLog: 'MISSION OBJECTIVES DEFINED. MENTAL CLUTTER: ZERO.',
     scienceNote: 'Escribir a mano activa áreas cerebrales que el teclado no alcanza. Externalizar las tareas del día libera memoria de trabajo (RAM mental). La claridad de propósito reduce la ansiedad un 43 % (Journal of Clinical Psychology).',
@@ -360,6 +381,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase doce. Lectio. Quince minutos para afilar el filo cognitivo. Empieza con lectura de cultura general o filosofía — lo que te haga más grande. Luego una revisión rápida de los temas que verás hoy en la facultad: histología, anatomía, lo que toque. No estudias a fondo, solo calientas el cerebro médico: le muestras al hipocampo el mapa de lo que viene para que la consolidación del día sea más limpia. Extrae una sola idea potente antes de cerrar el libro. Una, no diez.',
     directive: 'Pre-estudio: 10 min de lectura de cultura general o filosofía + 5 min de revisión rápida de los temas de la facultad de hoy. Calentamiento para el cerebro médico.',
     duration: 900,
+    includeIn: ['full', 'recovery'],
     systemLog: 'KNOWLEDGE ACQUISITION — ACTIVE RECALL MODE.',
     completionLog: 'COGNITIVE EDGE ACTIVATED. MEDICAL BRAIN ONLINE.',
     scienceNote: 'Leer antes de estudiar desplaza el EEG hacia alfa/theta, estado óptimo para absorber información. Revisar el índice de lo que verás hoy funciona como "pre-cargar el caché" — el hipocampo crea ganchos previos que hacen la consolidación de la clase ~30 % más eficiente.',
@@ -391,6 +413,7 @@ export const MISSIONS: Mission[] = [
     voiceLineBriefing: 'Fase trece. Sigillum. El sello. Ahora sí, el pH de tu boca se ha estabilizado y el esmalte está listo: cepíllate los dientes con rigor. Hilo dental, cepillo con técnica, enjuague. El frescor final de la pasta es la señal neurológica inequívoca de que el entrenamiento terminó y empieza la ejecución. El protocolo Génesis está cerrado. Estás biológicamente optimizado, espiritualmente enfocado y listo para conquistar el núcleo del día.',
     directive: 'Higiene dental de élite en 3 pasos secuenciales: hilo dental → cepillado riguroso → enjuague bucal. Ahora que el pH bucal se estabilizó, el cepillado protege sin erosionar. El frescor final sella el protocolo y da inicio a la ejecución operativa.',
     duration: 300,
+    includeIn: ['full', 'express', 'recovery'],
     systemLog: 'FINAL SEAL — DENTAL HYGIENE ELITE.',
     completionLog: 'GÉNESIS COMPLETE. READY TO CONQUER THE CORE.',
     scienceNote: 'Tras 45 min post-ingesta, el pH bucal vuelve a neutro y el esmalte ya no está desmineralizado: es cuando el cepillado protege sin erosionar. El orden importa: hilo PRIMERO desplaza la placa interproximal hacia donde el cepillo puede alcanzarla, y el enjuague final arrastra todo lo desplazado. Además, el frescor de la menta actúa como "imprinting" sensorial — el cerebro asocia esa señal con la transición de preparación → ejecución.',

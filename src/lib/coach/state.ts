@@ -17,11 +17,17 @@ import type { BrushingSlot } from './brushing';
 import type { CriticalHabitId } from './criticalHabits';
 import type { DailyCheckIn, SkinFeel, Sleep, Stress } from './signals';
 import type { ManualSubRoutine, SubRoutineId } from './subRoutines';
+import type { ActivesLog } from './activesLog';
+import { appendApplication } from './activesLog';
+import type { DismissalLog } from './dismissalLog';
+import { appendDismissal } from './dismissalLog';
 
 // Re-export the check-in types so consumers can keep importing
 // from `state.ts` (single barrel for coach persistence).
 export type { DailyCheckIn, SkinFeel, Sleep, Stress };
 export type { ManualSubRoutine, SubRoutineId };
+export type { ActivesLog };
+export type { DismissalLog };
 
 // ───────────────────────────────────────────────────────────
 // Storage keys
@@ -40,6 +46,8 @@ const KEYS = {
   checkIn: 'ma-coach-checkin',
   tipsSeen: 'ma-coach-tips-seen',
   manualSubRoutines: 'ma-coach-manual-sub',
+  activesLog: 'ma-coach-actives-log',
+  dismissals: 'ma-coach-dismissals',
 } as const;
 
 // ───────────────────────────────────────────────────────────
@@ -158,12 +166,25 @@ export interface CoachState {
    * vigentes (TTL). Se limpian al cargar.
    */
   manualSubRoutines: ManualSubRoutine[];
+  /**
+   * Log append-only de aplicaciones de activos rotables
+   * (retinoide, AHA, BHA, corticoide). Alimenta el rotation
+   * engine para decidir días de descanso.
+   */
+  activesLog: ActivesLog;
+  /**
+   * Log append-only de sub-rutinas que estuvieron activas
+   * pero el usuario no consumió (telemetría pasiva). Penaliza
+   * la relevancia futura de auto-triggers ruidosos.
+   */
+  dismissals: DismissalLog;
 }
 
-/** Una entrada del historial de tips: id + fecha en que se mostró. */
+/** Una entrada del historial de tips: id + fecha LOCAL (YYYY-MM-DD). */
 export interface TipSeenEntry {
   id: string;
-  shownAtISO: string;
+  /** Fecha local en formato YYYY-MM-DD (ver `todayISO`). */
+  dateISO: string;
 }
 
 // ───────────────────────────────────────────────────────────
@@ -231,6 +252,18 @@ export function loadTipsSeen(): TipSeenEntry[] {
   return Array.isArray(arr) ? arr : [];
 }
 
+/** Log de aplicaciones de activos rotables. */
+export function loadActivesLog(): ActivesLog {
+  const arr = read<ActivesLog>(KEYS.activesLog, []);
+  return Array.isArray(arr) ? arr : [];
+}
+
+/** Log de sub-rutinas dismisadas (telemetría pasiva). */
+export function loadDismissals(): DismissalLog {
+  const arr = read<DismissalLog>(KEYS.dismissals, []);
+  return Array.isArray(arr) ? arr : [];
+}
+
 /** Sub-rutinas manuales aún vigentes (filtra TTL al cargar). */
 export function loadManualSubRoutines(at: Date = new Date()): ManualSubRoutine[] {
   const arr = read<ManualSubRoutine[]>(KEYS.manualSubRoutines, []);
@@ -258,6 +291,8 @@ export function loadCoachState(): CoachState {
     signals: loadCheckIn(),
     tipsSeen: loadTipsSeen(),
     manualSubRoutines: loadManualSubRoutines(),
+    activesLog: loadActivesLog(),
+    dismissals: loadDismissals(),
   };
 }
 
@@ -369,8 +404,10 @@ export function markTipSeen(
   maxEntries: number = 60,
 ): void {
   const seen = loadTipsSeen();
-  if (seen[0]?.id === id) return; // ya marcado en la sesión actual
-  const next = [{ id, shownAtISO: at.toISOString() }, ...seen].slice(0, maxEntries);
+  const dateISO = todayISO(at);
+  // Si ya está marcado para hoy, no duplicamos.
+  if (seen.some((e) => e.id === id && e.dateISO === dateISO)) return;
+  const next = [{ id, dateISO }, ...seen].slice(0, maxEntries);
   write(KEYS.tipsSeen, next);
 }
 
@@ -392,6 +429,39 @@ export function deactivateManualSubRoutine(
 ): void {
   const current = loadManualSubRoutines(at).filter((m) => m.id !== id);
   write(KEYS.manualSubRoutines, current);
+}
+
+/**
+ * Marca un activo rotable como aplicado ahora. Si el producto
+ * no es rotable (humectante, oclusivo, SPF), no-op silencioso.
+ * Devuelve `true` si efectivamente se logueó.
+ */
+export function logActiveApplication(
+  productId: string,
+  at: Date = new Date(),
+): boolean {
+  const current = loadActivesLog();
+  const next = appendApplication(current, productId, at);
+  if (next === current) return false;
+  write(KEYS.activesLog, next);
+  return true;
+}
+
+/**
+ * Marca una sub-rutina como ignorada en una fecha. Idempotente
+ * por (id, dateISO). Devuelve `true` si la entrada se añadió,
+ * `false` si ya existía.
+ */
+export function logSubRoutineDismissal(
+  id: SubRoutineId,
+  at: Date = new Date(),
+): boolean {
+  const current = loadDismissals();
+  const dateISO = todayISO(at);
+  const next = appendDismissal(current, id, dateISO);
+  if (next === current) return false;
+  write(KEYS.dismissals, next);
+  return true;
 }
 
 // ───────────────────────────────────────────────────────────

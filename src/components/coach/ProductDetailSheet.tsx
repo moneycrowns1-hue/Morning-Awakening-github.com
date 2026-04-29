@@ -21,9 +21,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import {
   X, ExternalLink, AlertTriangle, FlaskConical, Sparkles,
-  CheckCircle2, ChevronDown,
+  CheckCircle2, ChevronDown, BookOpen,
 } from 'lucide-react';
 import { findTopical, findOral, type Product, type OralProduct } from '@/lib/coach/catalog';
+import { loresFor, type IngredientLore } from '@/lib/coach/ingredientLore';
 import { hexToRgba } from '@/lib/common/theme';
 import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
@@ -283,6 +284,9 @@ function TopicalView({
             </div>
           </Subsection>
         )}
+
+        {/* Funciones cosméticas · lore de ingredientes */}
+        <LoreSection actives={product.actives} />
 
         {/* Cómo aplicar */}
         {product.howTo && (
@@ -566,6 +570,135 @@ function Subsection({
       </div>
       {children}
     </div>
+  );
+}
+
+/**
+ * Renderiza una mini-ficha por cada función cosmética única que
+ * aparezca en `product.actives`. Convierte un producto opaco en
+ * algo educativo: "qué hace este tipo de ingrediente, cuándo
+ * brilla y cuándo evitarlo".
+ */
+function LoreSection({ actives }: { actives: Product['actives'] }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const lores = useMemo<IngredientLore[]>(
+    () => loresFor(actives.map((a) => a.function)),
+    [actives],
+  );
+  if (lores.length === 0) return null;
+
+  return (
+    <Subsection icon={<BookOpen size={12} strokeWidth={1.85} />} label="Por qué este paso">
+      <div className="flex flex-col gap-1.5">
+        {lores.map((lore) => {
+          const isOpen = expanded === lore.fn;
+          return (
+            <div
+              key={lore.fn}
+              className="rounded-xl overflow-hidden"
+              style={{
+                background: hexToRgba(SUNRISE.night, 0.5),
+                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  haptics.tick();
+                  setExpanded(isOpen ? null : lore.fn);
+                }}
+                className="w-full flex items-start justify-between gap-2 px-3 py-2.5 text-left"
+              >
+                <div className="flex flex-col min-w-0">
+                  <span
+                    className="font-headline font-[600] text-[13px] lowercase tracking-[-0.01em]"
+                    style={{ color: SUNRISE_TEXT.primary }}
+                  >
+                    {lore.name}
+                  </span>
+                  <span
+                    className="font-mono text-[10.5px] leading-snug mt-0.5"
+                    style={{ color: SUNRISE_TEXT.soft }}
+                  >
+                    {lore.oneLiner}
+                  </span>
+                </div>
+                <span
+                  className="shrink-0 font-ui text-[8.5px] tracking-[0.28em] uppercase px-1.5 py-0.5 rounded-full self-start"
+                  style={{
+                    color: SUNRISE.rise2,
+                    background: hexToRgba(SUNRISE.rise2, 0.1),
+                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.3)}`,
+                  }}
+                >
+                  ev. {lore.evidence}
+                </span>
+              </button>
+              {isOpen && (
+                <div
+                  className="px-3 py-2.5 flex flex-col gap-2"
+                  style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}` }}
+                >
+                  {lore.whenIdeal.length > 0 && (
+                    <div>
+                      <div
+                        className="font-mono uppercase tracking-[0.28em] font-[600] mb-1"
+                        style={{ color: SUNRISE.rise2, fontSize: 8.5 }}
+                      >
+                        · ideal cuando ·
+                      </div>
+                      <ul className="flex flex-col gap-0.5">
+                        {lore.whenIdeal.map((line, i) => (
+                          <li
+                            key={i}
+                            className="font-mono text-[10.5px] leading-snug pl-3 relative"
+                            style={{ color: SUNRISE_TEXT.primary }}
+                          >
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-[6px] w-1 h-1 rounded-full"
+                              style={{ background: SUNRISE.rise2 }}
+                            />
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {lore.whenAvoid.length > 0 && (
+                    <div>
+                      <div
+                        className="font-mono uppercase tracking-[0.28em] font-[600] mb-1"
+                        style={{ color: '#ff9b6b', fontSize: 8.5 }}
+                      >
+                        · cuidado con ·
+                      </div>
+                      <ul className="flex flex-col gap-0.5">
+                        {lore.whenAvoid.map((line, i) => (
+                          <li
+                            key={i}
+                            className="font-mono text-[10.5px] leading-snug pl-3 relative"
+                            style={{ color: SUNRISE_TEXT.soft }}
+                          >
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-[6px] w-1 h-1 rounded-full"
+                              style={{ background: '#ff9b6b' }}
+                            />
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Subsection>
   );
 }
 

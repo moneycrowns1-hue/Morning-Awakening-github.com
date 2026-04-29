@@ -12,7 +12,7 @@
 //   - StatsScreen         → historical adherence band
 // ═══════════════════════════════════════════════════════════
 
-import type { AlarmConfig } from '../alarm/alarmSchedule';
+import type { AlarmConfig } from '../ritual/ritualSchedule';
 import type { HealthSnapshot } from '../common/healthkitBridge';
 
 const SLEEP_CONFIG_KEY = 'ma-sleep-config';

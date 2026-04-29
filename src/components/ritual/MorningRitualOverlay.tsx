@@ -1,43 +1,46 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════
-// AlarmRingingOverlay · full-screen takeover shown while
-// the alarm is audibly ringing. Sunrise gradient that
-// "blooms" with the ramp intensity. Dismiss / snooze
-// buttons below the clock.
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// MorningRitualOverlay · pantalla full-screen mientras el
+// ritual está sonando.
+//
+// Reemplaza al antiguo `AlarmRingingOverlay`. Diferencias
+// clave:
+//   - "Apagar" → "cerrar ritual"
+//   - "Posponer 9 min" → eliminado (no es una alarma)
+//   - Si el config tiene chainProtocol: el botón principal
+//     dice "comenzar Génesis"; sino, "cerrar ritual".
+//   - El tap-to-wake sigue para iOS rescate.
+// ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
 import GradientBackground from '../common/GradientBackground';
 import { haptics } from '@/lib/common/haptics';
 import { SUNRISE, hexToRgba } from '@/lib/common/theme';
-import type { AlarmStage } from '@/lib/alarm/alarmEngine';
+import type { RitualStage } from '@/lib/ritual/ritualEngine';
 
-interface AlarmRingingOverlayProps {
-  stage: AlarmStage;
+interface MorningRitualOverlayProps {
+  stage: RitualStage;
   intensity: number;
-  onDismiss: () => void;
-  onSnooze: () => void;
-  /** Whether dismissing should also chain into the protocol. */
+  /** Acción primaria: cerrar el ritual. Si chainProtocol, encadena. */
+  onClose: () => void;
   willChainProtocol?: boolean;
-  /** True once audio is actually playing. When false the overlay
-   *  exposes a fullscreen tap target so the user's first touch can
-   *  satisfy iOS' gesture requirement and unlock playback. */
   audioStarted: boolean;
-  /** Invoked by the tap-to-wake fullscreen target. Should run inside
-   *  the same gesture stack — do NOT await anything before calling. */
+  /** iOS gesture rescue. */
   onTapToWake: () => void;
+  /** Texto opcional de rationale del adapter (1 línea). */
+  rationale?: string;
 }
 
-export default function AlarmRingingOverlay({
+export default function MorningRitualOverlay({
   stage,
   intensity,
-  onDismiss,
-  onSnooze,
+  onClose,
   willChainProtocol,
   audioStarted,
   onTapToWake,
-}: AlarmRingingOverlayProps) {
+  rationale,
+}: MorningRitualOverlayProps) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -49,12 +52,10 @@ export default function AlarmRingingOverlay({
   const mm = String(now.getMinutes()).padStart(2, '0');
 
   const stageLabel =
-    stage === 'wakeup' ? 'Orden del día'
-    : stage === 'reaseguro' ? 'Reaseguro activo'
+    stage === 'wakeup' ? 'Voz de cierre'
     : stage === 'peak' ? 'Voz con propósito'
     : 'Subiendo suavemente';
 
-  // Map intensity (0..1) to a bloom opacity for the halo.
   const halo = Math.max(0.15, Math.min(1, 0.15 + intensity * 0.85));
 
   return (
@@ -64,23 +65,17 @@ export default function AlarmRingingOverlay({
     >
       <GradientBackground stage="welcome" particleCount={60} />
 
-      {/* iOS gesture rescue: when audio hasn't started (timer-driven
-          play() rejected by Safari) the WHOLE screen becomes a tap
-          target. The user's first touch is the gesture that unlocks
-          audio. We render it BEHIND the action buttons (z-10 > z-5)
-          so dismiss/snooze still take precedence if the user is
-          intentional, but any other tap activates audio. */}
       {!audioStarted && (
         <button
           type="button"
           onClick={() => { haptics.tick(); onTapToWake(); }}
           onTouchStart={() => { haptics.tick(); onTapToWake(); }}
-          aria-label="Tocar para activar la alarma"
+          aria-label="Tocar para activar el ritual"
           className="absolute inset-0 z-[5] cursor-pointer"
           style={{ background: 'transparent', border: 'none' }}
         />
       )}
-      {/* Pulsing bloom that gets brighter with intensity */}
+
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -95,7 +90,7 @@ export default function AlarmRingingOverlay({
         }}
       />
 
-      {/* Top: stage label */}
+      {/* Top: stage label + rationale */}
       <div
         className="relative z-10 text-center mt-6 sunrise-fade-up"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
@@ -104,18 +99,24 @@ export default function AlarmRingingOverlay({
           className="font-ui text-[10px] uppercase tracking-[0.5em]"
           style={{ color: 'var(--sunrise-text-muted)' }}
         >
-          Alarma
+          Ritual matutino
         </div>
         <div
           className="font-ui text-[12px] tracking-[0.25em] mt-2"
           style={{
-            color: !audioStarted
-              ? SUNRISE.rise2
-              : stage === 'reaseguro' ? SUNRISE.dawn2 : SUNRISE.rise2,
+            color: !audioStarted ? SUNRISE.rise2 : SUNRISE.rise2,
           }}
         >
           {!audioStarted ? 'Toca para activar' : stageLabel}
         </div>
+        {rationale && audioStarted && (
+          <div
+            className="font-mono text-[10px] mt-2 max-w-[280px] mx-auto leading-[1.45]"
+            style={{ color: 'var(--sunrise-text-soft)' }}
+          >
+            {rationale}
+          </div>
+        )}
       </div>
 
       {/* Middle: clock */}
@@ -131,7 +132,6 @@ export default function AlarmRingingOverlay({
           {hh}:{mm}
         </div>
 
-        {/* Intensity bar */}
         <div
           className="mt-8 w-56 h-1 rounded-full overflow-hidden"
           style={{ background: 'rgba(255,250,240,0.08)' }}
@@ -148,10 +148,10 @@ export default function AlarmRingingOverlay({
         </div>
       </div>
 
-      {/* Bottom: actions */}
+      {/* Bottom: action */}
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-3 pb-4">
         <button
-          onClick={() => { haptics.warn(); onDismiss(); }}
+          onClick={() => { haptics.warn(); onClose(); }}
           className="group relative w-full rounded-full overflow-hidden transition-transform active:scale-[0.98]"
           style={{
             padding: '16px 32px',
@@ -164,19 +164,8 @@ export default function AlarmRingingOverlay({
             className="relative font-ui font-[500] text-[14px] tracking-[0.28em] uppercase"
             style={{ color: 'var(--sunrise-text)' }}
           >
-            {willChainProtocol ? 'Despertar y empezar' : 'Apagar alarma'}
+            {willChainProtocol ? 'Comenzar Génesis' : 'Cerrar ritual'}
           </span>
-        </button>
-        <button
-          onClick={() => { haptics.tap(); onSnooze(); }}
-          className="w-full py-3 rounded-full font-ui text-[12px] tracking-[0.25em] uppercase transition-transform active:scale-[0.98]"
-          style={{
-            border: '1px solid rgba(255,250,240,0.15)',
-            background: 'rgba(255,250,240,0.04)',
-            color: 'var(--sunrise-text-soft)',
-          }}
-        >
-          Posponer 9 min
         </button>
       </div>
     </div>

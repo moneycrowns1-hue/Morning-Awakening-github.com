@@ -43,6 +43,13 @@ interface MissionPhaseV8Props {
   operator?: Operator | null;
   audioTransition?: () => void;
   onSkipPhase?: () => void;
+  /** Total de fases en la sesión actual (puede ser menor a
+   *  `MISSIONS.length` si el adapter eliminó fases). Default:
+   *  `MISSIONS.length` (back-compat). */
+  totalPhases?: number;
+  /** Posición 1-indexada de esta fase dentro de la sesión actual.
+   *  Default: `mission.phase` (la posición catálogo). */
+  phaseDisplay?: number;
 }
 
 export default function MissionPhaseV8({
@@ -53,6 +60,8 @@ export default function MissionPhaseV8({
   operator,
   audioTransition,
   onSkipPhase,
+  totalPhases: totalPhasesProp,
+  phaseDisplay,
 }: MissionPhaseV8Props) {
   const { night: N, nightText: NT } = useAppTheme();
 
@@ -89,7 +98,7 @@ export default function MissionPhaseV8({
   // ── Media session lockscreen controls ─────────────────
   useEffect(() => {
     updateMediaSession({
-      title: `${toTitleCase(mission.title)} · fase ${mission.phase}/${MISSIONS.length}`,
+      title: `${toTitleCase(mission.title)} · fase ${phaseDisplay ?? mission.phase}/${totalPhasesProp ?? MISSIONS.length}`,
       artist: 'Morning Awakening',
       album: mission.blockLabel ?? 'Protocolo matutino',
     });
@@ -211,8 +220,11 @@ export default function MissionPhaseV8({
   }, [audioTransition, onStrike]);
 
   // ── Derived ───────────────────────────────────────────
-  const totalPhases = MISSIONS.length;
-  const globalProgress = ((mission.phase - 1) + timer.progress) / totalPhases;
+  const totalPhases = totalPhasesProp ?? MISSIONS.length;
+  // `phaseDisplay` es 1-indexado y ya refleja la posición dentro de
+  // la sesión adaptada; si no se pasa, caé a `mission.phase` (catálogo).
+  const displayPhase = phaseDisplay ?? mission.phase;
+  const globalProgress = ((displayPhase - 1) + timer.progress) / totalPhases;
   const currentTip = mission.tips?.[Math.floor(Date.now() / 10000) % (mission.tips?.length || 1)];
   const isBreathingPhase = !!mission.breathingPattern;
 
@@ -258,7 +270,7 @@ export default function MissionPhaseV8({
                 textShadow: `0 0 18px ${hexToRgba(N.amber, 0.5)}`,
               }}
             >
-              · fase {String(mission.phase).padStart(2, '0')} cerrada ·
+              · fase {String(displayPhase).padStart(2, '0')} cerrada ·
             </div>
             <div
               className="font-headline font-[700] lowercase tracking-[-0.045em] mt-3"
@@ -311,7 +323,7 @@ export default function MissionPhaseV8({
               className="font-mono uppercase tracking-[0.42em] font-[600]"
               style={{ color: NT.muted, fontSize: 9 }}
             >
-              fase {String(mission.phase).padStart(2, '0')} / {totalPhases} · {mission.codename.toLowerCase()}
+              fase {String(displayPhase).padStart(2, '0')} / {totalPhases} · {mission.codename.toLowerCase()}
             </span>
           </span>
           {mission.scheduledTime && (

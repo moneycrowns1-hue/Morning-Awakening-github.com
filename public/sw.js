@@ -16,7 +16,7 @@
 // PWAs on iOS are VERY sticky — the only way to force them to drop
 // stale audio/JS is a new VERSION string here, which causes the
 // activate handler to delete ma-static-<old>/ma-runtime-<old>.
-const VERSION = 'v8.0-alpha19-tap-to-wake';
+const VERSION = 'v9.0-ritual-launcher';
 const STATIC_CACHE = `ma-static-${VERSION}`;
 const RUNTIME_CACHE = `ma-runtime-${VERSION}`;
 
@@ -109,18 +109,18 @@ async function staleWhileRevalidate(req) {
   return cached || (await fetchPromise) || new Response('Not available', { status: 504 });
 }
 
-// ── Notifications ────────────────────────────────────────
-// The page posts {type: 'SCHEDULE_MORNING', hour, minute} to the
-// service worker, which then uses setTimeout to show a local
-// notification. This is a best-effort reminder — iOS Safari only
-// delivers it if the PWA has been installed and permission was
-// granted. Android delivers reliably.
+// ── Notifications ────────────────────────────────
+// La página postea {type: 'SCHEDULE_MORNING', hour, minute} al SW,
+// que usa setTimeout para mostrar la notificación del ritual
+// matutino. Es un recordatorio best-effort — en iOS Safari sólo
+// se entrega si la PWA está instalada al home screen y el permiso
+// fue concedido. Android lo entrega siempre.
+//
+// El antiguo `SCHEDULE_ALARM` (alarma con máscara de días y
+// requireInteraction) se eliminó cuando la app dejó de fingir ser
+// una alarma del sistema; ahora sólo es un ping al ritual.
 
 let scheduledTimeoutId = null;
-let alarmTimeoutId = null;
-// Last weekday mask received for the alarm, mirrored so the
-// re-arm path after firing knows which day to target next.
-let alarmDays = [true, true, true, true, true, true, true];
 
 // NUCLEUS · day-mode micro-habit pings. Each entry is a setTimeout
 // id so we can cancel them all when the user toggles NUCLEUS off
@@ -140,15 +140,6 @@ self.addEventListener('message', (event) => {
     scheduleMorning(data.hour, data.minute);
   } else if (data.type === 'CANCEL_MORNING') {
     if (scheduledTimeoutId) { clearTimeout(scheduledTimeoutId); scheduledTimeoutId = null; }
-  } else if (data.type === 'SCHEDULE_ALARM') {
-    if (Array.isArray(data.days) && data.days.length === 7) {
-      alarmDays = data.days.map(Boolean);
-    } else {
-      alarmDays = [true, true, true, true, true, true, true];
-    }
-    scheduleAlarm(data.hour, data.minute);
-  } else if (data.type === 'CANCEL_ALARM') {
-    if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
   } else if (data.type === 'SCHEDULE_NUCLEUS_PINGS') {
     cancelNucleusPings();
     const pings = Array.isArray(data.pings) ? data.pings : [];
@@ -185,39 +176,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-function msUntilNextActiveDay(hour, minute, days, from) {
-  if (!days.some(Boolean)) return Infinity;
-  for (let offset = 0; offset < 8; offset++) {
-    const target = new Date(from);
-    target.setDate(target.getDate() + offset);
-    target.setHours(hour, minute, 0, 0);
-    if (target.getTime() <= from.getTime()) continue;
-    if (days[target.getDay()]) return target.getTime() - from.getTime();
-  }
-  return Infinity;
-}
-
-function scheduleAlarm(hour, minute) {
-  if (alarmTimeoutId) { clearTimeout(alarmTimeoutId); alarmTimeoutId = null; }
-  if (!alarmDays.some(Boolean)) return;
-  const now = new Date();
-  const delay = msUntilNextActiveDay(hour, minute, alarmDays, now);
-  if (!isFinite(delay)) return;
-  alarmTimeoutId = setTimeout(() => {
-    self.registration.showNotification('Es hora, operador.', {
-      body: 'Tu alarma suave est\u00e1 sonando. Abre para despertar.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'morning-alarm',
-      requireInteraction: true,
-      silent: false,
-      data: { kind: 'alarm' },
-    });
-    // Re-arm for the NEXT active weekday.
-    scheduleAlarm(hour, minute);
-  }, delay);
-}
-
 function scheduleMorning(hour, minute) {
   if (scheduledTimeoutId) { clearTimeout(scheduledTimeoutId); scheduledTimeoutId = null; }
   const now = new Date();
@@ -228,13 +186,14 @@ function scheduleMorning(hour, minute) {
   }
   const delay = next.getTime() - now.getTime();
   scheduledTimeoutId = setTimeout(() => {
-    self.registration.showNotification('Buen día, operador.', {
-      body: 'Tu protocolo matutino está listo.',
+    self.registration.showNotification('Tu ritual matutino te espera.', {
+      body: 'Cuando estés listo, abrí la app y empezamos juntos.',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: 'morning-awakening',
+      tag: 'morning-ritual',
       requireInteraction: false,
       silent: false,
+      data: { kind: 'ritual' },
     });
     // Reschedule for tomorrow.
     scheduleMorning(hour, minute);
@@ -275,8 +234,8 @@ self.addEventListener('notificationclick', (event) => {
   if (data.kind === 'nucleus' && data.microHabitId) {
     const verb = action === 'done' ? 'done' : 'open';
     path = `/?nucleus_${verb}=${encodeURIComponent(data.microHabitId)}`;
-  } else if (data.kind === 'alarm') {
-    path = '/?source=alarm';
+  } else if (data.kind === 'ritual') {
+    path = '/?source=ritual';
   }
 
   event.waitUntil(
@@ -284,9 +243,10 @@ self.addEventListener('notificationclick', (event) => {
       for (const c of list) {
         if (c.url.includes(self.location.origin)) {
           // Only forward the nucleus postMessage for NUCLEUS notifications.
-          // Alarm / morning reminder taps MUST NOT trigger the nucleus
-          // listener — otherwise tapping the morning alarm would open
-          // the day-mode timeline instead of the alarm/protocol flow.
+          // Ritual ping taps MUST NOT trigger the nucleus listener —
+          // si lo hicieran, tocar el ping del ritual abriría la timeline
+          // de NUCLEUS en vez de la home con el banner del ritual.
+          // Mismo razonamiento aplica a la antigua noti `kind: 'alarm'`.
           if (data.kind === 'nucleus') {
             try {
               c.postMessage({

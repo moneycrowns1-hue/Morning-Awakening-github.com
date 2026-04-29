@@ -37,6 +37,15 @@ interface WelcomeScreenProps {
   onOpenCoach?: () => void;
   /** Open the full Calendar screen (from the footer preview). */
   onOpenCalendar?: () => void;
+  /** Hint que el adapter Génesis genera al evaluar el contexto.
+   *  Cuando está presente y no es vacío se renderiza un chip
+   *  hairline debajo del CTA. Ejemplos:
+   *    "anoche dormiste 145 min menos · sin cardio ni frío"
+   *    "empezaste a las 06:42 · sólo lo esencial". */
+  adaptiveHint?: string;
+  /** Modo planeado por el adapter (full / express / recovery).
+   *  Se muestra como kicker del chip. */
+  adaptiveMode?: 'full' | 'express' | 'recovery';
 }
 
 export default function WelcomeScreen({
@@ -44,6 +53,8 @@ export default function WelcomeScreen({
   streak,
   onStart,
   onOpenCalendar,
+  adaptiveHint,
+  adaptiveMode,
 }: WelcomeScreenProps) {
   const { day: D, dayText: DT } = useAppTheme();
   const quote = useDailyQuote();
@@ -193,6 +204,47 @@ export default function WelcomeScreen({
           >
             ritual<span style={{ color: D.accent }}>.</span>
           </div>
+
+          {/* Adaptive hint del genesisAdapter · chip hairline.
+              Sólo aparece cuando el adapter detectó una señal
+              contextual relevante (sleep debt, late start, rest day,
+              stress alto). El kicker muestra el modo planeado. */}
+          {adaptiveHint && (
+            <div
+              className="mt-5 inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full sunrise-fade-up"
+              style={{
+                background: hexToRgba(D.accent, 0.08),
+                border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+                animationDelay: '480ms',
+              }}
+            >
+              <span
+                aria-hidden
+                className="sunrise-cta-halo"
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 99,
+                  background: D.accent,
+                  boxShadow: `0 0 6px ${hexToRgba(D.accent, 0.7)}`,
+                }}
+              />
+              {adaptiveMode && adaptiveMode !== 'full' && (
+                <span
+                  className="font-mono uppercase tracking-[0.32em] font-[700]"
+                  style={{ color: D.accent, fontSize: 9 }}
+                >
+                  {adaptiveMode}
+                </span>
+              )}
+              <span
+                className="font-mono lowercase tracking-[0.05em]"
+                style={{ color: DT.soft, fontSize: 10.5 }}
+              >
+                {adaptiveHint}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

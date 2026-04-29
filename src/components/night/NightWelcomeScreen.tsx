@@ -25,10 +25,12 @@ import { getHealthStatus, loadHealthSnapshot, type HealthStatus } from '@/lib/co
 import { hexToRgba } from '@/lib/common/theme';
 import { useNightPalette } from '@/lib/night/nightPalette';
 import { getNightMissions, totalNightDuration } from '@/lib/night/nightConstants';
-import type { AlarmConfig } from '@/lib/alarm/alarmSchedule';
+import type { AlarmConfig } from '@/lib/ritual/ritualSchedule';
 import { computeSleepGate, formatGateWindow, loadSleepConfig } from '@/lib/night/sleepGate';
 import { haptics } from '@/lib/common/haptics';
 import { getDayProfile } from '@/lib/common/dayProfile';
+import { adaptNightProtocol, type NightAdaptedPlan } from '@/lib/night/nightAdapter';
+import { loadCheckIn } from '@/lib/coach/state';
 
 const MODE_KEY = 'ma-night-mode-pref';
 /** Per-day override: when present, takes precedence over the global
@@ -48,7 +50,8 @@ export type NightMode = 'full' | 'express';
 
 interface NightWelcomeScreenProps {
   alarmConfig: AlarmConfig;
-  onEnter: (mode: NightMode) => void;
+  /** Recibe el plan adaptado (mode + missions resueltas + rationale). */
+  onEnter: (plan: NightAdaptedPlan) => void;
   onEnterSlumber: () => void;
   onClose: () => void;
   /** True when today's night protocol has already been completed. */
@@ -85,26 +88,17 @@ export default function NightWelcomeScreen({
     setHealthStatus(getHealthStatus());
   }, [showHealthModal]);
 
-  // Load persisted preference on mount. Priority:
-  //   1. Per-day explicit override (user picked Full/Express today).
-  //   2. Auto-default to Express when today's profile is 'rest'
-  //      (Sunday or Ecuadorian holiday).
-  //   3. Global persisted preference.
-  //   4. Hardcoded 'full'.
+  // Override per‐día: si el usuario tappeó Full/Express hoy, ese
+  // valor se respeta en el adapter. Lo leemos de localStorage para
+  // no perder la elección al recargar.
+  const [userOverride, setUserOverride] = useState<NightMode | null>(null);
   useEffect(() => {
     try {
       const dayKey = MODE_DAY_KEY_PREFIX + todayKey();
       const dayPref = window.localStorage.getItem(dayKey);
       if (dayPref === 'full' || dayPref === 'express') {
-        setMode(dayPref);
-        return;
+        setUserOverride(dayPref);
       }
-      if (getDayProfile() === 'rest') {
-        setMode('express');
-        return;
-      }
-      const raw = window.localStorage.getItem(MODE_KEY);
-      if (raw === 'full' || raw === 'express') setMode(raw);
     } catch { /* ignore */ }
   }, []);
 
@@ -120,6 +114,28 @@ export default function NightWelcomeScreen({
     return computeSleepGate(alarmConfig, sleepCfg, new Date(), health);
   }, [alarmConfig, healthStatus]);
 
+  // Plan adaptado · combina time pressure, sleep debt, day profile,
+  // stress y override del usuario. El adapter es puro (no toca
+  // localStorage ni el reloj global), así que es seguro recomputarlo
+  // en cada render relevante.
+  const plan = useMemo<NightAdaptedPlan>(() => {
+    return adaptNightProtocol({
+      now: new Date(),
+      gate,
+      health: loadHealthSnapshot(),
+      checkIn: loadCheckIn(),
+      dayProfile: getDayProfile(),
+      userOverride,
+    });
+  }, [gate, userOverride, time, healthStatus]);
+
+  // El modo "visual" del selector sigue al plan: si el usuario no
+  // hizo override, se actualiza automáticamente cuando cambia un
+  // signal (p.ej. al pasar el gate end).
+  useEffect(() => {
+    setMode(plan.mode);
+  }, [plan.mode]);
+
   const quote = useMemo(() => {
     const idx = new Date().getDate() % QUOTES.length;
     return QUOTES[idx];
@@ -132,11 +148,11 @@ export default function NightWelcomeScreen({
 
   const setModeAnd = (m: NightMode) => {
     haptics.tap();
+    // Tap explicito del usuario → se vuelve override del día. El
+    // adapter lo respeta y deja de auto‐adaptar la elección.
+    setUserOverride(m);
     setMode(m);
     try {
-      // Persist BOTH the global preference (for next non-rest day) and
-      // the per-day override (so today's explicit pick is honored even
-      // if it contradicts the rest-profile auto-default).
       window.localStorage.setItem(MODE_KEY, m);
       window.localStorage.setItem(MODE_DAY_KEY_PREFIX + todayKey(), m);
     } catch { /* ignore */ }
@@ -145,10 +161,14 @@ export default function NightWelcomeScreen({
   const handleEnter = () => {
     haptics.tick();
     try {
-      window.localStorage.setItem(MODE_KEY, mode);
-      window.localStorage.setItem(MODE_DAY_KEY_PREFIX + todayKey(), mode);
+      // Persistimos sólo si no hubo override para no pisar la
+      // elección automática del adapter como pref global.
+      if (userOverride) {
+        window.localStorage.setItem(MODE_KEY, plan.mode);
+        window.localStorage.setItem(MODE_DAY_KEY_PREFIX + todayKey(), plan.mode);
+      }
     } catch { /* ignore */ }
-    onEnter(mode);
+    onEnter(plan);
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -370,7 +390,12 @@ export default function NightWelcomeScreen({
             const active = mode === m;
             const label = m === 'full' ? 'completo' : 'express';
             const count = m === 'full' ? fullCount : expressCount;
-            const min = m === 'full' ? fullMin : expressMin;
+            // Si es el modo activo y el plan adaptó la duración (ej.
+            // stress alto), mostramos los minutos del plan; si no,
+            // los hardcoded del catálogo.
+            const min = active
+              ? Math.round(plan.totalSec / 60)
+              : (m === 'full' ? fullMin : expressMin);
             return (
               <button
                 key={m}
@@ -391,6 +416,38 @@ export default function NightWelcomeScreen({
             );
           })}
         </div>
+
+        {/* Rationale del adapter · solo si hubo señal contextual.
+            Es una línea fina debajo del pill, en mono pequeñito — no
+            roba foco al CTA pero comunica que la app pensó por vos. */}
+        {plan.rationale && plan.autoReason !== 'override' && (
+          <div
+            className="flex items-center gap-2 -mt-1 px-3 py-1.5 rounded-full sunrise-fade-up"
+            style={{
+              background: hexToRgba(N.amber, 0.06),
+              border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
+              animationDelay: '120ms',
+            }}
+          >
+            <span
+              aria-hidden
+              className="night-breath"
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: 99,
+                background: N.amber,
+                boxShadow: `0 0 6px ${hexToRgba(N.amber, 0.7)}`,
+              }}
+            />
+            <span
+              className="font-mono lowercase tracking-[0.05em]"
+              style={{ color: NT.soft, fontSize: 10.5 }}
+            >
+              {plan.rationale}
+            </span>
+          </div>
+        )}
 
         {/* Floating capsule CTA · with breathing halo */}
         <div className="relative w-full max-w-[360px]">

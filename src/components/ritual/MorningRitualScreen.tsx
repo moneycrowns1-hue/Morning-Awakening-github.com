@@ -1,57 +1,58 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════
-// AlarmScreen · full-screen alarm configurator.
+// MorningRitualScreen · pantalla de configuración del ritual
+// matutino. Reemplaza al antiguo `AlarmScreen`.
 //
-// Diseño · masthead editorial NightMissionPhase:
-//   - Top folio dot ámbar + caption "soporte · alarma".
-//   - Hairline progress bar (sin progreso real, decorativo).
-//   - Hero · giant time tabular-nums + halo ámbar pulsante.
-//   - Sections con SectionHeader newspaper "─ · NAME · ─".
-//   - PillSelector hairline + TimelineRow jeton + ToggleRow.
-//   - V5 actions footer.
-// Paleta · useNightPalette() para vivir en sync.
+// Diseño · masthead editorial NightMissionPhase (igual que el
+// AlarmScreen original, para mantener identidad visual):
+//   · Top folio dot ámbar + caption "soporte · ritual".
+//   · Hero · time picker grande + halo ámbar pulsante.
+//   · Timeline ramp → peak → wakeup (sin reaseguro).
+//   · PillSelector hairline para ramp.
+//   · Slider para peak volume.
+//   · Toggle "encadenar a Génesis".
+//   · Estado del push notification + permisos.
+//   · Botón "probar mi ritual" (6 s preview).
+//   · Botón "comenzar ritual ahora" (gesto que arranca el
+//     audio realmente).
+//
+// La diferencia conceptual clave vs el original: ya no hay
+// sección "días activos" (irrelevante), no hay "reaseguro"
+// (la confianza viene del push, no del tiempo), no hay test
+// de 1 min (cada arranque ES el test), no hay "honesty card"
+// sobre dejar la app abierta (el flujo nuevo no la necesita).
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle, Bell, BellOff, CalendarDays, ChevronLeft,
-  Play, Sparkles, Sun,
-} from 'lucide-react';
+import { Bell, BellOff, ChevronLeft, Play, Sun, Sparkles, Info } from 'lucide-react';
 import { haptics } from '@/lib/common/haptics';
 import {
-  describeAlarm,
-  describeDays,
-  hasAnyDay,
-  nextFireInfo,
-  type AlarmConfig,
-} from '@/lib/alarm/alarmSchedule';
-import { prefetchAlarmAudio, type PreviewResult } from '@/lib/alarm/alarmEngine';
+  formatTargetHHMM,
+  type RitualConfig,
+  type RitualVoiceTone,
+} from '@/lib/ritual/ritualSchedule';
+import { prefetchRitualAudio, type PreviewResult } from '@/lib/ritual/ritualEngine';
+import { permissionStatus, requestPermission } from '@/lib/ritual/morningPing';
 import { hexToRgba } from '@/lib/common/theme';
 import { useNightPalette } from '@/lib/night/nightPalette';
-import AppCloseWarningModal, { shouldShowAppCloseWarning } from './AppCloseWarningModal';
-import { requestPermission, permissionStatus } from '@/lib/alarm/morningReminder';
-import WeekdaySelector from './WeekdaySelector';
 
-interface AlarmScreenProps {
-  config: AlarmConfig;
-  onChange: (next: AlarmConfig) => void;
+interface MorningRitualScreenProps {
+  config: RitualConfig;
+  onChange: (next: RitualConfig) => void;
   onPreview: () => Promise<PreviewResult>;
-  onFireNow: () => Promise<void>;
-  onFireTest: () => Promise<void>;
+  onStartNow: () => void;
   onClose: () => void;
 }
 
-export default function AlarmScreen({
+export default function MorningRitualScreen({
   config,
   onChange,
   onPreview,
-  onFireNow,
-  onFireTest,
+  onStartNow,
   onClose,
-}: AlarmScreenProps) {
+}: MorningRitualScreenProps) {
   const { palette: N, paletteText: NT } = useNightPalette();
-  const info = useMemo(() => nextFireInfo(config), [config]);
 
   const [previewState, setPreviewState] = useState<
     | { status: 'idle' }
@@ -59,26 +60,29 @@ export default function AlarmScreen({
     | { status: 'done'; result: PreviewResult }
   >({ status: 'idle' });
 
-  const [showCloseWarning, setShowCloseWarning] = useState(false);
-  const [notifPerm, setNotifPerm] = useState<NotificationPermission | 'unsupported' | 'unknown'>('unknown');
+  const [notifPerm, setNotifPerm] =
+    useState<NotificationPermission | 'unsupported' | 'unknown'>('unknown');
 
-  useEffect(() => {
-    setNotifPerm(permissionStatus());
-  }, []);
-
-  useEffect(() => {
-    void prefetchAlarmAudio();
-  }, []);
+  useEffect(() => { setNotifPerm(permissionStatus()); }, []);
+  useEffect(() => { void prefetchRitualAudio(); }, []);
 
   const rampMin = Math.round(config.rampSec / 60);
-  const reaseguroMin = Math.round(config.reaseguroSec / 60);
+  const timeValue = formatTargetHHMM(config);
 
-  const timeValue = `${String(config.hour).padStart(2, '0')}:${String(config.minute).padStart(2, '0')}`;
-  const rampStart = new Date(info.peakAt - config.rampSec * 1000);
-  const reaseguroAt = new Date(info.peakAt + config.reaseguroSec * 1000);
-  const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  // Timeline labels.
+  const peak = useMemo(() => {
+    const d = new Date();
+    d.setHours(config.hour, config.minute, 0, 0);
+    return d;
+  }, [config.hour, config.minute]);
+  const rampStart = useMemo(
+    () => new Date(peak.getTime() - config.rampSec * 1000),
+    [peak, config.rampSec],
+  );
+  const fmt = (d: Date) =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-  const update = (patch: Partial<AlarmConfig>) => {
+  const update = (patch: Partial<RitualConfig>) => {
     haptics.tick();
     onChange({ ...config, ...patch });
   };
@@ -88,7 +92,6 @@ export default function AlarmScreen({
     const next = !config.enabled;
     onChange({ ...config, enabled: next });
     if (next) {
-      if (shouldShowAppCloseWarning()) setShowCloseWarning(true);
       void requestPermission().then((p) => setNotifPerm(p));
     }
   };
@@ -98,7 +101,7 @@ export default function AlarmScreen({
       className="relative w-full h-full flex flex-col overflow-hidden"
       style={{ color: NT.primary, background: N.void }}
     >
-      {/* ─── Header · MASTHEAD editorial ─── */}
+      {/* ─── Header · MASTHEAD ─────────────────────────────── */}
       <div
         className="relative z-10 px-6 shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
@@ -114,10 +117,7 @@ export default function AlarmScreen({
             <span
               aria-hidden
               style={{
-                width: 5,
-                height: 5,
-                background: N.amber,
-                borderRadius: 99,
+                width: 5, height: 5, background: N.amber, borderRadius: 99,
                 boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
               }}
               className="night-breath"
@@ -126,10 +126,9 @@ export default function AlarmScreen({
               className="font-mono uppercase tracking-[0.42em] font-[500]"
               style={{ color: NT.muted, fontSize: 9 }}
             >
-              soporte · alarma
+              soporte · ritual
             </span>
           </button>
-          {/* Enable toggle · jeton mono */}
           <button
             onClick={handleToggleEnabled}
             className="flex items-center gap-1.5 transition-opacity active:opacity-70"
@@ -142,35 +141,17 @@ export default function AlarmScreen({
           >
             {config.enabled ? <Bell size={11} strokeWidth={2.2} /> : <BellOff size={11} strokeWidth={2.2} />}
             <span className="font-mono uppercase tracking-[0.32em] font-[700]" style={{ fontSize: 9 }}>
-              {config.enabled ? 'armada' : 'apagada'}
+              {config.enabled ? 'activo' : 'apagado'}
             </span>
           </button>
         </div>
         <div className="h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }} />
       </div>
 
-      {/* ─── Body scrolleable ────────────────────────────────── */}
+      {/* ─── Body scrolleable ───────────────────────────────── */}
       <div className="scroll-area flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6 pb-4 overflow-y-auto">
-        {/* Top corners */}
-        <div className="mt-3 flex items-baseline justify-between">
-          <span
-            className="font-mono tabular-nums font-[600]"
-            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
-          >
-            ⏰
-            <span style={{ color: N.amber }}>.</span>
-          </span>
-          <span
-            className="font-mono uppercase tracking-[0.32em] font-[700]"
-            style={{ color: NT.muted, fontSize: 9 }}
-          >
-            · despertar suave ·
-          </span>
-        </div>
-
-        {/* ─── Hero · time display tabular ─────────── */}
+        {/* Hero · time display */}
         <div className="relative flex flex-col items-center justify-center py-6 mt-4">
-          {/* Halo crece con ramp duration */}
           <div
             className="absolute rounded-full pointer-events-none"
             style={{
@@ -184,13 +165,13 @@ export default function AlarmScreen({
           />
           <label
             className="relative z-10 flex flex-col items-center cursor-pointer"
-            htmlFor="alarm-time-input"
+            htmlFor="ritual-time-input"
           >
             <span
               className="font-mono uppercase tracking-[0.42em] font-[600] mb-2"
               style={{ color: NT.muted, fontSize: 9 }}
             >
-              hora del peak
+              hora del ritual
             </span>
             <h1
               className="font-headline font-[700] tabular-nums tracking-[-0.04em]"
@@ -207,7 +188,7 @@ export default function AlarmScreen({
               <span style={{ color: N.amber }}>.</span>
             </h1>
             <input
-              id="alarm-time-input"
+              id="ritual-time-input"
               type="time"
               value={timeValue}
               onChange={(e) => {
@@ -226,12 +207,32 @@ export default function AlarmScreen({
           </label>
         </div>
 
-        {/* ─── Timeline summary ─────────────────────── */}
-        <SectionHeader N={N} NT={NT}>cómo despertarás</SectionHeader>
+        {/* ─── Cómo funciona · honesty short ─────────── */}
+        <div
+          className="mt-1 px-4 py-3 flex items-start gap-3"
+          style={{
+            border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
+            background: hexToRgba(N.amber, 0.04),
+          }}
+        >
+          <Info size={13} strokeWidth={1.9} style={{ color: N.amber, marginTop: 2 }} />
+          <p
+            className="font-ui leading-[1.5]"
+            style={{ color: NT.soft, fontSize: 11.5 }}
+          >
+            Tu alarma nativa de iOS te despierta como siempre. A esta hora,
+            esta app te envía una notificación silenciosa. Cuando la abras,
+            empezás tu ritual: ramp musical, voz de propósito, y enlace al
+            protocolo Génesis si querés.
+          </p>
+        </div>
+
+        {/* ─── Timeline ─────────────────────────────── */}
+        <SectionHeader N={N} NT={NT}>flujo del ritual</SectionHeader>
         <div className="flex flex-col">
           <TimelineRow
             time={fmt(rampStart)}
-            label="subida suave empieza"
+            label="ramp musical empieza"
             hint={`Tycho · Sunrise Projector · ${rampMin} min fade in`}
             N={N}
             NT={NT}
@@ -244,58 +245,18 @@ export default function AlarmScreen({
             N={N}
             NT={NT}
           />
-          {config.reaseguroSec > 0 && (
-            <TimelineRow
-              time={fmt(reaseguroAt)}
-              label="reaseguro"
-              hint="Hans Zimmer · Time (si no te despertaste)"
-              last={!config.chainProtocol}
-              N={N}
-              NT={NT}
-            />
-          )}
-          {config.chainProtocol && (
-            <TimelineRow
-              time="→"
-              label="despertar · orden del día"
-              hint="musica principal.mp3 antes del protocolo"
-              last
-              N={N}
-              NT={NT}
-            />
-          )}
-          {config.reaseguroSec === 0 && (
-            <p
-              className="font-mono uppercase tracking-[0.28em] font-[500] mt-1"
-              style={{ color: NT.muted, fontSize: 9 }}
-            >
-              · sin reaseguro · activa abajo si quieres respaldo audible ·
-            </p>
-          )}
-        </div>
-
-        {/* ─── Weekday selector ─────────────────────── */}
-        <SectionHeader
-          N={N}
-          NT={NT}
-          right={describeDays(config.days)}
-          icon={<CalendarDays size={11} strokeWidth={2.2} />}
-        >
-          días activos
-        </SectionHeader>
-        <div className="pt-1">
-          <WeekdaySelector
-            value={config.days}
-            onChange={(days) => update({ days })}
+          <TimelineRow
+            time="→"
+            label={config.chainProtocol ? 'wakeup → Génesis' : 'wakeup'}
+            hint={
+              config.chainProtocol
+                ? 'musica principal.mp3 · luego abre Génesis'
+                : 'musica principal.mp3 cierra el ritual'
+            }
+            last
+            N={N}
+            NT={NT}
           />
-          {!hasAnyDay(config) && (
-            <p
-              className="font-mono uppercase tracking-[0.28em] font-[600] mt-3"
-              style={{ color: '#ff7878', fontSize: 9 }}
-            >
-              · sin días activos la alarma no sonará ·
-            </p>
-          )}
         </div>
 
         {/* ─── Ramp duration ────────────────────────── */}
@@ -305,7 +266,7 @@ export default function AlarmScreen({
           right={`${rampMin} min antes`}
           icon={<Sun size={11} strokeWidth={2.2} />}
         >
-          subida suave
+          ramp musical
         </SectionHeader>
         <PillSelector
           value={config.rampSec}
@@ -315,7 +276,6 @@ export default function AlarmScreen({
             { label: '10m', value: 600 },
             { label: '15m', value: 900 },
             { label: '20m', value: 1200 },
-            { label: '30m', value: 1800 },
           ]}
           onChange={(v) => update({ rampSec: v })}
           N={N}
@@ -325,30 +285,26 @@ export default function AlarmScreen({
           className="font-ui text-[11.5px] leading-[1.55] mt-3"
           style={{ color: NT.muted }}
         >
-          Sunrise Projector de Tycho en loop, subiendo desde el silencio
-          hasta el peak. Mientras más largo, más gradual el despertar.
+          Sunrise Projector de Tycho subiendo desde el silencio hasta el peak.
+          Si dormiste mal, la app puede alargarlo automáticamente.
         </p>
 
-        {/* ─── Reaseguro ────────────────────────────── */}
+        {/* ─── Voice tone ──────────────────────────────── */}
         <SectionHeader
           N={N}
           NT={NT}
-          right={config.reaseguroSec > 0 ? `+${reaseguroMin}m` : 'apagado'}
           icon={<Sparkles size={11} strokeWidth={2.2} />}
         >
-          reaseguro
+          tono de la voz
         </SectionHeader>
         <PillSelector
-          value={config.reaseguroSec}
+          value={voiceToneToNum(config.voiceTone)}
           options={[
-            { label: 'no', value: 0 },
-            { label: '+3m', value: 180 },
-            { label: '+5m', value: 300 },
-            { label: '+8m', value: 480 },
-            { label: '+12m', value: 720 },
-            { label: '+15m', value: 900 },
+            { label: 'default', value: 0 },
+            { label: 'gentle',  value: 1 },
+            { label: 'calm',    value: 2 },
           ]}
-          onChange={(v) => update({ reaseguroSec: v })}
+          onChange={(v) => update({ voiceTone: numToVoiceTone(v) })}
           N={N}
           NT={NT}
         />
@@ -356,8 +312,8 @@ export default function AlarmScreen({
           className="font-ui text-[11.5px] leading-[1.55] mt-3"
           style={{ color: NT.muted }}
         >
-          Si no descartaste la alarma pasado este tiempo después del peak,
-          entra Hans Zimmer — Time (crossfade 8s) más cinemático.
+          La app puede cambiar este tono automáticamente si detecta sueño
+          insuficiente o stress alto, pero acá fijás el default.
         </p>
 
         {/* ─── Peak volume ──────────────────────────── */}
@@ -383,7 +339,7 @@ export default function AlarmScreen({
           className="font-ui text-[11.5px] leading-[1.55] mt-3"
           style={{ color: NT.muted }}
         >
-          Nivel máximo al que llegará la rampa. El volumen del dispositivo
+          Nivel máximo al que llega la rampa. El volumen del dispositivo
           también influye.
         </p>
 
@@ -409,19 +365,19 @@ export default function AlarmScreen({
               className="block font-headline font-[600] lowercase tracking-[-0.01em]"
               style={{ color: NT.primary, fontSize: 14 }}
             >
-              encadenar al protocolo
+              encadenar a Génesis
             </span>
             <span
               className="block mt-0.5 font-ui leading-[1.5]"
               style={{ color: NT.muted, fontSize: 11 }}
             >
-              Al descartar, voz de orden del día y abre el protocolo matutino.
+              Al cerrar el ritual, abre el protocolo matutino sin pasos extra.
             </span>
           </span>
           <ToggleVisual active={config.chainProtocol} N={N} />
         </button>
 
-        {/* ─── Actions ──────────────────────────────── */}
+        {/* ─── Acciones ──────────────────────────────── */}
         <SectionHeader N={N} NT={NT}>acciones</SectionHeader>
         <div className="flex gap-2">
           <button
@@ -442,10 +398,10 @@ export default function AlarmScreen({
               fontSize: 9.5,
             }}
           >
-            {previewState.status === 'running' ? 'sonando…' : 'probar 6s'}
+            {previewState.status === 'running' ? 'sonando…' : 'probar 6 s'}
           </button>
           <button
-            onClick={() => { haptics.warn(); void onFireNow(); }}
+            onClick={() => { haptics.warn(); onStartNow(); }}
             className="flex-1 font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985]"
             style={{
               padding: '12px 16px',
@@ -455,24 +411,9 @@ export default function AlarmScreen({
               boxShadow: `0 6px 18px -6px ${hexToRgba(N.amber, 0.5)}`,
             }}
           >
-            empezar ahora
+            comenzar ahora
           </button>
         </div>
-
-        {/* Test 1 min · dashed */}
-        <button
-          onClick={() => { haptics.tick(); void onFireTest(); }}
-          className="w-full mt-2 font-mono font-[600] tracking-[0.28em] uppercase transition-opacity active:opacity-70"
-          style={{
-            padding: '12px 16px',
-            background: 'transparent',
-            border: `1px dashed ${hexToRgba(N.amber, 0.4)}`,
-            color: NT.soft,
-            fontSize: 9.5,
-          }}
-        >
-          test completo · 1 min · ramp → peak → reaseguro
-        </button>
 
         {/* Preview diagnostic */}
         {previewState.status === 'done' && (
@@ -498,7 +439,7 @@ export default function AlarmScreen({
               style={{ color: NT.soft, fontSize: 11 }}
             >
               play started: <b>{previewState.result.playStarted ? 'sí' : 'NO'}</b>{' '}
-              · buffered: <b>{previewState.result.bufferedSec.toFixed(1)}s</b>
+              · buffered: <b>{previewState.result.bufferedSec.toFixed(1)} s</b>
               {previewState.result.error && (
                 <>
                   <br />error: <b>{previewState.result.error}</b>
@@ -507,79 +448,6 @@ export default function AlarmScreen({
             </div>
           </div>
         )}
-
-        {/* Status active card */}
-        {config.enabled && (
-          <div
-            className="mt-5 px-4 py-3.5 flex items-start gap-3"
-            style={{
-              border: `1px solid ${hexToRgba(N.amber, 0.28)}`,
-              background: hexToRgba(N.amber, 0.05),
-            }}
-          >
-            <Bell size={13} strokeWidth={1.9} style={{ color: N.amber, marginTop: 2 }} />
-            <div>
-              <div
-                className="font-headline font-[600] lowercase tracking-[-0.01em]"
-                style={{ color: NT.primary, fontSize: 13 }}
-              >
-                {describeAlarm(config).toLowerCase()}
-              </div>
-              <div
-                className="font-ui mt-0.5"
-                style={{ color: NT.muted, fontSize: 11 }}
-              >
-                {formatCountdown(info.msUntilRampStart, info.offsetSec)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Honesty card */}
-        <div
-          className="mt-3 px-4 py-3.5 flex items-start gap-3"
-          style={{
-            border: `1px solid ${hexToRgba(N.candle, 0.4)}`,
-            background: hexToRgba(N.candle, 0.05),
-          }}
-        >
-          <AlertTriangle size={13} strokeWidth={1.9} style={{ color: N.candle, marginTop: 2 }} />
-          <div>
-            <div
-              className="font-headline font-[600] lowercase tracking-[-0.01em] mb-2"
-              style={{ color: NT.primary, fontSize: 13 }}
-            >
-              para que suene de verdad
-            </div>
-            <ol
-              className="font-ui leading-[1.55] space-y-1 list-decimal pl-4"
-              style={{ color: NT.muted, fontSize: 10.5 }}
-            >
-              <li>Instala la app al home screen (Compartir → Añadir a inicio).</li>
-              <li>Acepta el permiso de notificaciones la primera vez que armes la alarma.</li>
-              <li>
-                Deja la app <b>abierta en primer plano</b> al dormir — iOS detiene
-                el audio de cualquier PWA en segundo plano. Bloquear el iPad
-                está OK; <b>no cierres la app</b> deslizándola fuera.
-              </li>
-              <li>
-                Como respaldo, al peak se dispara una notificación del sistema
-                (banner + sonido corto) aunque iOS haya matado el proceso.
-              </li>
-            </ol>
-            <div
-              className="font-ui leading-[1.55] mt-2 pt-2"
-              style={{
-                color: NT.muted,
-                fontSize: 10,
-                borderTop: `1px solid ${hexToRgba(N.amber, 0.1)}`,
-              }}
-            >
-              Si no sonó nada, lo más probable es que iOS haya descargado la
-              pestaña. Usa el test de 1 min arriba para confirmar.
-            </div>
-          </div>
-        </div>
 
         {/* Notification permission hint */}
         {config.enabled && (notifPerm === 'default' || notifPerm === 'denied') && (
@@ -616,8 +484,8 @@ export default function AlarmScreen({
                 style={{ color: NT.muted, fontSize: 10.5 }}
               >
                 {notifPerm === 'denied'
-                  ? 'iOS está bloqueando las notificaciones de esta app. Ajustes del sistema → Notificaciones → Morning Awakening → Permitir.'
-                  : 'Sin este permiso, el respaldo del sistema a la hora del peak no suena aunque la app esté cerrada.'}
+                  ? 'iOS está bloqueando las notificaciones de esta app. Ajustes → Notificaciones → Morning Awakening → Permitir.'
+                  : 'Sin este permiso no recibís el aviso silencioso a la hora del ritual.'}
               </div>
               {notifPerm === 'default' && (
                 <button
@@ -642,23 +510,17 @@ export default function AlarmScreen({
 
         <div className="h-4" />
       </div>
-
-      {/* "No cierres la app" advisory */}
-      {showCloseWarning && (
-        <AppCloseWarningModal onClose={() => setShowCloseWarning(false)} />
-      )}
     </div>
   );
 }
 
-// ─── Sub-components ──────────────────────────────────────────
+// ─── Sub-components ─────────────────────────────────────────
 
 interface PaletteProps {
   N: ReturnType<typeof useNightPalette>['palette'];
   NT: ReturnType<typeof useNightPalette>['paletteText'];
 }
 
-// Newspaper section header: ─ · NAME · ─── (con ícono opcional + right caption)
 function SectionHeader({
   children,
   N,
@@ -784,9 +646,7 @@ function TimelineRow({
         <span
           aria-hidden
           style={{
-            width: 6,
-            height: 6,
-            borderRadius: 99,
+            width: 6, height: 6, borderRadius: 99,
             background: N.amber,
             boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.7)}`,
             marginTop: 6,
@@ -817,13 +677,11 @@ function ToggleVisual({ active, N }: { active: boolean } & { N: PaletteProps['N'
   );
 }
 
-function formatCountdown(ms: number, offsetSec: number): string {
-  if (ms === 0 && offsetSec > 0) {
-    return `La rampa ya está corriendo (${Math.floor(offsetSec / 60)} min).`;
-  }
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `La subida suave empezará en ${h}h ${m}m.`;
-  return `La subida suave empezará en ${m} min.`;
+// El PillSelector trabaja con `value: number`, así que codificamos el
+// voice tone como 0/1/2 para ese widget.
+function voiceToneToNum(t: RitualVoiceTone): number {
+  return t === 'gentle' ? 1 : t === 'calm' ? 2 : 0;
+}
+function numToVoiceTone(n: number): RitualVoiceTone {
+  return n === 1 ? 'gentle' : n === 2 ? 'calm' : 'default';
 }
