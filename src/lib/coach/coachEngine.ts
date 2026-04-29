@@ -56,6 +56,17 @@ import {
 } from './signals';
 import { getDayContext, type DayContext } from '../common/dayProfile';
 import { getClimateContext, type ClimateContext } from '../common/climateEC';
+import { deriveHealthSignals, type DerivedHealthSignals } from './healthSignals';
+import { loadHealthSnapshot } from '../common/healthkitBridge';
+import {
+  evaluateSubRoutines,
+  activeManualIds,
+  type SubRoutine,
+  type SubRoutineId,
+  type SubRoutineCtx,
+} from './subRoutines';
+import { pickTipOfTheDay, type Tip, type TipTags } from './tipsBank';
+import { pickComboOfTheDay, type Combo, type ComboCtx } from './combos';
 
 // ═══════════════════════════════════════════════════════════
 // TIPOS DE SALIDA
@@ -115,6 +126,8 @@ export interface BriefingSignals {
   resolved: ResolvedSignals;
   /** Contexto climático auto-derivado para Quito. */
   climate: ClimateContext;
+  /** Señales derivadas de Apple Health/Fitness. */
+  health: DerivedHealthSignals;
   /**
    * Lista de motivos legibles. Cada item explica una decisión del
    * motor en una sola línea (ej. "+0.3 L de agua porque clima seco").
@@ -134,6 +147,12 @@ export interface Briefing {
   warnings: CoachWarning[];
   /** Capa de señales + clima utilizadas hoy (v9). */
   signals: BriefingSignals;
+  /** Sub-rutinas activas (auto + manual) con triggers cumplidos. */
+  activeSubRoutines: SubRoutine[];
+  /** Tip del día (anti-repetición + relevancia). `null` si no hay. */
+  tip: Tip | null;
+  /** Combo curado más relevante hoy. `null` si ningún trigger activa. */
+  combo: Combo | null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -687,13 +706,22 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
   const ctx = getDayContext(now);
   const dateISO = ctx.dateISO;
 
-  // 0. Señales + clima
+  // 0. Señales + clima + Apple Health
   const checkIn = state.signals;
   const resolved = resolveSignals(checkIn);
   const climate = getClimateContext(now);
+  const health = deriveHealthSignals(loadHealthSnapshot(), now.getTime());
   const rationale: string[] = [];
 
-  // 1. Modo activo (puede ser degradado a "calm" si la piel se siente reactiva)
+  // 0b. Si Health autocompleta sleep mientras el usuario no marcó nada:
+  //     reflejamos la pista en el rationale (sin sobre-escribir el chip).
+  if (!checkIn?.sleep && health.sleepLastNight) {
+    rationale.push(
+      `Apple Health · última noche clasificada como "${SLEEP_LABEL[health.sleepLastNight]}".`,
+    );
+  }
+
+  // 1. Modo activo (puede ser degradado a "recovery" si la piel se siente reactiva)
   let mode = modeForFlare(state.flare, state.derivaC.active);
   let modeReason = buildModeReason(mode, state.flare, state.derivaC.active);
   const flareActive = state.flare.phase !== 'resolved';
@@ -702,7 +730,6 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     isReactiveFeel(resolved.skinFeel) &&
     (mode === 'normal' || mode === 'acne_treatment')
   ) {
-    // Piel reactiva sin brote diagnosticado: evitar activos hoy.
     mode = 'recovery';
     modeReason =
       'Hoy la piel se siente reactiva — degrado la rutina a recovery (sin activos) para no irritar más.';
@@ -716,7 +743,7 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
   const pm = filterRoutine(ROUTINES[`pm_${mode}`], state.conditions, flareActive);
 
   // 3. Targets dinámicos
-  const waterTarget = effectiveWaterTarget(climate, rationale);
+  const waterTarget = effectiveWaterTargetWithHealth(climate, health, rationale);
 
   // 4. Acciones base
   const actions: CoachAction[] = [];
@@ -738,22 +765,44 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
   // 5. Acciones extra desde signals (respiración, meditación)
   actions.push(...buildSignalActions(resolved, now));
 
-  // 6. Modulación de prioridades por signals
+  // 6. Sub-rutinas auto + manual → inject + rationale
+  const manualActive = activeManualIds(state.manualSubRoutines, now);
+  const subCtx: SubRoutineCtx = {
+    now,
+    signals: resolved,
+    climate,
+    health,
+    flareActive,
+    manualActive,
+  };
+  const activeSubRoutines = evaluateSubRoutines(subCtx);
+  // Anti-duplicación de acciones: si ya hay un id idéntico se omite.
+  const knownIds = new Set(actions.map((a) => a.id));
+  for (const sr of activeSubRoutines) {
+    rationale.push(sr.rationale(subCtx));
+    for (const extra of sr.inject(subCtx)) {
+      if (knownIds.has(extra.id)) continue;
+      actions.push(extra);
+      knownIds.add(extra.id);
+    }
+  }
+
+  // 7. Modulación de prioridades por signals
   const modulated = modulateActionsBySignals(actions, resolved, rationale);
 
-  // 7. En día de descanso, oculta acciones medium si no hay brote.
+  // 8. En día de descanso, oculta acciones medium si no hay brote.
   const filteredActions = ctx.profile === 'rest' && !flareActive
     ? modulated.filter((a) => a.priority !== 'medium')
     : modulated;
 
-  // 8. Ordenamiento: prioridad → urgencia.
+  // 9. Ordenamiento: prioridad → urgencia.
   filteredActions.sort((a, b) => {
     const pa = PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
     if (pa !== 0) return -pa;
     return URGENCY_WEIGHT[b.urgency] - URGENCY_WEIGHT[a.urgency];
   });
 
-  // 9. Status + warnings
+  // 10. Status + warnings
   const status = buildStatus(
     state,
     dateISO,
@@ -765,6 +814,30 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     ...detectOralConflicts(state, dateISO),
     ...detectStockWarnings(state),
   ];
+
+  // 11. Tip del día + combo del día
+  const subIds = activeSubRoutines.map((s) => s.id);
+  const contextTags = buildContextTags(climate, ctx);
+  const tip = pickTipOfTheDay({
+    dateISO,
+    skinFeel: resolved.skinFeel,
+    sleep: resolved.sleep,
+    stress: resolved.stress,
+    conditions: state.conditions,
+    activeSubRoutines: subIds,
+    contextTags,
+    recentSeen: state.tipsSeen.map((t) => t.id),
+  });
+
+  const comboCtx: ComboCtx = {
+    signals: resolved,
+    climate,
+    health,
+    conditions: state.conditions,
+    flareActive,
+    activeSubRoutines: new Set<SubRoutineId>(subIds),
+  };
+  const combo = pickComboOfTheDay(comboCtx, dateISO);
 
   return {
     context: ctx,
@@ -780,9 +853,50 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
       checkIn,
       resolved,
       climate,
+      health,
       rationale,
     },
+    activeSubRoutines,
+    tip,
+    combo,
   };
+}
+
+// ─── Helpers internos del entry point ──────────────────────
+
+function buildContextTags(
+  climate: ClimateContext,
+  ctx: DayContext,
+): NonNullable<TipTags['context']> {
+  const tags: NonNullable<TipTags['context']> = [];
+  if (climate.humidity === 'dry') tags.push('dry');
+  if (climate.humidity === 'humid') tags.push('humid');
+  if (climate.uvLabel === 'high') tags.push('uv_high');
+  if (climate.band === 'cold') tags.push('cold');
+  if (climate.band === 'warm') tags.push('warm');
+  if (ctx.profile === 'rest') tags.push('rest_day');
+  return tags;
+}
+
+/**
+ * Versión extendida de `effectiveWaterTarget` que también suma
+ * por actividad alta detectada en Apple Fitness.
+ */
+function effectiveWaterTargetWithHealth(
+  climate: ClimateContext,
+  health: DerivedHealthSignals,
+  rationale: string[],
+): number {
+  let target = effectiveWaterTarget(climate, rationale);
+  if (health.activityToday === 'high') {
+    target += 500;
+    rationale.push(
+      `+0.5 L de agua porque Apple Fitness reporta actividad alta hoy${
+        health.exerciseMinToday ? ` (${health.exerciseMinToday} min)` : ''
+      }.`,
+    );
+  }
+  return target;
 }
 
 // ═══════════════════════════════════════════════════════════

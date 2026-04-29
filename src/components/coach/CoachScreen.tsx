@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import {
   ArrowLeft, ArrowUpRight, Sun, Moon, Droplet, Brain, Smile, Pill, Flame,
-  ChevronDown, Plus, Check, AlertTriangle, Activity,
+  ChevronDown, ChevronUp, Plus, Check, AlertTriangle, Activity,
   type LucideIcon,
 } from 'lucide-react';
 import { hexToRgba } from '@/lib/common/theme';
@@ -40,6 +40,9 @@ import FlareControls from './FlareControls';
 import RemindersPanel from './RemindersPanel';
 import PillSchedulePanel from './PillSchedulePanel';
 import CheckInBanner from './CheckInBanner';
+import SubRoutineChipRow from './SubRoutineChipRow';
+import TipCard from './TipCard';
+import ComboCard from './ComboCard';
 import { useCoachReminders } from '@/hooks/useCoachReminders';
 
 interface CoachScreenProps {
@@ -165,6 +168,16 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                 />
               </div>
 
+              {/* Chip-row "tu día" · sub-rutinas manuales + auto */}
+              <div className="mt-3">
+                <SubRoutineChipRow
+                  activeIds={new Set(briefing.activeSubRoutines.map(s => s.id))}
+                  manualIds={new Set(state.manualSubRoutines.map(m => m.id))}
+                  onActivate={coach.activateSubRoutine}
+                  onDeactivate={coach.deactivateSubRoutine}
+                />
+              </div>
+
               {/* Rationale del día · explicabilidad de los ajustes */}
               {briefing.signals.rationale.length > 0 && (
                 <RationaleDrawer rationale={briefing.signals.rationale} />
@@ -195,6 +208,20 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
               <div className="mt-5">
                 <QuickLogPanel coach={coach} />
               </div>
+
+              {/* Combo del día · 2-4 productos/hábitos curados */}
+              {briefing.combo && (
+                <div className="mt-5">
+                  <ComboCard combo={briefing.combo} onSelectProduct={openProduct} />
+                </div>
+              )}
+
+              {/* Tip del día · 1 frase relevante al contexto */}
+              {briefing.tip && (
+                <div className="mt-3">
+                  <TipCard tip={briefing.tip} onSeen={coach.markTipSeen} />
+                </div>
+              )}
 
               {/* HERO · acción protagónica del día (la más urgente) */}
               {briefing.actions.length > 0 && (
@@ -574,6 +601,68 @@ function WarningCard({ severity, message }: { severity: 'info' | 'caution' | 'da
       <span className="font-mono text-[11.5px] leading-snug" style={{ color: SUNRISE_TEXT.primary }}>
         {message}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Drawer colapsable que lista los motivos legibles que el motor
+ * usó hoy (rationale[]). Cada línea es una decisión explicada.
+ */
+function RationaleDrawer({ rationale }: { rationale: string[] }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="mt-3 rounded-2xl overflow-hidden"
+      style={{
+        background: hexToRgba(SUNRISE.night, 0.45),
+        border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.12)}`,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => { haptics.tick(); setOpen(v => !v); }}
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            aria-hidden
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ background: SUNRISE.rise2 }}
+          />
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[600]"
+            style={{ color: SUNRISE_TEXT.muted, fontSize: 9 }}
+          >
+            ajustes de hoy · {rationale.length}
+          </span>
+        </div>
+        <span style={{ color: SUNRISE_TEXT.muted }}>
+          {open ? <ChevronUp size={14} strokeWidth={2.2} /> : <ChevronDown size={14} strokeWidth={2.2} />}
+        </span>
+      </button>
+      {open && (
+        <ul
+          className="px-4 pb-3 pt-1 flex flex-col gap-1.5"
+          style={{ borderTop: `1px solid ${hexToRgba(SUNRISE.rise2, 0.1)}` }}
+        >
+          {rationale.map((line, i) => (
+            <li
+              key={i}
+              className="font-ui text-[12px] leading-snug flex items-start gap-2"
+              style={{ color: SUNRISE_TEXT.soft }}
+            >
+              <span
+                aria-hidden
+                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                style={{ background: hexToRgba(SUNRISE.rise2, 0.6) }}
+              />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

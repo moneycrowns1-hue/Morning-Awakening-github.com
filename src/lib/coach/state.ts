@@ -16,10 +16,12 @@ import { USER_CONDITIONS } from './conditions';
 import type { BrushingSlot } from './brushing';
 import type { CriticalHabitId } from './criticalHabits';
 import type { DailyCheckIn, SkinFeel, Sleep, Stress } from './signals';
+import type { ManualSubRoutine, SubRoutineId } from './subRoutines';
 
 // Re-export the check-in types so consumers can keep importing
 // from `state.ts` (single barrel for coach persistence).
 export type { DailyCheckIn, SkinFeel, Sleep, Stress };
+export type { ManualSubRoutine, SubRoutineId };
 
 // ───────────────────────────────────────────────────────────
 // Storage keys
@@ -36,6 +38,8 @@ const KEYS = {
   bruxism: 'ma-coach-bruxism',
   todos: 'ma-coach-todos',
   checkIn: 'ma-coach-checkin',
+  tipsSeen: 'ma-coach-tips-seen',
+  manualSubRoutines: 'ma-coach-manual-sub',
 } as const;
 
 // ───────────────────────────────────────────────────────────
@@ -144,6 +148,22 @@ export interface CoachState {
    * `null` cuando el usuario aún no marcó nada hoy.
    */
   signals: DailyCheckIn | null;
+  /**
+   * Histórico de tips mostrados (más recientes primero), usado
+   * para anti-repetición. Se trunca a un buffer chico.
+   */
+  tipsSeen: TipSeenEntry[];
+  /**
+   * Sub-rutinas activadas manualmente por el usuario y aún
+   * vigentes (TTL). Se limpian al cargar.
+   */
+  manualSubRoutines: ManualSubRoutine[];
+}
+
+/** Una entrada del historial de tips: id + fecha en que se mostró. */
+export interface TipSeenEntry {
+  id: string;
+  shownAtISO: string;
 }
 
 // ───────────────────────────────────────────────────────────
@@ -205,6 +225,24 @@ export function loadCheckIn(at: Date = new Date()): DailyCheckIn | null {
   return stored;
 }
 
+/** Histórico de tips vistos (más recientes primero). */
+export function loadTipsSeen(): TipSeenEntry[] {
+  const arr = read<TipSeenEntry[]>(KEYS.tipsSeen, []);
+  return Array.isArray(arr) ? arr : [];
+}
+
+/** Sub-rutinas manuales aún vigentes (filtra TTL al cargar). */
+export function loadManualSubRoutines(at: Date = new Date()): ManualSubRoutine[] {
+  const arr = read<ManualSubRoutine[]>(KEYS.manualSubRoutines, []);
+  if (!Array.isArray(arr)) return [];
+  const now = at.getTime();
+  return arr.filter((m) => {
+    const start = new Date(m.activatedAtISO).getTime();
+    if (Number.isNaN(start)) return false;
+    return now <= start + m.ttlH * 60 * 60 * 1000;
+  });
+}
+
 /** Snapshot completo del estado para alimentar el engine. */
 export function loadCoachState(): CoachState {
   return {
@@ -218,6 +256,8 @@ export function loadCoachState(): CoachState {
     bruxism: loadBruxismLog(),
     todos: loadTodos(),
     signals: loadCheckIn(),
+    tipsSeen: loadTipsSeen(),
+    manualSubRoutines: loadManualSubRoutines(),
   };
 }
 
@@ -317,6 +357,41 @@ export function updateCheckIn(
 /** Borra el check-in de hoy (si lo hubiera). */
 export function clearCheckIn(): void {
   write<DailyCheckIn | null>(KEYS.checkIn, null);
+}
+
+/**
+ * Marca un tip como visto hoy. Trunca el historial para evitar
+ * crecer indefinidamente.
+ */
+export function markTipSeen(
+  id: string,
+  at: Date = new Date(),
+  maxEntries: number = 60,
+): void {
+  const seen = loadTipsSeen();
+  if (seen[0]?.id === id) return; // ya marcado en la sesión actual
+  const next = [{ id, shownAtISO: at.toISOString() }, ...seen].slice(0, maxEntries);
+  write(KEYS.tipsSeen, next);
+}
+
+/** Activa manualmente una sub-rutina con su TTL en horas. */
+export function activateManualSubRoutine(
+  id: SubRoutineId,
+  ttlH: number,
+  at: Date = new Date(),
+): void {
+  const current = loadManualSubRoutines(at).filter((m) => m.id !== id);
+  current.push({ id, activatedAtISO: at.toISOString(), ttlH });
+  write(KEYS.manualSubRoutines, current);
+}
+
+/** Desactiva manualmente una sub-rutina (toggle off). */
+export function deactivateManualSubRoutine(
+  id: SubRoutineId,
+  at: Date = new Date(),
+): void {
+  const current = loadManualSubRoutines(at).filter((m) => m.id !== id);
+  write(KEYS.manualSubRoutines, current);
 }
 
 // ───────────────────────────────────────────────────────────

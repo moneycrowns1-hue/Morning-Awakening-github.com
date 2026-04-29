@@ -30,12 +30,16 @@ import {
   logBruxism as persistBruxism,
   saveTodos,
   updateCheckIn as persistCheckIn,
+  markTipSeen as persistTipSeen,
+  activateManualSubRoutine as persistActivateSub,
+  deactivateManualSubRoutine as persistDeactivateSub,
   type CoachState,
   type DerivaCState,
   type BruxismDayEntry,
   type OralScheduleEntry,
   type Todo,
   type DailyCheckIn,
+  type SubRoutineId,
 } from '@/lib/coach/state';
 import { buildBriefing, type Briefing } from '@/lib/coach/coachEngine';
 import type { FlareState } from '@/lib/coach/flareProtocol';
@@ -55,6 +59,8 @@ const EMPTY_STATE: CoachState = {
   bruxism: {},
   todos: [],
   signals: null,
+  tipsSeen: [],
+  manualSubRoutines: [],
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -114,6 +120,12 @@ export interface UseCoachReturn {
   setTodos: (todos: Todo[]) => void;
   /** Actualiza parcialmente el check-in del día (skinFeel/sleep/stress). */
   setCheckIn: (patch: Partial<Pick<DailyCheckIn, 'skinFeel' | 'sleep' | 'stress'>>) => void;
+  /** Marca un tip como visto (anti-repetición). */
+  markTipSeen: (id: string) => void;
+  /** Activa una sub-rutina manualmente con su TTL en horas. */
+  activateSubRoutine: (id: SubRoutineId, ttlH: number) => void;
+  /** Desactiva una sub-rutina manualmente (toggle off). */
+  deactivateSubRoutine: (id: SubRoutineId) => void;
   refresh: () => void;
 }
 
@@ -196,6 +208,21 @@ export function useCoach(): UseCoachReturn {
     [],
   );
 
+  const markTipSeen = useCallback((id: string) => {
+    persistTipSeen(id);
+    refreshFromDisk();
+  }, []);
+
+  const activateSubRoutine = useCallback((id: SubRoutineId, ttlH: number) => {
+    persistActivateSub(id, ttlH);
+    refreshFromDisk();
+  }, []);
+
+  const deactivateSubRoutine = useCallback((id: SubRoutineId) => {
+    persistDeactivateSub(id);
+    refreshFromDisk();
+  }, []);
+
   const refresh = useCallback(() => {
     refreshFromDisk();
     setNow(new Date());
@@ -224,6 +251,9 @@ export function useCoach(): UseCoachReturn {
     logBruxism,
     setTodos,
     setCheckIn,
+    markTipSeen,
+    activateSubRoutine,
+    deactivateSubRoutine,
     refresh,
   };
 }
