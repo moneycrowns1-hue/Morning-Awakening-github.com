@@ -45,7 +45,17 @@ import {
   oralTakenCount,
   brushingDoneToday,
 } from './state';
+import {
+  resolveSignals,
+  isReactiveFeel,
+  SKIN_FEEL_LABEL,
+  SLEEP_LABEL,
+  STRESS_LABEL,
+  type DailyCheckIn,
+  type ResolvedSignals,
+} from './signals';
 import { getDayContext, type DayContext } from '../common/dayProfile';
+import { getClimateContext, type ClimateContext } from '../common/climateEC';
 
 // ═══════════════════════════════════════════════════════════
 // TIPOS DE SALIDA
@@ -93,6 +103,25 @@ export interface CoachWarning {
   productIds?: string[];
 }
 
+/**
+ * Resumen de las señales y el clima que el motor usó para construir
+ * el briefing de hoy. La UI puede mostrarlo en una tira "ajustes
+ * de hoy" para hacer explicable cada decisión.
+ */
+export interface BriefingSignals {
+  /** Check-in crudo persistido (si lo hubo). */
+  checkIn: DailyCheckIn | null;
+  /** Versión resuelta con defaults aplicados. */
+  resolved: ResolvedSignals;
+  /** Contexto climático auto-derivado para Quito. */
+  climate: ClimateContext;
+  /**
+   * Lista de motivos legibles. Cada item explica una decisión del
+   * motor en una sola línea (ej. "+0.3 L de agua porque clima seco").
+   */
+  rationale: string[];
+}
+
 export interface Briefing {
   context: DayContext;
   mode: RoutineMode;
@@ -103,6 +132,8 @@ export interface Briefing {
   actions: CoachAction[];
   status: StatusCard[];
   warnings: CoachWarning[];
+  /** Capa de señales + clima utilizadas hoy (v9). */
+  signals: BriefingSignals;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -243,17 +274,23 @@ function buildBrushingActions(state: CoachState, now: Date, dateISO: string): {
   return { actions, done: doneSlots.size, target: plan.dailyTarget };
 }
 
-function buildWaterAction(state: CoachState, now: Date, dateISO: string): {
+function buildWaterAction(
+  state: CoachState,
+  now: Date,
+  dateISO: string,
+  targetMl: number,
+): {
   action: CoachAction | null;
   ml: number;
+  targetMl: number;
 } {
   const ml = state.water[dateISO] ?? 0;
-  if (ml >= WATER_TARGET_ML) return { action: null, ml };
+  if (ml >= targetMl) return { action: null, ml, targetMl };
 
-  const remaining = WATER_TARGET_ML - ml;
+  const remaining = targetMl - ml;
   let urgency: Urgency = 'anytime';
-  if (now.getHours() >= 18 && ml < WATER_TARGET_ML * 0.7) urgency = 'overdue';
-  else if (now.getHours() >= 14 && ml < WATER_TARGET_ML * 0.5) urgency = 'today';
+  if (now.getHours() >= 18 && ml < targetMl * 0.7) urgency = 'overdue';
+  else if (now.getHours() >= 14 && ml < targetMl * 0.5) urgency = 'today';
 
   return {
     action: {
@@ -267,6 +304,7 @@ function buildWaterAction(state: CoachState, now: Date, dateISO: string): {
       habitId: 'water_3l',
     },
     ml,
+    targetMl,
   };
 }
 
@@ -425,6 +463,7 @@ function buildStatus(
   dateISO: string,
   brushing: { done: number; target: number },
   waterMl: number,
+  waterTargetMl: number = WATER_TARGET_ML,
 ): StatusCard[] {
   const cards: StatusCard[] = [
     {
@@ -437,8 +476,8 @@ function buildStatus(
     {
       id: 'water',
       label: 'Hidratación',
-      value: `${(waterMl / 1000).toFixed(1)} / ${(WATER_TARGET_ML / 1000).toFixed(0)} L`,
-      progress: Math.min(1, waterMl / WATER_TARGET_ML),
+      value: `${(waterMl / 1000).toFixed(1)} / ${(waterTargetMl / 1000).toFixed(1)} L`,
+      progress: Math.min(1, waterMl / waterTargetMl),
       domain: 'hydration',
     },
   ];
@@ -504,6 +543,143 @@ function buildHeadline(mode: RoutineMode, ctx: DayContext, flare: FlareState): s
 }
 
 // ═══════════════════════════════════════════════════════════
+// MODULACIÓN POR SEÑALES + CLIMA
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Calcula el target de agua del día ajustado por clima/actividad.
+ * Por defecto 3 L, sube hasta 3.3 L si la estación es seca y/o
+ * el UV es alto en horas centrales.
+ */
+function effectiveWaterTarget(
+  climate: ClimateContext,
+  rationale: string[],
+): number {
+  let target = WATER_TARGET_ML;
+  if (climate.humidity === 'dry') {
+    target += 300;
+    rationale.push('+0.3 L de agua porque la estación es seca en Quito.');
+  }
+  if (climate.uvLabel === 'high') {
+    target += 200;
+    rationale.push('+0.2 L de agua porque el UV está en franja alta ahora.');
+  }
+  return target;
+}
+
+/**
+ * Sube de prioridad (medium → high → critical) si toca, sin pasar
+ * de critical. No baja: la urgencia clínica del flare nunca cae.
+ */
+function bumpPriority(p: Priority): Priority {
+  if (p === 'medium') return 'high';
+  if (p === 'high') return 'critical';
+  return 'critical';
+}
+
+/**
+ * Pasa por todas las acciones y modula prioridades/urgencias según
+ * skin-feel/sleep/stress. Reescribe `reason` con un sufijo legible
+ * cuando aporta contexto. Va anotando en `rationale[]`.
+ */
+function modulateActionsBySignals(
+  actions: CoachAction[],
+  signals: ResolvedSignals,
+  rationale: string[],
+): CoachAction[] {
+  const reactive = isReactiveFeel(signals.skinFeel);
+  const sleepPoor = signals.sleep === 'poor';
+  const stressHigh = signals.stress === 'high';
+
+  if (reactive) {
+    rationale.push(
+      `Piel se siente ${SKIN_FEEL_LABEL[signals.skinFeel]} → priorizo calmantes y bajo activos.`,
+    );
+  }
+  if (sleepPoor) {
+    rationale.push(
+      `Dormiste ${SLEEP_LABEL[signals.sleep]} → subo respiración y meditación al frente.`,
+    );
+  }
+  if (stressHigh) {
+    rationale.push(
+      `Estrés ${STRESS_LABEL[signals.stress]} → bruxism y respiración pasan a crítico.`,
+    );
+  }
+
+  return actions.map((a) => {
+    let priority = a.priority;
+    let urgency = a.urgency;
+    let reason = a.reason;
+
+    // Sleep poor: respiration & meditation suben prioridad.
+    if (sleepPoor && a.habitId === 'breathing_morning') {
+      priority = bumpPriority(priority);
+    }
+    if (sleepPoor && a.habitId === 'meditation_daily') {
+      priority = bumpPriority(priority);
+    }
+
+    // Stress high: bruxism crítico siempre, y la respiración nocturna.
+    if (stressHigh && (a.habitId === 'bruxism_am' || a.habitId === 'bruxism_pm')) {
+      priority = 'critical';
+    }
+    if (stressHigh && a.habitId === 'breathing_night') {
+      priority = bumpPriority(priority);
+    }
+
+    // Reactive skin: la rutina del día sube urgencia y se anota.
+    if (reactive && a.kind === 'skincare_routine') {
+      reason = `${reason} · piel reactiva hoy → mantén capas finas y sin activos.`;
+    }
+
+    return { ...a, priority, urgency, reason };
+  });
+}
+
+/**
+ * Inyecta acciones extra que el motor genera SOLO desde signals.
+ * Se ejecuta antes del ordenamiento para que entren al ranking.
+ */
+function buildSignalActions(
+  signals: ResolvedSignals,
+  now: Date,
+): CoachAction[] {
+  const out: CoachAction[] = [];
+  const h = now.getHours();
+
+  if (signals.sleep === 'poor' && h >= 6 && h < 12) {
+    out.push({
+      id: 'signal_breathing_extra',
+      kind: 'breathing',
+      title: 'Respiración 5 min · reseteo',
+      reason:
+        'Dormiste mal: 5 min de respiración diafragmática bajan cortisol basal y reducen tensión mandibular.',
+      priority: 'high',
+      urgency: 'now',
+      domain: 'mind_body',
+      habitId: 'breathing_morning',
+    });
+  }
+
+  if (signals.stress === 'high') {
+    out.push({
+      id: 'signal_breathing_4_7_8',
+      kind: 'breathing',
+      title: 'Respiración 4-7-8 · 3 ciclos',
+      reason:
+        'Estrés alto: la 4-7-8 baja activación simpática en minutos y descomprime mandíbula.',
+      priority: h >= 20 ? 'critical' : 'high',
+      urgency: h >= 20 ? 'tonight' : 'today',
+      domain: 'mind_body',
+      habitId: h >= 20 ? 'breathing_night' : 'breathing_morning',
+    });
+  }
+
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
 // ENTRY POINT
 // ═══════════════════════════════════════════════════════════
 
@@ -511,41 +687,80 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
   const ctx = getDayContext(now);
   const dateISO = ctx.dateISO;
 
-  // 1. Modo activo
-  const mode = modeForFlare(state.flare, state.derivaC.active);
-  const modeReason = buildModeReason(mode, state.flare, state.derivaC.active);
+  // 0. Señales + clima
+  const checkIn = state.signals;
+  const resolved = resolveSignals(checkIn);
+  const climate = getClimateContext(now);
+  const rationale: string[] = [];
+
+  // 1. Modo activo (puede ser degradado a "calm" si la piel se siente reactiva)
+  let mode = modeForFlare(state.flare, state.derivaC.active);
+  let modeReason = buildModeReason(mode, state.flare, state.derivaC.active);
   const flareActive = state.flare.phase !== 'resolved';
+  if (
+    !flareActive &&
+    isReactiveFeel(resolved.skinFeel) &&
+    (mode === 'normal' || mode === 'acne_treatment')
+  ) {
+    // Piel reactiva sin brote diagnosticado: evitar activos hoy.
+    mode = 'recovery';
+    modeReason =
+      'Hoy la piel se siente reactiva — degrado la rutina a recovery (sin activos) para no irritar más.';
+    rationale.push(
+      'Modo de rutina temporalmente en recovery por skin-feel reactiva.',
+    );
+  }
 
   // 2. Rutinas filtradas
   const am = filterRoutine(ROUTINES[`am_${mode}`], state.conditions, flareActive);
   const pm = filterRoutine(ROUTINES[`pm_${mode}`], state.conditions, flareActive);
 
-  // 3. Acciones
+  // 3. Targets dinámicos
+  const waterTarget = effectiveWaterTarget(climate, rationale);
+
+  // 4. Acciones base
   const actions: CoachAction[] = [];
   actions.push(...buildFlareActions(flareSteps(state.flare)));
   actions.push(...buildSkincareActions(now, mode, modeReason));
   const { actions: brushingActions, done: brushDone, target: brushTarget } =
     buildBrushingActions(state, now, dateISO);
   actions.push(...brushingActions);
-  const { action: waterAction, ml: waterMl } = buildWaterAction(state, now, dateISO);
+  const { action: waterAction, ml: waterMl, targetMl } = buildWaterAction(
+    state,
+    now,
+    dateISO,
+    waterTarget,
+  );
   if (waterAction) actions.push(waterAction);
   actions.push(...buildBruxismActions(state, now, dateISO));
   actions.push(...buildOralActions(state, now, dateISO));
 
-  // En día de descanso, oculta acciones medium si no hay brote.
-  const filteredActions = ctx.profile === 'rest' && !flareActive
-    ? actions.filter(a => a.priority !== 'medium')
-    : actions;
+  // 5. Acciones extra desde signals (respiración, meditación)
+  actions.push(...buildSignalActions(resolved, now));
 
-  // 4. Ordenamiento: prioridad → urgencia.
+  // 6. Modulación de prioridades por signals
+  const modulated = modulateActionsBySignals(actions, resolved, rationale);
+
+  // 7. En día de descanso, oculta acciones medium si no hay brote.
+  const filteredActions = ctx.profile === 'rest' && !flareActive
+    ? modulated.filter((a) => a.priority !== 'medium')
+    : modulated;
+
+  // 8. Ordenamiento: prioridad → urgencia.
   filteredActions.sort((a, b) => {
     const pa = PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
     if (pa !== 0) return -pa;
     return URGENCY_WEIGHT[b.urgency] - URGENCY_WEIGHT[a.urgency];
   });
 
-  // 5. Status + warnings
-  const status = buildStatus(state, dateISO, { done: brushDone, target: brushTarget }, waterMl);
+  // 9. Status + warnings
+  const status = buildStatus(
+    state,
+    dateISO,
+    { done: brushDone, target: brushTarget },
+    waterMl,
+    targetMl,
+  );
   const warnings = [
     ...detectOralConflicts(state, dateISO),
     ...detectStockWarnings(state),
@@ -561,6 +776,12 @@ export function buildBriefing(now: Date, state: CoachState): Briefing {
     actions: filteredActions,
     status,
     warnings,
+    signals: {
+      checkIn,
+      resolved,
+      climate,
+      rationale,
+    },
   };
 }
 

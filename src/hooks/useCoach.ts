@@ -29,11 +29,13 @@ import {
   addWater as persistWater,
   logBruxism as persistBruxism,
   saveTodos,
+  updateCheckIn as persistCheckIn,
   type CoachState,
   type DerivaCState,
   type BruxismDayEntry,
   type OralScheduleEntry,
   type Todo,
+  type DailyCheckIn,
 } from '@/lib/coach/state';
 import { buildBriefing, type Briefing } from '@/lib/coach/coachEngine';
 import type { FlareState } from '@/lib/coach/flareProtocol';
@@ -52,6 +54,7 @@ const EMPTY_STATE: CoachState = {
   conditions: [],
   bruxism: {},
   todos: [],
+  signals: null,
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -109,6 +112,8 @@ export interface UseCoachReturn {
   addWater: (ml: number) => void;
   logBruxism: (entry: Partial<BruxismDayEntry>) => void;
   setTodos: (todos: Todo[]) => void;
+  /** Actualiza parcialmente el check-in del día (skinFeel/sleep/stress). */
+  setCheckIn: (patch: Partial<Pick<DailyCheckIn, 'skinFeel' | 'sleep' | 'stress'>>) => void;
   refresh: () => void;
 }
 
@@ -183,6 +188,14 @@ export function useCoach(): UseCoachReturn {
     refreshFromDisk();
   }, []);
 
+  const setCheckIn = useCallback(
+    (patch: Partial<Pick<DailyCheckIn, 'skinFeel' | 'sleep' | 'stress'>>) => {
+      persistCheckIn(patch);
+      refreshFromDisk();
+    },
+    [],
+  );
+
   const refresh = useCallback(() => {
     refreshFromDisk();
     setNow(new Date());
@@ -210,6 +223,7 @@ export function useCoach(): UseCoachReturn {
     addWater,
     logBruxism,
     setTodos,
+    setCheckIn,
     refresh,
   };
 }

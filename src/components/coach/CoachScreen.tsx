@@ -23,7 +23,6 @@ import {
   ChevronDown, Plus, Check, AlertTriangle, Activity,
   type LucideIcon,
 } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
 import { hexToRgba } from '@/lib/common/theme';
 import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
@@ -40,6 +39,7 @@ import QuickLogPanel from './QuickLogPanel';
 import FlareControls from './FlareControls';
 import RemindersPanel from './RemindersPanel';
 import PillSchedulePanel from './PillSchedulePanel';
+import CheckInBanner from './CheckInBanner';
 import { useCoachReminders } from '@/hooks/useCoachReminders';
 
 interface CoachScreenProps {
@@ -75,7 +75,21 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
       className="w-full h-full flex flex-col relative overflow-hidden"
       style={{ background: SUNRISE.night, color: SUNRISE_TEXT.primary }}
     >
-      <GradientBackground stage="welcome" particleCount={30} />
+      {/* Background mode-aware · sigue paleta global día/noche */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(SUNRISE.rise2, 0.14)} 0%, transparent 55%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(SUNRISE.dawn1, 0.08)} 0%, transparent 40%, ${hexToRgba(SUNRISE.cool, 0.06)} 100%)`,
+        }}
+      />
 
       {/* Header — back button + tagline */}
       <div
@@ -97,12 +111,32 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
             <ArrowLeft size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
           </button>
           <div className="flex-1 min-w-0 pt-0.5">
-            <span
-              className="font-ui text-[10px] uppercase tracking-[0.42em]"
-              style={{ color: SUNRISE_TEXT.muted }}
-            >
-              Coach
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className="font-ui text-[10px] uppercase tracking-[0.42em]"
+                style={{ color: SUNRISE_TEXT.muted }}
+              >
+                Coach
+              </span>
+              {hydrated && briefing && (
+                <span
+                  className="inline-flex items-center gap-1.5 font-mono uppercase tracking-[0.22em] font-[600] px-2 py-0.5 rounded-full"
+                  title={`Mes ${briefing.signals.climate.month} · ${briefing.signals.climate.rainSeason ? 'lluviosa' : 'seca'}`}
+                  style={{
+                    background: hexToRgba(SUNRISE.rise2, 0.08),
+                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.22)}`,
+                    color: SUNRISE_TEXT.soft,
+                    fontSize: 8.5,
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: SUNRISE.rise2 }}
+                  />
+                  {briefing.signals.climate.summary}
+                </span>
+              )}
+            </div>
             <div
               className="font-headline font-[600] text-[28px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
               style={{ color: SUNRISE_TEXT.primary }}
@@ -123,6 +157,19 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
             <LoadingState />
           ) : (
             <>
+              {/* Check-in del día · 1-tap chips opcionales */}
+              <div className="mt-4">
+                <CheckInBanner
+                  checkIn={briefing.signals.checkIn}
+                  onSet={coach.setCheckIn}
+                />
+              </div>
+
+              {/* Rationale del día · explicabilidad de los ajustes */}
+              {briefing.signals.rationale.length > 0 && (
+                <RationaleDrawer rationale={briefing.signals.rationale} />
+              )}
+
               {/* Warnings (si hay) */}
               {briefing.warnings.length > 0 && (
                 <div className="mt-4 flex flex-col gap-2">

@@ -15,7 +15,6 @@
 
 import { useMemo } from 'react';
 import { Sun, Moon, Layers, Check, Sparkles, ArrowUpRight, AlertTriangle, Bell as BellIcon } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
 import { hexToRgba } from '@/lib/common/theme';
 import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
@@ -126,7 +125,21 @@ export default function ProtocolsScreen({
       className="w-full h-full flex flex-col relative overflow-hidden"
       style={{ background: SUNRISE.night, color: SUNRISE_TEXT.primary }}
     >
-      <GradientBackground stage="welcome" particleCount={40} />
+      {/* Background mode-aware · sigue paleta global día/noche */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(SUNRISE.rise2, 0.14)} 0%, transparent 55%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(SUNRISE.dawn1, 0.08)} 0%, transparent 40%, ${hexToRgba(SUNRISE.cool, 0.06)} 100%)`,
+        }}
+      />
 
       {/* Header */}
       <div

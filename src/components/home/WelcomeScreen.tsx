@@ -16,6 +16,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, CalendarDays, Flame } from 'lucide-react';
+import AppHeaderControls from '../common/AppHeaderControls';
 import { useDailyQuote } from '@/hooks/useDailyQuote';
 import type { OperatorProfile } from '@/lib/genesis/progression';
 import { haptics } from '@/lib/common/haptics';
@@ -97,7 +98,7 @@ export default function WelcomeScreen({
         className="relative z-10 px-5 sunrise-fade-up"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.9rem)' }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="flex flex-col gap-0.5">
             <span
               className="font-mono uppercase tracking-[0.42em] font-[600]"
@@ -119,23 +120,19 @@ export default function WelcomeScreen({
           />
           <div className="flex items-center gap-1.5">
             <Flame
-              size={11}
+              size={12}
               strokeWidth={1.85}
               style={{ color: streak > 0 ? D.accent : DT.muted }}
             />
             <span
-              className="font-mono tabular-nums leading-none"
-              style={{ color: DT.soft, fontSize: 11 }}
+              className="font-mono tabular-nums leading-none font-[600]"
+              style={{ color: DT.soft, fontSize: 12 }}
             >
               {streak.toString().padStart(2, '0')}
             </span>
-            <span
-              className="font-mono uppercase tracking-[0.32em] font-[600]"
-              style={{ color: DT.muted, fontSize: 8.5 }}
-            >
-              streak
-            </span>
           </div>
+          {/* Controles · modo + paleta · acceso rápido al lado de la racha */}
+          <AppHeaderControls iconSize={13} />
         </div>
       </div>
 

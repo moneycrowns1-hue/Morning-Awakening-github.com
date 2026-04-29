@@ -15,6 +15,11 @@ import type { ConditionId } from './conditions';
 import { USER_CONDITIONS } from './conditions';
 import type { BrushingSlot } from './brushing';
 import type { CriticalHabitId } from './criticalHabits';
+import type { DailyCheckIn, SkinFeel, Sleep, Stress } from './signals';
+
+// Re-export the check-in types so consumers can keep importing
+// from `state.ts` (single barrel for coach persistence).
+export type { DailyCheckIn, SkinFeel, Sleep, Stress };
 
 // ───────────────────────────────────────────────────────────
 // Storage keys
@@ -30,6 +35,7 @@ const KEYS = {
   conditions: 'ma-coach-conditions',
   bruxism: 'ma-coach-bruxism',
   todos: 'ma-coach-todos',
+  checkIn: 'ma-coach-checkin',
 } as const;
 
 // ───────────────────────────────────────────────────────────
@@ -132,6 +138,12 @@ export interface CoachState {
   conditions: ConditionId[];
   bruxism: BruxismLog;
   todos: Todo[];
+  /**
+   * Check-in opcional del día actual (1-tap chips). Si no hay
+   * entrada para hoy, el motor aplica defaults silenciosos.
+   * `null` cuando el usuario aún no marcó nada hoy.
+   */
+  signals: DailyCheckIn | null;
 }
 
 // ───────────────────────────────────────────────────────────
@@ -180,6 +192,19 @@ export function loadTodos(): Todo[] {
   return read(KEYS.todos, []);
 }
 
+/**
+ * Carga el check-in del día indicado (default: hoy). Devuelve `null`
+ * si no hay entrada o si la guardada es de un día previo (los
+ * check-ins son por-día, no se acumulan).
+ */
+export function loadCheckIn(at: Date = new Date()): DailyCheckIn | null {
+  const stored = read<DailyCheckIn | null>(KEYS.checkIn, null);
+  if (!stored) return null;
+  const expected = todayISO(at);
+  if (stored.dateISO !== expected) return null;
+  return stored;
+}
+
 /** Snapshot completo del estado para alimentar el engine. */
 export function loadCoachState(): CoachState {
   return {
@@ -192,6 +217,7 @@ export function loadCoachState(): CoachState {
     conditions: loadConditions(),
     bruxism: loadBruxismLog(),
     todos: loadTodos(),
+    signals: loadCheckIn(),
   };
 }
 
@@ -265,6 +291,32 @@ export function logBruxism(entry: Partial<BruxismDayEntry>, at: Date = new Date(
 
 export function saveTodos(todos: Todo[]): void {
   write(KEYS.todos, todos);
+}
+
+/**
+ * Actualiza parcialmente el check-in de hoy (merge con lo previo
+ * si la entrada es del mismo día, o crea uno nuevo si no). Cada
+ * tap de chip llama esto con un solo eje, sin botón "guardar".
+ */
+export function updateCheckIn(
+  patch: Partial<Pick<DailyCheckIn, 'skinFeel' | 'sleep' | 'stress'>>,
+  at: Date = new Date(),
+): DailyCheckIn {
+  const date = todayISO(at);
+  const current = loadCheckIn(at);
+  const next: DailyCheckIn = {
+    ...(current ?? { dateISO: date }),
+    dateISO: date,
+    ...patch,
+    submittedAt: at.toISOString(),
+  };
+  write(KEYS.checkIn, next);
+  return next;
+}
+
+/** Borra el check-in de hoy (si lo hubiera). */
+export function clearCheckIn(): void {
+  write<DailyCheckIn | null>(KEYS.checkIn, null);
 }
 
 // ───────────────────────────────────────────────────────────
