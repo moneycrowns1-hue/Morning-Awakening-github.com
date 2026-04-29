@@ -1,60 +1,48 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════
-// MissionPhaseV8 · sunrise-themed protocol phase screen
+// ═══════════════════════════════════════════════════════════
+// MissionPhaseV8 · pantalla de fase del protocolo Génesis.
 //
-// Replaces the dojo-era MissionPhase. Layout, top → bottom:
-//   1. Animated sunrise background (tint depends on phase)
-//   2. Top header: breadcrumb FASE N / 12 · codename, global
-//      protocol progress bar.
-//   3. Hero: TimerRing with play / pause / skip / +1min
-//      controls underneath. For duration=0 phases, a single
-//      "Confirmar" CTA replaces the ring.
-//   4. Title (serif) + directive card.
-//   5. Sub-steps checklist / BreathingGuide / DailyInsight /
-//      JournalingPrompt (feature components reused unchanged).
-//   6. Collapsible "¿por qué funciona?" science note.
-//   7. Skip-phase button (dev / emergency).
-//   8. COMPLETADO overlay on completion.
+// Diseño editorial showcase (Welcome / NUCLEUS / Profile):
+//   - Fondo D.paper + radial accent + diagonal tint sutil
+//     (paleta global, sin GradientBackground animado).
+//   - Header masthead · dot accent + "fase 02 · codename".
+//   - Hairline 1px global progress.
+//   - Hero title lowercase XL con punto accent.
+//   - Timer ring con D.accent override.
+//   - Sub-steps editorial: numerales 01-NN + checkbox cuadrado.
+//   - Directive card · rounded-22 con kicker "directiva".
+//   - Coach split bento.
+//   - Science collapsible · Tip hairline.
+//   - Skip phase mono caption sutil.
+//   - Completado overlay · paper + radial accent + headline XL.
 //
-// Public props are identical to the old MissionPhase so the
-// parent (MorningAwakening.tsx) only needs to swap the import.
-//
-// NOTE: this file INTENTIONALLY reimplements the logic rather
-// than wrapping MissionPhase, because the old file is 760 LoC
-// of dojo CSS that would be very noisy to edit in place. The
-// old file stays on disk untouched; we just stop importing it.
-// ═══════════════════════════════════════════════════════
+// Lógica idéntica a la versión anterior: timer · voz · media
+// session · sub-step toggle · skip · journaling · breathing.
+// ═══════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { type Mission, formatTime, MISSIONS } from '@/lib/genesis/constants';
 import type { Operator } from '@/lib/genesis/operator';
-import { Pause, Play, SkipForward, Plus, Check, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
-import GradientBackground from '../common/GradientBackground';
+import { Pause, Play, Plus, Check, ChevronDown, ArrowUpRight, Sparkles } from 'lucide-react';
 import TimerRing from '../common/TimerRing';
 import BreathingGuide from '../common/BreathingGuide';
 import DailyInsight from '../common/DailyInsight';
 import JournalingPrompt from '../common/JournalingPrompt';
 import { useMissionTimer } from '@/hooks/useMissionTimer';
 import { haptics } from '@/lib/common/haptics';
-import { getStageColors, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
 import { clearMediaSession, setMediaSessionHandlers, setPlaybackState, updateMediaSession } from '@/lib/common/mediaSession';
 
 interface MissionPhaseV8Props {
   mission: Mission;
   onComplete: () => void;
-  /** Open the Coach screen with the relevant context (skincare AM, brushing, hydration). */
   onOpenCoach?: () => void;
-  /** Called when a sub-step toggles or the skip button fires, so the
-   *  parent can play its SFX (strike). */
   onStrike?: () => void;
-  /** Voice line orchestration. */
   operator?: Operator | null;
-  /** Optional audio-side transition hook called by the parent when a
-   *  phase finishes. Kept for compatibility; parent still uses it. */
   audioTransition?: () => void;
-  /** Called by the skip-mid-phase control so the parent can track it. */
   onSkipPhase?: () => void;
 }
 
@@ -67,8 +55,7 @@ export default function MissionPhaseV8({
   audioTransition,
   onSkipPhase,
 }: MissionPhaseV8Props) {
-  const stageIndex = Math.max(0, Math.min(11, mission.phase - 1));
-  const stageColors = getStageColors(stageIndex);
+  const { day: D, dayText: DT } = useAppTheme();
 
   const [started, setStarted] = useState<boolean>(mission.duration === 0);
   const [typewriterText, setTypewriterText] = useState<string>('');
@@ -93,18 +80,14 @@ export default function MissionPhaseV8({
     },
   });
 
-  // When the user taps Play the first time on a timed phase.
   useEffect(() => {
     if (started && mission.duration > 0 && !timer.isRunning && !timer.expired && !timer.isPaused) {
       timer.start();
     }
-    // Only care about `started` edges and a fresh mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
 
-  // ── Media Session: lockscreen / bluetooth controls ────
-  // Expose the current phase as "now playing" so iOS / Android show
-  // it on the lock screen with play/pause/next buttons.
+  // ── Media session lockscreen controls ─────────────────
   useEffect(() => {
     updateMediaSession({
       title: `${toTitleCase(mission.title)} · fase ${mission.phase}/${MISSIONS.length}`,
@@ -118,22 +101,14 @@ export default function MissionPhaseV8({
       onSeekForward: () => timer.addMinute(),
     });
     setPlaybackState(timer.isRunning ? 'playing' : timer.isPaused ? 'paused' : 'none');
-    return () => {
-      // Don't clear on every mission re-render (we just overwrite
-      // metadata). Only the parent protocol end should clear it.
-    };
-    // We intentionally only re-run this when the phase or timer state
-    // actually changes, not on every keystroke of `timer`.
+    return () => { /* cleared on full unmount */ };
   }, [mission, timer.isRunning, timer.isPaused, timer]);
 
-  // Clear media session when the component unmounts for good (last
-  // phase just completed). The parent moves to SummaryScreen and this
-  // component is unmounted; we clear there.
   useEffect(() => {
     return () => { clearMediaSession(); };
   }, []);
 
-  // ── Operator voice briefing (single per-phase line) ────
+  // ── Operator voice briefing ───────────────────────────
   useEffect(() => {
     if (!operator || spokenOpenRef.current) return;
     spokenOpenRef.current = true;
@@ -242,119 +217,149 @@ export default function MissionPhaseV8({
   const currentTip = mission.tips?.[Math.floor(Date.now() / 10000) % (mission.tips?.length || 1)];
 
   return (
-    <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
-      {/* Sunrise background tinted for this phase */}
-      <GradientBackground stage={stageIndex} particleCount={40} />
-      <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
+    <div
+      className="relative flex-1 flex flex-col min-h-0 overflow-hidden"
+      style={{ background: D.paper, color: DT.primary }}
+    >
+      {/* ─── Background · paleta global ─────────────────── */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.16)} 0%, transparent 55%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.32)} 0%, transparent 45%, ${hexToRgba(D.accent_soft, 0.1)} 100%)`,
+        }}
+      />
 
-      {/* COMPLETADO overlay */}
+      {/* ─── COMPLETADO overlay ─────────────────────────── */}
       {showCompletado && (
         <div
           ref={completadoRef}
           className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at center, rgba(10,6,24,0.88) 0%, rgba(10,6,24,0.74) 60%, rgba(10,6,24,0.5) 100%)',
+            background: `radial-gradient(ellipse at center, ${hexToRgba(D.paper, 0.95)} 0%, ${hexToRgba(D.tint, 0.92)} 60%, ${hexToRgba(D.tint_deep, 0.85)} 100%)`,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             opacity: 0,
           }}
         >
-          <div className="text-center select-none">
+          <div className="text-center select-none px-6">
             <div
-              className="font-display font-[500] italic text-4xl md:text-5xl tracking-[0.04em]"
-              style={{
-                color: 'var(--sunrise-text)',
-                textShadow: `0 0 24px ${hexToRgba(stageColors.accent, 0.55)}`,
-              }}
+              className="font-mono uppercase tracking-[0.42em] font-[700]"
+              style={{ color: D.accent, fontSize: 10 }}
             >
-              Completado
+              · fase {String(mission.phase).padStart(2, '0')} cerrada ·
             </div>
             <div
-              className="mt-5 font-ui text-[11px] uppercase tracking-[0.32em]"
-              style={{ color: 'var(--sunrise-text-soft)' }}
+              className="font-headline font-[700] lowercase tracking-[-0.045em] mt-3"
+              style={{
+                color: DT.primary,
+                fontSize: 'clamp(2.4rem, 9vw, 3.4rem)',
+                lineHeight: 0.92,
+              }}
+            >
+              completado
+              <span style={{ color: D.accent }}>.</span>
+            </div>
+            <div
+              className="mx-auto mt-5 h-px"
+              style={{
+                width: 128,
+                background: `linear-gradient(90deg, transparent, ${D.accent}, transparent)`,
+              }}
+            />
+            <div
+              className="mt-4 font-mono uppercase tracking-[0.32em] font-[600]"
+              style={{ color: DT.muted, fontSize: 10 }}
             >
               {mission.completionLog}
             </div>
-            <div
-              className="mx-auto mt-6 h-px w-32"
-              style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(stageColors.accent, 0.7)}, transparent)` }}
-            />
           </div>
         </div>
       )}
 
-      {/* ═══ Header bar (fixed at top) ═══════════════════ */}
+      {/* ─── Header masthead ────────────────────────────── */}
       <div
-        className="relative z-10 px-5 pt-4 pb-3"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
+        className="relative z-10 px-5 md:px-8 max-w-3xl w-full mx-auto shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2.5">
+        <div className="flex items-center justify-between pb-2.5">
+          <span className="flex items-center gap-2">
             <span
-              className="font-mono text-[11px] tracking-[0.2em]"
-              style={{ color: 'var(--sunrise-text-muted)' }}
-            >
-              FASE {String(mission.phase).padStart(2, '0')} / {totalPhases}
-            </span>
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: D.accent,
+                borderRadius: 99,
+              }}
+            />
             <span
-              className="font-ui text-[11px] uppercase tracking-[0.3em]"
-              style={{ color: 'var(--sunrise-text-soft)' }}
+              className="font-mono uppercase tracking-[0.42em] font-[600]"
+              style={{ color: DT.muted, fontSize: 9 }}
             >
-              {mission.codename}
+              fase {String(mission.phase).padStart(2, '0')} / {totalPhases} · {mission.codename.toLowerCase()}
             </span>
-          </div>
+          </span>
           {mission.scheduledTime && (
             <span
-              className="font-mono text-[11px] tracking-wider"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono tabular-nums tracking-[0.18em] font-[700]"
+              style={{ color: DT.muted, fontSize: 10 }}
             >
               {mission.scheduledTime}
             </span>
           )}
         </div>
 
-        {/* Global progress bar across all 12 phases */}
-        <div
-          className="mt-3 h-[2px] rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,250,240,0.08)' }}
-        >
+        {/* Hairline global progress */}
+        <div className="relative h-[1px]" style={{ background: hexToRgba(D.accent, 0.14) }}>
           <div
-            className="h-full rounded-full"
+            className="absolute inset-y-0 left-0"
             style={{
               width: `${Math.max(0, Math.min(100, globalProgress * 100))}%`,
-              background: `linear-gradient(90deg, ${hexToRgba(stageColors.accent, 0.55)}, ${stageColors.accent})`,
-              boxShadow: `0 0 8px ${hexToRgba(stageColors.accent, 0.45)}`,
+              background: D.accent,
               transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
             }}
           />
         </div>
       </div>
 
-      {/* ═══ Main scrollable body ════════════════════════ */}
+      {/* ─── Body scrollable ────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="scroll-area flex-1 w-full max-w-md mx-auto flex flex-col items-center gap-y-9 relative z-10 min-h-0 px-6"
+        className="scroll-area flex-1 w-full max-w-md mx-auto flex flex-col items-center gap-y-7 relative z-10 min-h-0 px-6 md:px-8"
         style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        {/* Title (serif, humane) */}
-        <div className="w-full flex flex-col items-center text-center mt-2 sunrise-fade-up" style={{ animationDelay: '40ms' }}>
-          <h1
-            className="font-display font-[400] italic leading-[1.12] text-[clamp(2rem,7.5vw,2.75rem)]"
-            style={{ color: 'var(--sunrise-text)' }}
-          >
-            {toTitleCase(mission.title)}
-          </h1>
+        {/* Hero title */}
+        <div className="w-full flex flex-col items-center text-center mt-4 sunrise-fade-up" style={{ animationDelay: '40ms' }}>
           {mission.blockLabel && (
             <div
-              className="mt-2 font-ui text-[10px] uppercase tracking-[0.35em]"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
+              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
             >
-              {mission.blockLabel}
+              · {mission.blockLabel.toLowerCase()} ·
             </div>
           )}
+          <h1
+            className="font-headline font-[700] lowercase tracking-[-0.045em]"
+            style={{
+              color: DT.primary,
+              fontSize: 'clamp(2.4rem, 9vw, 3.4rem)',
+              lineHeight: 0.94,
+            }}
+          >
+            {toTitleCase(mission.title).toLowerCase()}
+            <span style={{ color: D.accent }}>.</span>
+          </h1>
         </div>
 
-        {/* ═══ Hero action (timer OR confirm button) ═══ */}
+        {/* ─── Hero action: timer / breathing / confirm ─── */}
         {mission.breathingPattern ? (
           <div className="w-full flex flex-col items-center sunrise-fade-up" style={{ animationDelay: '160ms' }}>
             <BreathingGuide />
@@ -365,111 +370,114 @@ export default function MissionPhaseV8({
               progress={timer.progress}
               label={formatTime(timer.remaining)}
               caption={timer.isPaused ? 'EN PAUSA' : started ? 'RESTANTE' : 'LISTO'}
-              stage={stageIndex}
+              stage={mission.phase - 1}
               size={220}
               paused={timer.isPaused}
               onCentreClick={started ? handlePauseResume : undefined}
+              accentOverride={D.accent}
+              labelColor={DT.primary}
+              captionColor={DT.muted}
             />
 
-            {/* Controls row */}
             {!started ? (
               <button
                 onClick={handleStart}
-                className="group relative flex items-center gap-2.5 rounded-full transition-transform active:scale-[0.97]"
+                className="inline-flex items-center gap-2.5 rounded-full transition-transform active:scale-[0.96]"
                 style={{
-                  padding: '14px 32px',
-                  background: `linear-gradient(180deg, ${hexToRgba(stageColors.accent, 0.18)} 0%, ${hexToRgba(stageColors.accent, 0.34)} 100%)`,
-                  border: `1px solid ${hexToRgba(stageColors.accent, 0.5)}`,
-                  backdropFilter: 'blur(6px)',
-                  WebkitBackdropFilter: 'blur(6px)',
+                  padding: '14px 26px',
+                  background: D.accent,
+                  color: D.paper,
+                  boxShadow: `0 10px 32px -6px ${hexToRgba(D.accent, 0.55)}`,
                 }}
               >
-                <Play size={16} strokeWidth={2} fill="currentColor" style={{ color: 'var(--sunrise-text)' }} />
-                <span
-                  className="font-ui font-[500] text-[13px] tracking-[0.32em] uppercase"
-                  style={{ color: 'var(--sunrise-text)' }}
-                >
-                  Iniciar
+                <Play size={15} strokeWidth={2.4} fill="currentColor" />
+                <span className="font-mono font-[700] tracking-[0.32em] uppercase leading-none" style={{ fontSize: 11 }}>
+                  iniciar
                 </span>
               </button>
             ) : (
               <div className="flex items-center gap-5">
                 <ControlButton
                   onClick={handlePauseResume}
-                  accent={stageColors.accent}
-                  label={timer.isRunning ? 'Pausar' : 'Reanudar'}
+                  D={D}
+                  DT={DT}
+                  label={timer.isRunning ? 'pausar' : 'reanudar'}
                 >
-                  {timer.isRunning ? <Pause size={16} strokeWidth={2} /> : <Play size={16} strokeWidth={2} fill="currentColor" />}
+                  {timer.isRunning ? <Pause size={16} strokeWidth={2.2} /> : <Play size={16} strokeWidth={2.2} fill="currentColor" />}
                 </ControlButton>
                 <ControlButton
                   onClick={handleAddMinute}
-                  accent={stageColors.accent}
+                  D={D}
+                  DT={DT}
                   label="+1 min"
                 >
-                  <Plus size={16} strokeWidth={2.5} />
+                  <Plus size={16} strokeWidth={2.6} />
                 </ControlButton>
                 <ControlButton
                   onClick={handleManualComplete}
-                  accent={stageColors.accent}
-                  label="Completar"
+                  D={D}
+                  DT={DT}
+                  label="completar"
                   variant="primary"
                 >
-                  <Check size={16} strokeWidth={2.5} />
+                  <Check size={16} strokeWidth={2.6} />
                 </ControlButton>
               </div>
             )}
           </div>
         ) : (
-          /* duration === 0 → manual confirm phase */
+          /* duration === 0 → manual confirm */
           <div className="flex flex-col items-center sunrise-fade-up" style={{ animationDelay: '160ms' }}>
             <button
               onClick={handleManualComplete}
-              className="relative rounded-full transition-transform active:scale-[0.97] overflow-hidden"
+              className="relative rounded-full transition-transform active:scale-[0.97]"
               style={{
                 width: 180,
                 height: 180,
-                background: `linear-gradient(180deg, ${hexToRgba(stageColors.accent, 0.14)} 0%, ${hexToRgba(stageColors.accent, 0.34)} 100%)`,
-                border: `1px solid ${hexToRgba(stageColors.accent, 0.55)}`,
-                backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
+                background: D.accent,
+                color: D.paper,
+                boxShadow: `0 18px 50px -12px ${hexToRgba(D.accent, 0.55)}`,
               }}
             >
-              <span
-                className="absolute inset-0 rounded-full sunrise-cta-halo sunrise-cta-pulse pointer-events-none"
-                style={{ borderRadius: '9999px' }}
-              />
-              <div className="relative flex flex-col items-center justify-center gap-2.5">
-                <Check size={34} strokeWidth={1.8} style={{ color: 'var(--sunrise-text)' }} />
+              <div className="flex flex-col items-center justify-center gap-2.5">
+                <Check size={34} strokeWidth={1.8} />
                 <span
-                  className="font-ui font-[500] text-[12px] tracking-[0.38em] uppercase"
-                  style={{ color: 'var(--sunrise-text)' }}
+                  className="font-mono font-[700] tracking-[0.38em] uppercase"
+                  style={{ fontSize: 11 }}
                 >
-                  Confirmar
+                  confirmar
                 </span>
               </div>
             </button>
           </div>
         )}
 
-        {/* Directive card (when there are no sub-steps) */}
+        {/* ─── Directive card (sin sub-steps) ───────────── */}
         {showDirective && !mission.subSteps?.length && (
           <div
-            className="w-full rounded-2xl px-6 py-5 sunrise-fade-up"
+            className="w-full px-5 py-5 sunrise-fade-up"
             style={{
               animationDelay: '280ms',
-              border: `1px solid ${hexToRgba(stageColors.accent, 0.14)}`,
-              background: 'rgba(255,250,240,0.04)',
-              backdropFilter: 'blur(6px)',
-              WebkitBackdropFilter: 'blur(6px)',
+              borderRadius: 22,
+              border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+              background: hexToRgba(D.tint, 0.7),
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             }}
           >
+            <div
+              className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
+              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+            >
+              · directiva ·
+            </div>
             <p
-              className="font-display text-[17px] leading-[1.55] italic font-[300]"
-              style={{ color: 'var(--sunrise-text)' }}
+              className="font-headline italic font-[400] leading-[1.5]"
+              style={{ color: DT.soft, fontSize: 17 }}
             >
               {typewriterText}
               {typewriterText.length < mission.directive.length && (
-                <span className="animate-pulse ml-0.5" style={{ color: hexToRgba(stageColors.accent, 0.9) }}>
+                <span className="animate-pulse ml-0.5" style={{ color: D.accent }}>
                   |
                 </span>
               )}
@@ -477,61 +485,87 @@ export default function MissionPhaseV8({
           </div>
         )}
 
-        {/* Sub-steps checklist */}
+        {/* ─── Sub-steps editorial ───────────────────────── */}
         {mission.subSteps && mission.subSteps.length > 0 && (
           <section className="w-full sunrise-fade-up" style={{ animationDelay: '280ms' }}>
-            <div
-              className="font-ui text-[10px] uppercase tracking-[0.38em] mb-4 pl-1"
-              style={{ color: 'var(--sunrise-text-muted)' }}
-            >
-              Pasos a seguir
+            <div className="flex items-center gap-3 pb-3">
+              <span
+                aria-hidden
+                className="flex-1 h-[1px]"
+                style={{ background: hexToRgba(D.accent, 0.18) }}
+              />
+              <span
+                className="font-mono uppercase tracking-[0.42em] font-[700] shrink-0"
+                style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+              >
+                · pasos · {checkedSteps.size}/{mission.subSteps.length} ·
+              </span>
+              <span
+                aria-hidden
+                className="flex-1 h-[1px]"
+                style={{ background: hexToRgba(D.accent, 0.18) }}
+              />
             </div>
-            <div className="flex flex-col gap-3">
+
+            <div className="flex flex-col">
               {mission.subSteps.map((step, idx) => {
                 const checked = checkedSteps.has(idx);
                 return (
                   <button
                     key={idx}
                     onClick={() => toggleStep(idx)}
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left transition-all duration-300 active:scale-[0.985]"
+                    className="w-full flex items-start gap-3.5 px-2 py-3.5 text-left transition-opacity active:opacity-70"
                     style={{
-                      borderWidth: 1,
-                      borderStyle: 'solid',
-                      borderColor: checked ? hexToRgba(stageColors.accent, 0.45) : 'rgba(255,250,240,0.10)',
-                      background: checked ? hexToRgba(stageColors.accent, 0.08) : 'rgba(255,250,240,0.03)',
+                      borderBottom: `1px solid ${hexToRgba(D.accent, 0.1)}`,
                     }}
                   >
-                    <div
-                      className="relative w-6 h-6 rounded-lg shrink-0 flex items-center justify-center transition-all duration-300"
+                    <span
+                      className="font-mono tabular-nums font-[700] shrink-0 pt-0.5"
                       style={{
-                        border: `1.5px solid ${checked ? stageColors.accent : 'rgba(255,250,240,0.28)'}`,
-                        background: checked ? stageColors.accent : 'transparent',
+                        color: checked ? hexToRgba(D.accent, 0.5) : D.accent,
+                        fontSize: 12,
+                        minWidth: '2.5ch',
+                      }}
+                    >
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <div
+                      className="relative shrink-0 flex items-center justify-center transition-all duration-300 mt-0.5"
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 5,
+                        border: `1.5px solid ${checked ? D.accent : hexToRgba(D.ink, 0.3)}`,
+                        background: checked ? D.accent : 'transparent',
                       }}
                     >
                       {checked && (
-                        <Check size={14} strokeWidth={3} style={{ color: '#0b0618' }} />
+                        <Check size={11} strokeWidth={3.2} style={{ color: D.paper }} />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
                       <span
-                        className="font-ui text-[15px] leading-snug font-[500]"
+                        className="font-headline font-[600] lowercase tracking-[-0.015em] leading-snug"
                         style={{
-                          color: checked ? 'var(--sunrise-text-soft)' : 'var(--sunrise-text)',
+                          color: checked ? DT.muted : DT.primary,
+                          fontSize: 15,
                           textDecoration: checked ? 'line-through' : 'none',
-                          textDecorationColor: hexToRgba(stageColors.accent, 0.5),
+                          textDecorationColor: hexToRgba(D.accent, 0.55),
                         }}
                       >
-                        {step.label}
+                        {step.label.toLowerCase()}
                       </span>
                       {step.optional && (
                         <span
-                          className="font-mono text-[9px] tracking-[0.18em] px-1.5 py-0.5 rounded"
+                          className="font-mono uppercase tracking-[0.22em] font-[700] px-1.5 py-0.5"
                           style={{
-                            color: hexToRgba(stageColors.accent, 0.95),
-                            background: hexToRgba(stageColors.accent, 0.14),
+                            color: D.accent,
+                            background: hexToRgba(D.accent, 0.14),
+                            fontSize: 8.5,
+                            borderRadius: 4,
                           }}
                         >
-                          OPCIONAL
+                          opcional
                         </span>
                       )}
                     </div>
@@ -542,55 +576,68 @@ export default function MissionPhaseV8({
           </section>
         )}
 
-        {/* Coach contextual card — only on phases where the engine adds value */}
+        {/* ─── Coach contextual card ─────────────────────── */}
         {onOpenCoach && COACH_RELEVANT_PHASES[mission.id] && (
           <MissionCoachCard
             phaseId={mission.id}
-            accent={stageColors.accent}
+            D={D}
+            DT={DT}
             onOpen={onOpenCoach}
           />
         )}
 
-        {/* Special feature blocks */}
+        {/* Special features */}
         {mission.hasJournaling && <JournalingPrompt />}
         {mission.hasDailyInsight && <DailyInsight />}
 
-        {/* Divider */}
+        {/* Hairline divider */}
         <div
           className="w-full"
           style={{
             height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,250,240,0.12), transparent)',
+            background: `linear-gradient(90deg, transparent, ${hexToRgba(D.accent, 0.18)}, transparent)`,
           }}
           aria-hidden
         />
 
-        {/* Science note (collapsible) */}
+        {/* ─── Science note (collapsible) ─── */}
         {mission.scienceNote && (
           <div className="w-full">
             <button
               onClick={() => { haptics.tap(); setShowScience((s) => !s); }}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-ui text-[11px] tracking-[0.28em] uppercase transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3.5 transition-opacity active:opacity-70"
               style={{
-                color: 'var(--sunrise-text-soft)',
-                background: 'rgba(255,250,240,0.035)',
-                border: '1px solid rgba(255,250,240,0.08)',
+                color: DT.soft,
+                background: hexToRgba(D.tint, 0.55),
+                border: `1px solid ${hexToRgba(D.accent, 0.18)}`,
+                borderRadius: 14,
               }}
             >
-              <span>¿Por qué funciona?</span>
+              <span
+                className="font-mono uppercase tracking-[0.32em] font-[700]"
+                style={{ color: hexToRgba(D.accent, 0.95), fontSize: 10 }}
+              >
+                · ¿por qué funciona? ·
+              </span>
               <ChevronDown
                 size={15}
-                strokeWidth={2}
-                style={{ transform: showScience ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}
+                strokeWidth={2.2}
+                style={{
+                  color: D.accent,
+                  transform: showScience ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.3s',
+                }}
               />
             </button>
             {showScience && (
               <div
-                className="mt-2 px-5 py-4 rounded-xl font-ui text-[13px] leading-[1.68]"
+                className="mt-2 px-5 py-4 font-ui leading-[1.65]"
                 style={{
-                  color: 'var(--sunrise-text-soft)',
-                  border: '1px solid rgba(255,250,240,0.06)',
-                  background: 'rgba(255,250,240,0.02)',
+                  color: DT.soft,
+                  border: `1px solid ${hexToRgba(D.accent, 0.14)}`,
+                  background: hexToRgba(D.tint, 0.4),
+                  fontSize: 13,
+                  borderRadius: 14,
                 }}
               >
                 {mission.scienceNote}
@@ -599,36 +646,44 @@ export default function MissionPhaseV8({
           </div>
         )}
 
-        {/* Tip (subtle) */}
+        {/* ─── Tip · hairline left border ─── */}
         {currentTip && (
           <div
-            className="w-full px-5 py-4 rounded-xl font-ui text-[13px] leading-[1.6]"
+            className="w-full px-5 py-4"
             style={{
-              borderLeft: `2px solid ${hexToRgba(stageColors.accent, 0.55)}`,
-              background: 'rgba(255,250,240,0.02)',
-              color: 'var(--sunrise-text-soft)',
+              borderLeft: `2px solid ${D.accent}`,
+              background: hexToRgba(D.tint, 0.4),
+              color: DT.soft,
+              borderRadius: '0 14px 14px 0',
             }}
           >
-            <span
-              className="font-mono text-[10px] tracking-[0.25em] uppercase mr-2"
-              style={{ color: hexToRgba(stageColors.accent, 0.85) }}
+            <div
+              className="font-mono uppercase tracking-[0.32em] font-[700] mb-1.5"
+              style={{ color: D.accent, fontSize: 9 }}
             >
-              Tip
-            </span>
-            {currentTip}
+              · tip ·
+            </div>
+            <div
+              className="font-ui leading-[1.55]"
+              style={{ color: DT.soft, fontSize: 13 }}
+            >
+              {currentTip}
+            </div>
           </div>
         )}
 
-        {/* Skip phase (dev/emergency). Intentionally restrained. */}
+        {/* ─── Skip phase ─── */}
         <button
           onClick={handleSkip}
-          className="self-center font-ui text-[10px] tracking-[0.34em] uppercase px-5 py-2 rounded-full transition-colors"
+          className="self-center font-mono uppercase tracking-[0.34em] font-[600] px-5 py-2.5 rounded-full transition-opacity active:opacity-70"
           style={{
-            color: 'rgba(255,250,240,0.35)',
-            border: '1px solid rgba(255,250,240,0.08)',
+            color: DT.muted,
+            border: `1px solid ${hexToRgba(D.accent, 0.16)}`,
+            background: 'transparent',
+            fontSize: 9.5,
           }}
         >
-          Saltar fase
+          saltar fase
         </button>
       </div>
     </div>
@@ -637,19 +692,24 @@ export default function MissionPhaseV8({
 
 // ─── small presentational bits ───────────────────────────────
 
+interface PaletteCtx {
+  D: ReturnType<typeof useAppTheme>['day'];
+  DT: ReturnType<typeof useAppTheme>['dayText'];
+}
+
 function ControlButton({
   children,
   onClick,
   label,
-  accent,
+  D,
+  DT,
   variant = 'ghost',
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
-  accent: string;
   variant?: 'ghost' | 'primary';
-}) {
+} & PaletteCtx) {
   const isPrimary = variant === 'primary';
   return (
     <button
@@ -662,20 +722,19 @@ function ControlButton({
         style={{
           width: isPrimary ? 56 : 48,
           height: isPrimary ? 56 : 48,
-          background: isPrimary
-            ? `linear-gradient(180deg, ${hexToRgba(accent, 0.2)} 0%, ${hexToRgba(accent, 0.4)} 100%)`
-            : 'rgba(255,250,240,0.05)',
-          border: `1px solid ${isPrimary ? hexToRgba(accent, 0.55) : 'rgba(255,250,240,0.14)'}`,
-          color: 'var(--sunrise-text)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          background: isPrimary ? D.accent : hexToRgba(D.tint, 0.7),
+          border: `1px solid ${isPrimary ? D.accent : hexToRgba(D.accent, 0.32)}`,
+          color: isPrimary ? D.paper : DT.primary,
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          boxShadow: isPrimary ? `0 8px 22px -8px ${hexToRgba(D.accent, 0.5)}` : 'none',
         }}
       >
         {children}
       </span>
       <span
-        className="font-ui text-[9px] tracking-[0.28em] uppercase"
-        style={{ color: 'var(--sunrise-text-muted)' }}
+        className="font-mono uppercase tracking-[0.28em] font-[700]"
+        style={{ color: DT.muted, fontSize: 9 }}
       >
         {label}
       </span>
@@ -684,92 +743,92 @@ function ControlButton({
 }
 
 function toTitleCase(s: string): string {
-  // "DESPERTAR" → "Despertar"
   if (!s) return s;
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
-// ─── Coach contextual card ───────────────────────────────────
-//
-// Mapeo de fases del Génesis a contextos donde el Coach aporta
-// valor real (skincare AM, hidratación, cepillado nocturno, etc).
-// Esto NO toca los `subSteps` originales — añade un puente
-// opcional para abrir el Coach con la información personalizada
-// del día (modo brote / Deriva-C / condiciones activas).
+// ─── Coach contextual card ─────────────────────────────────
 
 const COACH_RELEVANT_PHASES: Record<string, { kicker: string; lead: string }> = {
   aqua: {
-    kicker: 'Hidratación · target diario',
-    lead: 'Mira tu progreso de los 3 L y registra el vaso de ahora mismo.',
+    kicker: 'hidratación · target diario',
+    lead: 'mira tu progreso de los 3 L y registra el vaso de ahora mismo.',
   },
   refuel: {
-    kicker: 'Skincare AM · rutina personalizada',
-    lead: 'Tu rutina de hoy se adapta a brote, Deriva-C y condiciones activas.',
+    kicker: 'skincare AM · rutina personalizada',
+    lead: 'tu rutina de hoy se adapta a brote · deriva-c · condiciones activas.',
   },
   sigillum: {
-    kicker: 'Cepillado · plan vacacional 3×',
-    lead: 'Marca el slot que acabas de cumplir y revisa tu adherencia.',
+    kicker: 'cepillado · plan vacacional 3×',
+    lead: 'marca el slot que acabas de cumplir y revisa tu adherencia.',
   },
 };
 
 function MissionCoachCard({
   phaseId,
-  accent,
+  D,
+  DT,
   onOpen,
 }: {
   phaseId: string;
-  accent: string;
   onOpen: () => void;
-}) {
+} & PaletteCtx) {
   const meta = COACH_RELEVANT_PHASES[phaseId];
   if (!meta) return null;
   return (
     <button
       type="button"
       onClick={() => { haptics.tap(); onOpen(); }}
-      className="w-full text-left rounded-2xl p-4 flex items-start gap-3 transition-transform active:scale-[0.985] sunrise-fade-up"
+      className="w-full text-left flex items-stretch overflow-hidden transition-transform active:scale-[0.985] sunrise-fade-up"
       style={{
         animationDelay: '320ms',
-        background: `linear-gradient(160deg, ${hexToRgba(accent, 0.12)} 0%, ${hexToRgba(accent, 0.04)} 100%)`,
-        border: `1px solid ${hexToRgba(accent, 0.4)}`,
-        boxShadow: `0 14px 40px -22px ${hexToRgba(accent, 0.5)}`,
+        borderRadius: 22,
+        background: hexToRgba(D.tint, 0.7),
+        border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <span
-        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-        style={{
-          background: hexToRgba(accent, 0.2),
-          border: `1px solid ${hexToRgba(accent, 0.5)}`,
-          color: accent,
-        }}
-      >
-        <Sparkles size={16} strokeWidth={1.85} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div
-          className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
-          style={{ color: hexToRgba(accent, 0.95) }}
+      <div className="flex-1 min-w-0 flex items-center gap-3.5 px-4 py-4">
+        <span
+          className="shrink-0 w-10 h-10 flex items-center justify-center"
+          style={{
+            background: hexToRgba(D.accent, 0.14),
+            border: `1px solid ${hexToRgba(D.accent, 0.4)}`,
+            color: D.accent,
+            borderRadius: 12,
+          }}
         >
-          {meta.kicker}
+          <Sparkles size={16} strokeWidth={1.95} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: hexToRgba(D.accent, 0.95), fontSize: 9 }}
+          >
+            {meta.kicker}
+          </div>
+          <div
+            className="font-headline font-[700] lowercase tracking-[-0.025em] mt-1"
+            style={{ color: DT.primary, fontSize: 18, lineHeight: 1 }}
+          >
+            abrir coach
+            <span style={{ color: D.accent }}>.</span>
+          </div>
+          <p
+            className="font-mono leading-snug mt-1.5 truncate"
+            style={{ color: DT.muted, fontSize: 10.5 }}
+          >
+            {meta.lead}
+          </p>
         </div>
-        <div
-          className="font-headline font-[600] text-[16px] leading-tight lowercase tracking-[-0.015em] mt-0.5"
-          style={{ color: 'var(--sunrise-text)' }}
-        >
-          abrir coach
-        </div>
-        <p
-          className="font-mono text-[11px] leading-snug mt-1"
-          style={{ color: 'var(--sunrise-text-muted)' }}
-        >
-          {meta.lead}
-        </p>
       </div>
-      <ChevronRight
-        size={16}
-        strokeWidth={1.85}
-        style={{ color: hexToRgba(accent, 0.7), marginTop: 4, flexShrink: 0 }}
-      />
+      <div
+        className="shrink-0 flex items-center justify-center px-4"
+        style={{ background: D.accent }}
+      >
+        <ArrowUpRight size={18} strokeWidth={2.4} style={{ color: D.paper }} />
+      </div>
     </button>
   );
 }

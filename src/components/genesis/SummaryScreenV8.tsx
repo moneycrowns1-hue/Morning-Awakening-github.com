@@ -1,28 +1,28 @@
 'use client';
 
-// ═══════════════════════════════════════════════════════
-// SummaryScreenV8 · post-protocol sunrise summary
+// ═══════════════════════════════════════════════════════════
+// SummaryScreenV8 · cierre del protocolo (post-completion).
 //
-// Layout, top → bottom:
-//   1. Sunrise gradient at "complete" stage (fully lit dawn)
-//   2. Subtle kicker "Protocolo completo"
-//   3. Display-serif title "Día superado"
-//   4. QualityGauge 0..100
-//   5. Four stat cards (misiones, tiempo, racha, XP)
-//   6. Rank strip (icon + rank + level + XP bar to next)
-//   7. Last-7-days streak visualiser (mini bars)
-//   8. Primary CTA "Sellar el día" + soft "Ver historial" link
-// ═══════════════════════════════════════════════════════
+// Diseño editorial showcase con paleta global:
+//   - Header masthead · dot accent + caption.
+//   - Hero "día superado." big lowercase con punto accent.
+//   - QualityGauge centrado.
+//   - Stats grid 2×2 cards rounded-22.
+//   - Rank strip (clase romana en lugar de kanji).
+//   - Últimos 7 días bars con D.accent.
+//   - CTA "sellar el día" pill solid accent.
+//   - Footer: ver historial + saludo final.
+// ═══════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BadgeCheck } from 'lucide-react';
+import { ArrowUpRight, BadgeCheck } from 'lucide-react';
 import gsap from 'gsap';
 import type { StreakData } from '@/lib/genesis/constants';
 import { getRankByLevel } from '@/lib/genesis/constants';
 import { levelProgress, type OperatorProfile } from '@/lib/genesis/progression';
 import { computeQualityScore, loadSessions, type SessionRecord } from '@/lib/genesis/sessionHistory';
-import { SUNRISE, hexToRgba } from '@/lib/common/theme';
-import GradientBackground from '../common/GradientBackground';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
 import QualityGauge from '../common/QualityGauge';
 
 interface SummaryScreenV8Props {
@@ -46,6 +46,7 @@ export default function SummaryScreenV8({
   onProceed,
   onOpenHistory,
 }: SummaryScreenV8Props) {
+  const { day: D, dayText: DT } = useAppTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const rank = getRankByLevel(profile.level);
   const prog = levelProgress(profile.xp);
@@ -61,7 +62,6 @@ export default function SummaryScreenV8({
     [totalTime, skippedPhases.length, streakData.streak, totalPhases],
   );
 
-  // Pull past sessions for the 7-day mini chart.
   const [recent, setRecent] = useState<SessionRecord[]>([]);
   useEffect(() => {
     setRecent(loadSessions().slice(-7));
@@ -84,105 +84,194 @@ export default function SummaryScreenV8({
   const durationLabel = hours > 0 ? `${hours}h ${minutesRemainder}m` : `${minutes} min`;
 
   return (
-    <div ref={containerRef} className="relative flex-1 flex flex-col min-h-0 overflow-hidden" style={{ color: 'var(--sunrise-text)' }}>
-      <GradientBackground stage="complete" particleCount={55} />
-      <div className="absolute inset-0 sunrise-vignette pointer-events-none" />
-
+    <div
+      ref={containerRef}
+      className="relative flex-1 flex flex-col min-h-0 overflow-hidden"
+      style={{ background: D.paper, color: DT.primary }}
+    >
+      {/* ─── Background · paleta global ─────────────────── */}
       <div
-        className="scroll-area flex-1 w-full max-w-md mx-auto flex flex-col items-center relative z-10 min-h-0 px-6"
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
         style={{
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)',
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.2)} 0%, transparent 55%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.35)} 0%, transparent 45%, ${hexToRgba(D.accent_soft, 0.12)} 100%)`,
+        }}
+      />
+
+      {/* ─── Header masthead ────────────────────────────── */}
+      <div
+        className="relative z-10 px-5 md:px-8 max-w-3xl w-full mx-auto shrink-0 summary-enter"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
+      >
+        <div className="flex items-center justify-between pb-2.5">
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden
+              style={{
+                width: 5,
+                height: 5,
+                background: D.accent,
+                borderRadius: 99,
+              }}
+            />
+            <span
+              className="font-mono uppercase tracking-[0.42em] font-[600]"
+              style={{ color: DT.muted, fontSize: 9 }}
+            >
+              protocolo · cierre
+            </span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: DT.muted, fontSize: 9 }}
+          >
+            · {durationLabel} ·
+          </span>
+        </div>
+        <div className="h-[1px]" style={{ background: hexToRgba(D.accent, 0.14) }} />
+      </div>
+
+      {/* ─── Body ─────────────────────────────────────── */}
+      <div
+        className="scroll-area flex-1 w-full max-w-md mx-auto flex flex-col items-center relative z-10 min-h-0 px-6 md:px-8"
+        style={{
+          paddingTop: '1.25rem',
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)',
         }}
       >
+        {/* Hero */}
         <div
-          className="font-ui text-[10px] uppercase tracking-[0.42em] mb-3 summary-enter"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="font-mono uppercase tracking-[0.42em] font-[700] mb-3 summary-enter"
+          style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
         >
-          Protocolo completo
+          · protocolo completo ·
         </div>
 
         <h1
-          className="font-display font-[400] italic text-[clamp(2.25rem,9vw,3rem)] leading-[1.08] text-center summary-enter"
-          style={{ color: 'var(--sunrise-text)' }}
+          className="font-headline font-[700] lowercase tracking-[-0.045em] text-center summary-enter"
+          style={{
+            color: DT.primary,
+            fontSize: 'clamp(2.6rem, 10vw, 3.6rem)',
+            lineHeight: 0.94,
+          }}
         >
-          Día superado
+          día superado
+          <span style={{ color: D.accent }}>.</span>
         </h1>
 
+        {/* Quality gauge */}
         <div className="mt-7 mb-1 summary-enter flex flex-col items-center">
           <QualityGauge score={qualityScore} size={240} />
           <div
-            className="mt-3 max-w-[28ch] text-center font-ui text-[11px] tracking-wider leading-relaxed"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            className="mt-3 max-w-[28ch] text-center font-mono uppercase tracking-[0.28em] font-[600] leading-relaxed"
+            style={{ color: DT.muted, fontSize: 9.5 }}
           >
-            Basado en fases completadas, ritmo y racha.
+            basado en fases completadas · ritmo · racha
           </div>
         </div>
 
         {/* Stats grid */}
-        <div className="w-full grid grid-cols-2 gap-3 mt-4 summary-enter">
-          <StatCell label="Misiones" value={`${totalPhases - skippedPhases.length}/${totalPhases}`} />
-          <StatCell label="Duración" value={durationLabel} />
-          <StatCell label="Racha" value={`${streakData.streak}`} suffix="días" />
-          <StatCell label="XP ganada" value={`+${sessionXp}`} accent={SUNRISE.rise2} />
+        <div className="w-full grid grid-cols-2 gap-2.5 mt-5 summary-enter">
+          <StatCell label="misiones" value={`${totalPhases - skippedPhases.length}/${totalPhases}`} />
+          <StatCell label="duración" value={durationLabel} />
+          <StatCell label="racha" value={String(streakData.streak)} suffix="días" />
+          <StatCell label="xp ganada" value={`+${sessionXp}`} highlight />
         </div>
 
         {/* Rank strip */}
         <div
-          className="mt-5 w-full p-4 rounded-2xl summary-enter"
+          className="mt-5 w-full overflow-hidden summary-enter flex items-stretch"
           style={{
-            border: '1px solid rgba(255,250,240,0.08)',
-            background: 'rgba(255,250,240,0.03)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            borderRadius: 22,
+            border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+            background: hexToRgba(D.tint, 0.65),
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
           }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0 px-4 py-4">
             <div
-              className="w-11 h-11 flex items-center justify-center rounded-xl text-[22px]"
+              className="font-mono uppercase tracking-[0.42em] font-[700]"
+              style={{ color: DT.muted, fontSize: 9 }}
+            >
+              rango · {rank.titleEs.toLowerCase()}
+            </div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span
+                className="font-headline font-[700] tabular-nums tracking-[-0.03em]"
+                style={{ color: DT.primary, fontSize: 26, lineHeight: 0.95 }}
+              >
+                {prog.current.toLocaleString()}
+              </span>
+              <span
+                className="font-mono"
+                style={{ color: DT.muted, fontSize: 11 }}
+              >
+                / {prog.required.toLocaleString()} xp
+              </span>
+            </div>
+            <div
+              className="mt-2.5 h-[3px] overflow-hidden"
+              style={{ background: hexToRgba(D.accent, 0.14) }}
+            >
+              <div
+                className="h-full transition-all duration-1000"
+                style={{
+                  width: `${Math.max(0, Math.min(100, prog.ratio * 100))}%`,
+                  background: D.accent,
+                }}
+              />
+            </div>
+          </div>
+          <div
+            className="shrink-0 flex flex-col items-center justify-center px-4 py-4 gap-1"
+            style={{
+              minWidth: 84,
+              background: D.accent,
+              color: D.paper,
+            }}
+          >
+            <span
+              className="font-mono uppercase tracking-[0.32em] font-[700]"
+              style={{ color: hexToRgba(D.paper, 0.7), fontSize: 8.5 }}
+            >
+              clase
+            </span>
+            <span
+              className="font-headline font-[700] tabular-nums"
               style={{
-                color: rank.color,
-                border: `1.5px solid ${hexToRgba(rank.color, 0.5)}`,
-                boxShadow: `0 0 14px ${hexToRgba(rank.color, 0.25)}`,
-                fontFamily: '"Hiragino Mincho ProN","Noto Serif JP",serif',
+                color: D.paper,
+                fontSize: 32,
+                lineHeight: 0.9,
+                letterSpacing: '-0.02em',
               }}
             >
-              {rank.kanji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-ui text-[10px] uppercase tracking-[0.32em]" style={{ color: 'var(--sunrise-text-muted)' }}>
-                Rango
-              </div>
-              <div className="font-ui text-[15px] font-[500] tracking-[0.08em]" style={{ color: rank.color }}>
-                {rank.titleEs} · Lv {profile.level}
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,250,240,0.08)' }}>
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.max(0, Math.min(100, prog.ratio * 100))}%`,
-                background: `linear-gradient(90deg, ${hexToRgba(rank.color, 0.55)}, ${rank.color})`,
-                boxShadow: `0 0 8px ${hexToRgba(rank.color, 0.45)}`,
-                transition: 'width 1s ease-out',
-              }}
-            />
-          </div>
-          <div className="flex justify-between font-mono text-[10px] mt-1" style={{ color: 'var(--sunrise-text-muted)' }}>
-            <span>{prog.current} XP</span>
-            <span>{prog.required} XP</span>
+              {rank.class}
+            </span>
+            <span
+              className="font-mono uppercase tracking-[0.28em] font-[600]"
+              style={{ color: hexToRgba(D.paper, 0.85), fontSize: 8 }}
+            >
+              lv {profile.level}
+            </span>
           </div>
         </div>
 
-        {/* Last 7 days mini bars */}
+        {/* Last 7 days */}
         {recent.length > 0 && (
           <div className="w-full mt-5 summary-enter">
             <div
-              className="font-ui text-[10px] uppercase tracking-[0.34em] mb-2"
-              style={{ color: 'var(--sunrise-text-muted)' }}
+              className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
+              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
             >
-              Últimos 7 días
+              · últimos 7 días ·
             </div>
             <div className="flex items-end gap-1.5 h-16">
               {Array.from({ length: 7 }).map((_, i) => {
@@ -195,11 +284,14 @@ export default function SummaryScreenV8({
                       style={{
                         height: `${Math.max(4, s * 0.58)}%`,
                         background: rec
-                          ? `linear-gradient(180deg, ${hexToRgba(SUNRISE.rise2, 0.85)}, ${hexToRgba(SUNRISE.rise1, 0.65)})`
-                          : 'rgba(255,250,240,0.08)',
+                          ? `linear-gradient(180deg, ${D.accent}, ${hexToRgba(D.accent, 0.55)})`
+                          : hexToRgba(D.ink, 0.08),
                       }}
                     />
-                    <span className="font-mono text-[9px]" style={{ color: 'var(--sunrise-text-muted)' }}>
+                    <span
+                      className="font-mono tabular-nums font-[600]"
+                      style={{ color: DT.muted, fontSize: 9 }}
+                    >
                       {rec ? s : '—'}
                     </span>
                   </div>
@@ -209,45 +301,42 @@ export default function SummaryScreenV8({
           </div>
         )}
 
-        {/* CTA */}
+        {/* ─── CTA · sellar el día ─── */}
         <button
           onClick={onProceed}
-          className="group relative mt-8 w-full rounded-full overflow-hidden transition-transform active:scale-[0.98] summary-enter"
+          className="mt-8 w-full flex items-center justify-center gap-2.5 rounded-full transition-transform active:scale-[0.98] summary-enter"
           style={{
             padding: '16px 36px',
-            background: `linear-gradient(180deg, ${hexToRgba(SUNRISE.rise2, 0.18)} 0%, ${hexToRgba(SUNRISE.rise2, 0.34)} 100%)`,
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`,
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            background: D.accent,
+            color: D.paper,
+            boxShadow: `0 14px 36px -8px ${hexToRgba(D.accent, 0.55)}`,
           }}
         >
-          <span className="absolute inset-0 rounded-full sunrise-cta-halo pointer-events-none" />
-          <span className="relative flex items-center justify-center gap-2.5">
-            <BadgeCheck size={16} strokeWidth={1.8} style={{ color: 'var(--sunrise-text)' }} />
-            <span
-              className="font-ui font-[500] text-[13px] tracking-[0.36em] uppercase"
-              style={{ color: 'var(--sunrise-text)' }}
-            >
-              Sellar el día
-            </span>
+          <BadgeCheck size={16} strokeWidth={2.4} style={{ color: D.paper }} />
+          <span
+            className="font-mono font-[700] tracking-[0.36em] uppercase"
+            style={{ color: D.paper, fontSize: 11 }}
+          >
+            sellar el día
           </span>
+          <ArrowUpRight size={15} strokeWidth={2.4} style={{ color: D.paper }} />
         </button>
 
         {onOpenHistory && (
           <button
             onClick={onOpenHistory}
-            className="mt-3 font-ui text-[11px] tracking-[0.3em] uppercase summary-enter"
-            style={{ color: 'var(--sunrise-text-soft)' }}
+            className="mt-4 font-mono uppercase tracking-[0.32em] font-[700] summary-enter transition-opacity active:opacity-70"
+            style={{ color: DT.soft, fontSize: 10 }}
           >
-            Ver historial →
+            · ver historial →
           </button>
         )}
 
         <p
-          className="mt-5 font-ui text-[12px] tracking-wider text-center summary-enter"
-          style={{ color: 'var(--sunrise-text-muted)' }}
+          className="mt-5 font-headline italic font-[400] text-center summary-enter"
+          style={{ color: DT.muted, fontSize: 14 }}
         >
-          Buen día, {profile.name}.
+          buen día, {profile.name.toLowerCase()}.
         </p>
       </div>
     </div>
@@ -260,33 +349,41 @@ function StatCell({
   label,
   value,
   suffix,
-  accent,
-}: { label: string; value: string; suffix?: string; accent?: string }) {
+  highlight,
+}: { label: string; value: string; suffix?: string; highlight?: boolean }) {
+  const { day: D, dayText: DT } = useAppTheme();
   return (
     <div
-      className="p-4 rounded-2xl"
+      className="px-4 py-4"
       style={{
-        border: '1px solid rgba(255,250,240,0.08)',
-        background: 'rgba(255,250,240,0.03)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        borderRadius: 22,
+        border: `1px solid ${highlight ? hexToRgba(D.accent, 0.5) : hexToRgba(D.accent, 0.18)}`,
+        background: highlight ? hexToRgba(D.accent, 0.1) : hexToRgba(D.tint, 0.65),
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
       }}
     >
       <div
-        className="font-ui text-[10px] uppercase tracking-[0.3em]"
-        style={{ color: 'var(--sunrise-text-muted)' }}
+        className="font-mono uppercase tracking-[0.32em] font-[700]"
+        style={{ color: highlight ? D.accent : DT.muted, fontSize: 8.5 }}
       >
         {label}
       </div>
-      <div
-        className="mt-1 font-display text-[26px] leading-none tracking-[-0.02em]"
-        style={{ color: accent ?? 'var(--sunrise-text)' }}
-      >
-        {value}
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <span
+          className="font-headline font-[700] tabular-nums tracking-[-0.03em]"
+          style={{
+            color: highlight ? D.accent : DT.primary,
+            fontSize: 26,
+            lineHeight: 0.95,
+          }}
+        >
+          {value}
+        </span>
         {suffix && (
           <span
-            className="font-ui text-[11px] ml-1.5 tracking-wider align-baseline"
-            style={{ color: 'var(--sunrise-text-muted)' }}
+            className="font-mono"
+            style={{ color: DT.muted, fontSize: 11 }}
           >
             {suffix}
           </span>
