@@ -16,7 +16,8 @@ import { useState } from 'react';
 import { Pill, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { ORAL, type OralProduct } from '@/lib/coach/catalog';
 import type { OralSchedule, OralScheduleEntry } from '@/lib/coach/state';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 
 interface PillSchedulePanelProps {
@@ -35,6 +36,7 @@ const DEFAULT_HOUR_BY_TIMING: Record<OralProduct['defaultTiming'], { h: number; 
 };
 
 export default function PillSchedulePanel({ schedule, onSet, onClear }: PillSchedulePanelProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const [picker, setPicker] = useState(false);
   const scheduledIds = Object.keys(schedule);
   const scheduledProducts = scheduledIds
@@ -198,6 +200,7 @@ function ScheduleRow({
   onChange: (entry: OralScheduleEntry) => void;
   onRemove: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const [editing, setEditing] = useState(false);
   const hh = entry.hour.toString().padStart(2, '0');
   const mm = entry.minute.toString().padStart(2, '0');

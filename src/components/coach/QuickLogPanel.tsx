@@ -18,7 +18,8 @@
 
 import { useState } from 'react';
 import { Droplet, Smile, Brain, Pill, ChevronDown, type LucideIcon } from 'lucide-react';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 import type { UseCoachReturn } from '@/hooks/useCoach';
 import { CURRENT_PLAN, type BrushingSlot } from '@/lib/coach/brushing';
@@ -35,6 +36,7 @@ const SLOT_LABEL: Record<BrushingSlot, string> = {
 };
 
 export default function QuickLogPanel({ coach }: QuickLogPanelProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const [expanded, setExpanded] = useState(false);
   const { addWater, logBrushing, logBruxism, logOral, briefing, state } = coach;
 
@@ -232,6 +234,7 @@ function PrimaryChip({
   label: string;
   onClick: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <button
       type="button"
@@ -254,6 +257,7 @@ function PrimaryChip({
 }
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  const { SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div>
       <h3
@@ -282,6 +286,7 @@ function Chip({
   done?: boolean;
   onClick: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <button
       type="button"

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Cinzel_Decorative, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistrar from "@/components/common/ServiceWorkerRegistrar";
+import PaletteBridge from "@/components/common/PaletteBridge";
 import { withBasePath } from "@/lib/common/publicPath";
 
 // ═══ Typeface system (v8 sunrise redesign) ═══
@@ -85,6 +86,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href={withBasePath("/icono.png")} />
       </head>
       <body className="h-full overflow-hidden bg-background font-[family-name:var(--font-cinzel)]">
+        <PaletteBridge />
         {children}
         <ServiceWorkerRegistrar />
       </body>

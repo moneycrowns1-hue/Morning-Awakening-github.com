@@ -3,15 +3,16 @@
 // ═══════════════════════════════════════════════════════════
 // SummaryScreenV8 · cierre del protocolo (post-completion).
 //
-// Diseño editorial showcase con paleta global:
-//   - Header masthead · dot accent + caption.
-//   - Hero "día superado." big lowercase con punto accent.
+// MODO NOCHE · paleta global noche para legibilidad y cohesión
+// con MissionPhaseV8:
+//   - Header masthead · dot amber + caption.
+//   - Hero "día superado." big lowercase con punto amber.
 //   - QualityGauge centrado.
-//   - Stats grid 2×2 cards rounded-22.
-//   - Rank strip (clase romana en lugar de kanji).
-//   - Últimos 7 días bars con D.accent.
-//   - CTA "sellar el día" pill solid accent.
-//   - Footer: ver historial + saludo final.
+//   - Stats grid 2×2 cards rounded-22 con glass ember.
+//   - Rank strip split bento (clase romana en lugar de kanji).
+//   - Últimos 7 días bars con N.amber gradient.
+//   - CTA "sellar el día" pill solid amber.
+//   - Footer: ver historial + saludo final italic.
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -46,7 +47,7 @@ export default function SummaryScreenV8({
   onProceed,
   onOpenHistory,
 }: SummaryScreenV8Props) {
-  const { day: D, dayText: DT } = useAppTheme();
+  const { night: N, nightText: NT } = useAppTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const rank = getRankByLevel(profile.level);
   const prog = levelProgress(profile.xp);
@@ -87,21 +88,21 @@ export default function SummaryScreenV8({
     <div
       ref={containerRef}
       className="relative flex-1 flex flex-col min-h-0 overflow-hidden"
-      style={{ background: D.paper, color: DT.primary }}
+      style={{ background: N.void, color: NT.primary }}
     >
-      {/* ─── Background · paleta global ─────────────────── */}
+      {/* ─── Background · noche editorial ────────────────── */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.2)} 0%, transparent 55%)`,
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(N.amber, 0.22)} 0%, transparent 55%)`,
         }}
       />
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.35)} 0%, transparent 45%, ${hexToRgba(D.accent_soft, 0.12)} 100%)`,
+          background: `linear-gradient(135deg, ${hexToRgba(N.ember_1, 0.25)} 0%, transparent 45%, ${hexToRgba(N.ember_deep, 0.35)} 100%)`,
         }}
       />
 
@@ -117,25 +118,26 @@ export default function SummaryScreenV8({
               style={{
                 width: 5,
                 height: 5,
-                background: D.accent,
+                background: N.amber,
                 borderRadius: 99,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
               }}
             />
             <span
               className="font-mono uppercase tracking-[0.42em] font-[600]"
-              style={{ color: DT.muted, fontSize: 9 }}
+              style={{ color: NT.muted, fontSize: 9 }}
             >
               protocolo · cierre
             </span>
           </span>
           <span
             className="font-mono uppercase tracking-[0.32em] font-[700]"
-            style={{ color: DT.muted, fontSize: 9 }}
+            style={{ color: NT.soft, fontSize: 9 }}
           >
             · {durationLabel} ·
           </span>
         </div>
-        <div className="h-[1px]" style={{ background: hexToRgba(D.accent, 0.14) }} />
+        <div className="h-[1px]" style={{ background: hexToRgba(N.amber, 0.16) }} />
       </div>
 
       {/* ─── Body ─────────────────────────────────────── */}
@@ -149,7 +151,11 @@ export default function SummaryScreenV8({
         {/* Hero */}
         <div
           className="font-mono uppercase tracking-[0.42em] font-[700] mb-3 summary-enter"
-          style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+          style={{
+            color: hexToRgba(N.amber, 0.95),
+            fontSize: 9,
+            textShadow: `0 0 18px ${hexToRgba(N.amber, 0.45)}`,
+          }}
         >
           · protocolo completo ·
         </div>
@@ -157,13 +163,14 @@ export default function SummaryScreenV8({
         <h1
           className="font-headline font-[700] lowercase tracking-[-0.045em] text-center summary-enter"
           style={{
-            color: DT.primary,
+            color: NT.primary,
             fontSize: 'clamp(2.6rem, 10vw, 3.6rem)',
             lineHeight: 0.94,
+            textShadow: `0 0 60px ${hexToRgba(N.amber, 0.28)}`,
           }}
         >
           día superado
-          <span style={{ color: D.accent }}>.</span>
+          <span style={{ color: N.amber }}>.</span>
         </h1>
 
         {/* Quality gauge */}
@@ -171,7 +178,7 @@ export default function SummaryScreenV8({
           <QualityGauge score={qualityScore} size={240} />
           <div
             className="mt-3 max-w-[28ch] text-center font-mono uppercase tracking-[0.28em] font-[600] leading-relaxed"
-            style={{ color: DT.muted, fontSize: 9.5 }}
+            style={{ color: NT.muted, fontSize: 9.5 }}
           >
             basado en fases completadas · ritmo · racha
           </div>
@@ -185,13 +192,13 @@ export default function SummaryScreenV8({
           <StatCell label="xp ganada" value={`+${sessionXp}`} highlight />
         </div>
 
-        {/* Rank strip */}
+        {/* Rank strip · split bento */}
         <div
           className="mt-5 w-full overflow-hidden summary-enter flex items-stretch"
           style={{
             borderRadius: 22,
-            border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
-            background: hexToRgba(D.tint, 0.65),
+            border: `1px solid ${hexToRgba(N.amber, 0.22)}`,
+            background: hexToRgba(N.ember_deep, 0.55),
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
           }}
@@ -199,33 +206,34 @@ export default function SummaryScreenV8({
           <div className="flex-1 min-w-0 px-4 py-4">
             <div
               className="font-mono uppercase tracking-[0.42em] font-[700]"
-              style={{ color: DT.muted, fontSize: 9 }}
+              style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
             >
               rango · {rank.titleEs.toLowerCase()}
             </div>
             <div className="mt-1 flex items-baseline gap-1.5">
               <span
                 className="font-headline font-[700] tabular-nums tracking-[-0.03em]"
-                style={{ color: DT.primary, fontSize: 26, lineHeight: 0.95 }}
+                style={{ color: NT.primary, fontSize: 26, lineHeight: 0.95 }}
               >
                 {prog.current.toLocaleString()}
               </span>
               <span
                 className="font-mono"
-                style={{ color: DT.muted, fontSize: 11 }}
+                style={{ color: NT.muted, fontSize: 11 }}
               >
                 / {prog.required.toLocaleString()} xp
               </span>
             </div>
             <div
               className="mt-2.5 h-[3px] overflow-hidden"
-              style={{ background: hexToRgba(D.accent, 0.14) }}
+              style={{ background: hexToRgba(N.amber, 0.18) }}
             >
               <div
                 className="h-full transition-all duration-1000"
                 style={{
                   width: `${Math.max(0, Math.min(100, prog.ratio * 100))}%`,
-                  background: D.accent,
+                  background: N.amber,
+                  boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.55)}`,
                 }}
               />
             </div>
@@ -234,20 +242,20 @@ export default function SummaryScreenV8({
             className="shrink-0 flex flex-col items-center justify-center px-4 py-4 gap-1"
             style={{
               minWidth: 84,
-              background: D.accent,
-              color: D.paper,
+              background: N.amber,
+              color: N.void,
             }}
           >
             <span
               className="font-mono uppercase tracking-[0.32em] font-[700]"
-              style={{ color: hexToRgba(D.paper, 0.7), fontSize: 8.5 }}
+              style={{ color: hexToRgba(N.void, 0.7), fontSize: 8.5 }}
             >
               clase
             </span>
             <span
               className="font-headline font-[700] tabular-nums"
               style={{
-                color: D.paper,
+                color: N.void,
                 fontSize: 32,
                 lineHeight: 0.9,
                 letterSpacing: '-0.02em',
@@ -256,8 +264,8 @@ export default function SummaryScreenV8({
               {rank.class}
             </span>
             <span
-              className="font-mono uppercase tracking-[0.28em] font-[600]"
-              style={{ color: hexToRgba(D.paper, 0.85), fontSize: 8 }}
+              className="font-mono uppercase tracking-[0.28em] font-[700]"
+              style={{ color: hexToRgba(N.void, 0.85), fontSize: 8 }}
             >
               lv {profile.level}
             </span>
@@ -269,7 +277,7 @@ export default function SummaryScreenV8({
           <div className="w-full mt-5 summary-enter">
             <div
               className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
-              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+              style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
             >
               · últimos 7 días ·
             </div>
@@ -284,13 +292,14 @@ export default function SummaryScreenV8({
                       style={{
                         height: `${Math.max(4, s * 0.58)}%`,
                         background: rec
-                          ? `linear-gradient(180deg, ${D.accent}, ${hexToRgba(D.accent, 0.55)})`
-                          : hexToRgba(D.ink, 0.08),
+                          ? `linear-gradient(180deg, ${N.amber}, ${hexToRgba(N.amber, 0.55)})`
+                          : hexToRgba(N.amber, 0.1),
+                        boxShadow: rec ? `0 0 6px ${hexToRgba(N.amber, 0.35)}` : 'none',
                       }}
                     />
                     <span
                       className="font-mono tabular-nums font-[600]"
-                      style={{ color: DT.muted, fontSize: 9 }}
+                      style={{ color: NT.muted, fontSize: 9 }}
                     >
                       {rec ? s : '—'}
                     </span>
@@ -307,26 +316,26 @@ export default function SummaryScreenV8({
           className="mt-8 w-full flex items-center justify-center gap-2.5 rounded-full transition-transform active:scale-[0.98] summary-enter"
           style={{
             padding: '16px 36px',
-            background: D.accent,
-            color: D.paper,
-            boxShadow: `0 14px 36px -8px ${hexToRgba(D.accent, 0.55)}`,
+            background: N.amber,
+            color: N.void,
+            boxShadow: `0 14px 36px -8px ${hexToRgba(N.amber, 0.55)}`,
           }}
         >
-          <BadgeCheck size={16} strokeWidth={2.4} style={{ color: D.paper }} />
+          <BadgeCheck size={16} strokeWidth={2.4} style={{ color: N.void }} />
           <span
             className="font-mono font-[700] tracking-[0.36em] uppercase"
-            style={{ color: D.paper, fontSize: 11 }}
+            style={{ color: N.void, fontSize: 11 }}
           >
             sellar el día
           </span>
-          <ArrowUpRight size={15} strokeWidth={2.4} style={{ color: D.paper }} />
+          <ArrowUpRight size={15} strokeWidth={2.4} style={{ color: N.void }} />
         </button>
 
         {onOpenHistory && (
           <button
             onClick={onOpenHistory}
             className="mt-4 font-mono uppercase tracking-[0.32em] font-[700] summary-enter transition-opacity active:opacity-70"
-            style={{ color: DT.soft, fontSize: 10 }}
+            style={{ color: hexToRgba(N.amber, 0.95), fontSize: 10 }}
           >
             · ver historial →
           </button>
@@ -334,7 +343,7 @@ export default function SummaryScreenV8({
 
         <p
           className="mt-5 font-headline italic font-[400] text-center summary-enter"
-          style={{ color: DT.muted, fontSize: 14 }}
+          style={{ color: NT.soft, fontSize: 14 }}
         >
           buen día, {profile.name.toLowerCase()}.
         </p>
@@ -351,21 +360,21 @@ function StatCell({
   suffix,
   highlight,
 }: { label: string; value: string; suffix?: string; highlight?: boolean }) {
-  const { day: D, dayText: DT } = useAppTheme();
+  const { night: N, nightText: NT } = useAppTheme();
   return (
     <div
       className="px-4 py-4"
       style={{
         borderRadius: 22,
-        border: `1px solid ${highlight ? hexToRgba(D.accent, 0.5) : hexToRgba(D.accent, 0.18)}`,
-        background: highlight ? hexToRgba(D.accent, 0.1) : hexToRgba(D.tint, 0.65),
+        border: `1px solid ${highlight ? hexToRgba(N.amber, 0.5) : hexToRgba(N.amber, 0.2)}`,
+        background: highlight ? hexToRgba(N.amber, 0.12) : hexToRgba(N.ember_deep, 0.5),
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
       }}
     >
       <div
         className="font-mono uppercase tracking-[0.32em] font-[700]"
-        style={{ color: highlight ? D.accent : DT.muted, fontSize: 8.5 }}
+        style={{ color: highlight ? N.amber : hexToRgba(N.amber, 0.9), fontSize: 8.5 }}
       >
         {label}
       </div>
@@ -373,7 +382,7 @@ function StatCell({
         <span
           className="font-headline font-[700] tabular-nums tracking-[-0.03em]"
           style={{
-            color: highlight ? D.accent : DT.primary,
+            color: highlight ? N.amber : NT.primary,
             fontSize: 26,
             lineHeight: 0.95,
           }}
@@ -383,7 +392,7 @@ function StatCell({
         {suffix && (
           <span
             className="font-mono"
-            style={{ color: DT.muted, fontSize: 11 }}
+            style={{ color: NT.muted, fontSize: 11 }}
           >
             {suffix}
           </span>

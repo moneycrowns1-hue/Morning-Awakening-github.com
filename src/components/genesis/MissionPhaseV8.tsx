@@ -3,22 +3,21 @@
 // ═══════════════════════════════════════════════════════════
 // MissionPhaseV8 · pantalla de fase del protocolo Génesis.
 //
-// Diseño editorial showcase (Welcome / NUCLEUS / Profile):
-//   - Fondo D.paper + radial accent + diagonal tint sutil
-//     (paleta global, sin GradientBackground animado).
-//   - Header masthead · dot accent + "fase 02 · codename".
-//   - Hairline 1px global progress.
-//   - Hero title lowercase XL con punto accent.
-//   - Timer ring con D.accent override.
+// MODO NOCHE · paleta noche global (melatonin-safe, 5am-ready):
+//   - Fondo N.void + radial amber + ember tint sutil.
+//   - Header masthead · dot amber + "fase 02 · codename".
+//   - Hairline 1px global progress amber.
+//   - Hero title lowercase XL con punto amber.
+//   - Timer ring con N.amber override.
 //   - Sub-steps editorial: numerales 01-NN + checkbox cuadrado.
 //   - Directive card · rounded-22 con kicker "directiva".
 //   - Coach split bento.
 //   - Science collapsible · Tip hairline.
 //   - Skip phase mono caption sutil.
-//   - Completado overlay · paper + radial accent + headline XL.
+//   - Completado overlay · void + radial amber + headline XL.
 //
-// Lógica idéntica a la versión anterior: timer · voz · media
-// session · sub-step toggle · skip · journaling · breathing.
+// Lógica idéntica: timer · voz · media session · sub-step toggle ·
+// skip · journaling · breathing · daily insight.
 // ═══════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,7 +25,6 @@ import gsap from 'gsap';
 import { type Mission, formatTime, MISSIONS } from '@/lib/genesis/constants';
 import type { Operator } from '@/lib/genesis/operator';
 import { Pause, Play, Plus, Check, ChevronDown, ArrowUpRight, Sparkles } from 'lucide-react';
-import TimerRing from '../common/TimerRing';
 import BreathingGuide from '../common/BreathingGuide';
 import DailyInsight from '../common/DailyInsight';
 import JournalingPrompt from '../common/JournalingPrompt';
@@ -34,6 +32,7 @@ import { useMissionTimer } from '@/hooks/useMissionTimer';
 import { haptics } from '@/lib/common/haptics';
 import { hexToRgba } from '@/lib/common/theme';
 import { useAppTheme } from '@/lib/common/appTheme';
+import type { NightPalette, NightPaletteText } from '@/lib/night/nightPalette';
 import { clearMediaSession, setMediaSessionHandlers, setPlaybackState, updateMediaSession } from '@/lib/common/mediaSession';
 
 interface MissionPhaseV8Props {
@@ -55,7 +54,7 @@ export default function MissionPhaseV8({
   audioTransition,
   onSkipPhase,
 }: MissionPhaseV8Props) {
-  const { day: D, dayText: DT } = useAppTheme();
+  const { night: N, nightText: NT } = useAppTheme();
 
   const [started, setStarted] = useState<boolean>(mission.duration === 0);
   const [typewriterText, setTypewriterText] = useState<string>('');
@@ -215,35 +214,36 @@ export default function MissionPhaseV8({
   const totalPhases = MISSIONS.length;
   const globalProgress = ((mission.phase - 1) + timer.progress) / totalPhases;
   const currentTip = mission.tips?.[Math.floor(Date.now() / 10000) % (mission.tips?.length || 1)];
+  const isBreathingPhase = !!mission.breathingPattern;
 
   return (
     <div
       className="relative flex-1 flex flex-col min-h-0 overflow-hidden"
-      style={{ background: D.paper, color: DT.primary }}
+      style={{ background: N.void, color: NT.primary }}
     >
-      {/* ─── Background · paleta global ─────────────────── */}
+      {/* ─── Background · noche editorial ────────────────── */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.16)} 0%, transparent 55%)`,
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(N.amber, 0.16)} 0%, transparent 55%)`,
         }}
       />
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.32)} 0%, transparent 45%, ${hexToRgba(D.accent_soft, 0.1)} 100%)`,
+          background: `linear-gradient(135deg, ${hexToRgba(N.ember_1, 0.22)} 0%, transparent 45%, ${hexToRgba(N.ember_deep, 0.3)} 100%)`,
         }}
       />
 
-      {/* ─── COMPLETADO overlay ─────────────────────────── */}
+      {/* ─── COMPLETADO overlay · noche ─────────────────── */}
       {showCompletado && (
         <div
           ref={completadoRef}
           className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse at center, ${hexToRgba(D.paper, 0.95)} 0%, ${hexToRgba(D.tint, 0.92)} 60%, ${hexToRgba(D.tint_deep, 0.85)} 100%)`,
+            background: `radial-gradient(ellipse at center, ${hexToRgba(N.void, 0.88)} 0%, ${hexToRgba(N.void, 0.94)} 100%)`,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             opacity: 0,
@@ -252,31 +252,37 @@ export default function MissionPhaseV8({
           <div className="text-center select-none px-6">
             <div
               className="font-mono uppercase tracking-[0.42em] font-[700]"
-              style={{ color: D.accent, fontSize: 10 }}
+              style={{
+                color: N.amber,
+                fontSize: 10,
+                textShadow: `0 0 18px ${hexToRgba(N.amber, 0.5)}`,
+              }}
             >
               · fase {String(mission.phase).padStart(2, '0')} cerrada ·
             </div>
             <div
               className="font-headline font-[700] lowercase tracking-[-0.045em] mt-3"
               style={{
-                color: DT.primary,
+                color: NT.primary,
                 fontSize: 'clamp(2.4rem, 9vw, 3.4rem)',
                 lineHeight: 0.92,
+                textShadow: `0 0 60px ${hexToRgba(N.amber, 0.3)}`,
               }}
             >
               completado
-              <span style={{ color: D.accent }}>.</span>
+              <span style={{ color: N.amber }}>.</span>
             </div>
             <div
               className="mx-auto mt-5 h-px"
               style={{
                 width: 128,
-                background: `linear-gradient(90deg, transparent, ${D.accent}, transparent)`,
+                background: `linear-gradient(90deg, transparent, ${N.amber}, transparent)`,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.6)}`,
               }}
             />
             <div
               className="mt-4 font-mono uppercase tracking-[0.32em] font-[600]"
-              style={{ color: DT.muted, fontSize: 10 }}
+              style={{ color: NT.soft, fontSize: 10 }}
             >
               {mission.completionLog}
             </div>
@@ -296,13 +302,14 @@ export default function MissionPhaseV8({
               style={{
                 width: 5,
                 height: 5,
-                background: D.accent,
+                background: N.amber,
                 borderRadius: 99,
+                boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
               }}
             />
             <span
               className="font-mono uppercase tracking-[0.42em] font-[600]"
-              style={{ color: DT.muted, fontSize: 9 }}
+              style={{ color: NT.muted, fontSize: 9 }}
             >
               fase {String(mission.phase).padStart(2, '0')} / {totalPhases} · {mission.codename.toLowerCase()}
             </span>
@@ -310,7 +317,7 @@ export default function MissionPhaseV8({
           {mission.scheduledTime && (
             <span
               className="font-mono tabular-nums tracking-[0.18em] font-[700]"
-              style={{ color: DT.muted, fontSize: 10 }}
+              style={{ color: NT.soft, fontSize: 10 }}
             >
               {mission.scheduledTime}
             </span>
@@ -318,12 +325,13 @@ export default function MissionPhaseV8({
         </div>
 
         {/* Hairline global progress */}
-        <div className="relative h-[1px]" style={{ background: hexToRgba(D.accent, 0.14) }}>
+        <div className="relative h-[1px]" style={{ background: hexToRgba(N.amber, 0.16) }}>
           <div
             className="absolute inset-y-0 left-0"
             style={{
               width: `${Math.max(0, Math.min(100, globalProgress * 100))}%`,
-              background: D.accent,
+              background: N.amber,
+              boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.55)}`,
               transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
             }}
           />
@@ -336,12 +344,13 @@ export default function MissionPhaseV8({
         className="scroll-area flex-1 w-full max-w-md mx-auto flex flex-col items-center gap-y-7 relative z-10 min-h-0 px-6 md:px-8"
         style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        {/* Hero title */}
+        {/* Hero title · siempre visible (en breathing phases también, BreathingGuide embedded
+            solo aporta el orb + label de respiración). */}
         <div className="w-full flex flex-col items-center text-center mt-4 sunrise-fade-up" style={{ animationDelay: '40ms' }}>
           {mission.blockLabel && (
             <div
               className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
-              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+              style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
             >
               · {mission.blockLabel.toLowerCase()} ·
             </div>
@@ -349,35 +358,72 @@ export default function MissionPhaseV8({
           <h1
             className="font-headline font-[700] lowercase tracking-[-0.045em]"
             style={{
-              color: DT.primary,
+              color: NT.primary,
               fontSize: 'clamp(2.4rem, 9vw, 3.4rem)',
               lineHeight: 0.94,
+              textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
             }}
           >
             {toTitleCase(mission.title).toLowerCase()}
-            <span style={{ color: D.accent }}>.</span>
+            <span style={{ color: N.amber }}>.</span>
           </h1>
         </div>
 
         {/* ─── Hero action: timer / breathing / confirm ─── */}
-        {mission.breathingPattern ? (
+        {isBreathingPhase ? (
           <div className="w-full flex flex-col items-center sunrise-fade-up" style={{ animationDelay: '160ms' }}>
-            <BreathingGuide />
+            <BreathingGuide embedded />
           </div>
         ) : mission.duration > 0 ? (
-          <div className="flex flex-col items-center gap-5 sunrise-fade-up" style={{ animationDelay: '160ms' }}>
-            <TimerRing
-              progress={timer.progress}
-              label={formatTime(timer.remaining)}
-              caption={timer.isPaused ? 'EN PAUSA' : started ? 'RESTANTE' : 'LISTO'}
-              stage={mission.phase - 1}
-              size={220}
-              paused={timer.isPaused}
-              onCentreClick={started ? handlePauseResume : undefined}
-              accentOverride={D.accent}
-              labelColor={DT.primary}
-              captionColor={DT.muted}
-            />
+          <div className="flex flex-col items-center gap-6 sunrise-fade-up w-full" style={{ animationDelay: '160ms' }}>
+            {/* Timer tipográfico · estilo NightMissionPhase · sin anillo,
+                solo número grande tabular + barra ámbar fina + caption. */}
+            <button
+              onClick={started ? handlePauseResume : undefined}
+              disabled={!started}
+              className="flex flex-col items-center gap-2.5 w-full max-w-[280px] transition-opacity active:opacity-80"
+              style={{ cursor: started ? 'pointer' : 'default' }}
+            >
+              <div
+                className="font-headline font-[200] tabular-nums leading-none"
+                style={{
+                  color: NT.primary,
+                  fontSize: 'clamp(3.4rem, 13vw, 4.8rem)',
+                  letterSpacing: '-0.04em',
+                  textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+                }}
+              >
+                {formatTime(timer.remaining)}
+              </div>
+              <div
+                className="w-full relative"
+                style={{ height: 1.5, background: hexToRgba(N.amber, 0.16) }}
+              >
+                <div
+                  className="absolute inset-y-0 left-0"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, timer.progress * 100))}%`,
+                    background: N.amber,
+                    boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.6)}`,
+                    transition: 'width 0.6s cubic-bezier(0.22, 0.8, 0.28, 1)',
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <span
+                  className="font-mono uppercase tracking-[0.4em] font-[600]"
+                  style={{ color: NT.muted, fontSize: 9 }}
+                >
+                  {timer.isPaused ? 'en pausa' : started ? 'restante' : `de ${formatTime(mission.duration)}`}
+                </span>
+                {timer.isPaused && (
+                  <span
+                    aria-hidden
+                    style={{ width: 4, height: 4, background: N.amber, borderRadius: 99, opacity: 0.85 }}
+                  />
+                )}
+              </div>
+            </button>
 
             {!started ? (
               <button
@@ -385,9 +431,9 @@ export default function MissionPhaseV8({
                 className="inline-flex items-center gap-2.5 rounded-full transition-transform active:scale-[0.96]"
                 style={{
                   padding: '14px 26px',
-                  background: D.accent,
-                  color: D.paper,
-                  boxShadow: `0 10px 32px -6px ${hexToRgba(D.accent, 0.55)}`,
+                  background: N.amber,
+                  color: N.void,
+                  boxShadow: `0 10px 32px -6px ${hexToRgba(N.amber, 0.55)}`,
                 }}
               >
                 <Play size={15} strokeWidth={2.4} fill="currentColor" />
@@ -399,24 +445,24 @@ export default function MissionPhaseV8({
               <div className="flex items-center gap-5">
                 <ControlButton
                   onClick={handlePauseResume}
-                  D={D}
-                  DT={DT}
+                  N={N}
+                  NT={NT}
                   label={timer.isRunning ? 'pausar' : 'reanudar'}
                 >
                   {timer.isRunning ? <Pause size={16} strokeWidth={2.2} /> : <Play size={16} strokeWidth={2.2} fill="currentColor" />}
                 </ControlButton>
                 <ControlButton
                   onClick={handleAddMinute}
-                  D={D}
-                  DT={DT}
+                  N={N}
+                  NT={NT}
                   label="+1 min"
                 >
                   <Plus size={16} strokeWidth={2.6} />
                 </ControlButton>
                 <ControlButton
                   onClick={handleManualComplete}
-                  D={D}
-                  DT={DT}
+                  N={N}
+                  NT={NT}
                   label="completar"
                   variant="primary"
                 >
@@ -434,9 +480,9 @@ export default function MissionPhaseV8({
               style={{
                 width: 180,
                 height: 180,
-                background: D.accent,
-                color: D.paper,
-                boxShadow: `0 18px 50px -12px ${hexToRgba(D.accent, 0.55)}`,
+                background: N.amber,
+                color: N.void,
+                boxShadow: `0 18px 50px -12px ${hexToRgba(N.amber, 0.55)}`,
               }}
             >
               <div className="flex flex-col items-center justify-center gap-2.5">
@@ -459,25 +505,25 @@ export default function MissionPhaseV8({
             style={{
               animationDelay: '280ms',
               borderRadius: 22,
-              border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
-              background: hexToRgba(D.tint, 0.7),
+              border: `1px solid ${hexToRgba(N.amber, 0.22)}`,
+              background: hexToRgba(N.ember_deep, 0.55),
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
             }}
           >
             <div
               className="font-mono uppercase tracking-[0.42em] font-[700] mb-3"
-              style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+              style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
             >
               · directiva ·
             </div>
             <p
               className="font-headline italic font-[400] leading-[1.5]"
-              style={{ color: DT.soft, fontSize: 17 }}
+              style={{ color: NT.primary, fontSize: 17 }}
             >
               {typewriterText}
               {typewriterText.length < mission.directive.length && (
-                <span className="animate-pulse ml-0.5" style={{ color: D.accent }}>
+                <span className="animate-pulse ml-0.5" style={{ color: N.amber }}>
                   |
                 </span>
               )}
@@ -492,18 +538,18 @@ export default function MissionPhaseV8({
               <span
                 aria-hidden
                 className="flex-1 h-[1px]"
-                style={{ background: hexToRgba(D.accent, 0.18) }}
+                style={{ background: hexToRgba(N.amber, 0.18) }}
               />
               <span
                 className="font-mono uppercase tracking-[0.42em] font-[700] shrink-0"
-                style={{ color: hexToRgba(D.accent, 0.85), fontSize: 9 }}
+                style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
               >
                 · pasos · {checkedSteps.size}/{mission.subSteps.length} ·
               </span>
               <span
                 aria-hidden
                 className="flex-1 h-[1px]"
-                style={{ background: hexToRgba(D.accent, 0.18) }}
+                style={{ background: hexToRgba(N.amber, 0.18) }}
               />
             </div>
 
@@ -516,13 +562,13 @@ export default function MissionPhaseV8({
                     onClick={() => toggleStep(idx)}
                     className="w-full flex items-start gap-3.5 px-2 py-3.5 text-left transition-opacity active:opacity-70"
                     style={{
-                      borderBottom: `1px solid ${hexToRgba(D.accent, 0.1)}`,
+                      borderBottom: `1px solid ${hexToRgba(N.amber, 0.12)}`,
                     }}
                   >
                     <span
                       className="font-mono tabular-nums font-[700] shrink-0 pt-0.5"
                       style={{
-                        color: checked ? hexToRgba(D.accent, 0.5) : D.accent,
+                        color: checked ? hexToRgba(N.amber, 0.55) : N.amber,
                         fontSize: 12,
                         minWidth: '2.5ch',
                       }}
@@ -535,22 +581,22 @@ export default function MissionPhaseV8({
                         width: 18,
                         height: 18,
                         borderRadius: 5,
-                        border: `1.5px solid ${checked ? D.accent : hexToRgba(D.ink, 0.3)}`,
-                        background: checked ? D.accent : 'transparent',
+                        border: `1.5px solid ${checked ? N.amber : hexToRgba(NT.primary, 0.32)}`,
+                        background: checked ? N.amber : 'transparent',
                       }}
                     >
                       {checked && (
-                        <Check size={11} strokeWidth={3.2} style={{ color: D.paper }} />
+                        <Check size={11} strokeWidth={3.2} style={{ color: N.void }} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
                       <span
                         className="font-headline font-[600] lowercase tracking-[-0.015em] leading-snug"
                         style={{
-                          color: checked ? DT.muted : DT.primary,
+                          color: checked ? NT.muted : NT.primary,
                           fontSize: 15,
                           textDecoration: checked ? 'line-through' : 'none',
-                          textDecorationColor: hexToRgba(D.accent, 0.55),
+                          textDecorationColor: hexToRgba(N.amber, 0.55),
                         }}
                       >
                         {step.label.toLowerCase()}
@@ -559,8 +605,8 @@ export default function MissionPhaseV8({
                         <span
                           className="font-mono uppercase tracking-[0.22em] font-[700] px-1.5 py-0.5"
                           style={{
-                            color: D.accent,
-                            background: hexToRgba(D.accent, 0.14),
+                            color: N.amber,
+                            background: hexToRgba(N.amber, 0.16),
                             fontSize: 8.5,
                             borderRadius: 4,
                           }}
@@ -580,8 +626,8 @@ export default function MissionPhaseV8({
         {onOpenCoach && COACH_RELEVANT_PHASES[mission.id] && (
           <MissionCoachCard
             phaseId={mission.id}
-            D={D}
-            DT={DT}
+            N={N}
+            NT={NT}
             onOpen={onOpenCoach}
           />
         )}
@@ -595,7 +641,7 @@ export default function MissionPhaseV8({
           className="w-full"
           style={{
             height: 1,
-            background: `linear-gradient(90deg, transparent, ${hexToRgba(D.accent, 0.18)}, transparent)`,
+            background: `linear-gradient(90deg, transparent, ${hexToRgba(N.amber, 0.22)}, transparent)`,
           }}
           aria-hidden
         />
@@ -607,15 +653,14 @@ export default function MissionPhaseV8({
               onClick={() => { haptics.tap(); setShowScience((s) => !s); }}
               className="w-full flex items-center justify-between px-4 py-3.5 transition-opacity active:opacity-70"
               style={{
-                color: DT.soft,
-                background: hexToRgba(D.tint, 0.55),
-                border: `1px solid ${hexToRgba(D.accent, 0.18)}`,
+                background: hexToRgba(N.ember_deep, 0.45),
+                border: `1px solid ${hexToRgba(N.amber, 0.22)}`,
                 borderRadius: 14,
               }}
             >
               <span
                 className="font-mono uppercase tracking-[0.32em] font-[700]"
-                style={{ color: hexToRgba(D.accent, 0.95), fontSize: 10 }}
+                style={{ color: hexToRgba(N.amber, 0.95), fontSize: 10 }}
               >
                 · ¿por qué funciona? ·
               </span>
@@ -623,7 +668,7 @@ export default function MissionPhaseV8({
                 size={15}
                 strokeWidth={2.2}
                 style={{
-                  color: D.accent,
+                  color: N.amber,
                   transform: showScience ? 'rotate(180deg)' : 'none',
                   transition: 'transform 0.3s',
                 }}
@@ -633,9 +678,9 @@ export default function MissionPhaseV8({
               <div
                 className="mt-2 px-5 py-4 font-ui leading-[1.65]"
                 style={{
-                  color: DT.soft,
-                  border: `1px solid ${hexToRgba(D.accent, 0.14)}`,
-                  background: hexToRgba(D.tint, 0.4),
+                  color: NT.soft,
+                  border: `1px solid ${hexToRgba(N.amber, 0.16)}`,
+                  background: hexToRgba(N.ember_deep, 0.3),
                   fontSize: 13,
                   borderRadius: 14,
                 }}
@@ -651,21 +696,20 @@ export default function MissionPhaseV8({
           <div
             className="w-full px-5 py-4"
             style={{
-              borderLeft: `2px solid ${D.accent}`,
-              background: hexToRgba(D.tint, 0.4),
-              color: DT.soft,
+              borderLeft: `2px solid ${N.amber}`,
+              background: hexToRgba(N.ember_deep, 0.4),
               borderRadius: '0 14px 14px 0',
             }}
           >
             <div
               className="font-mono uppercase tracking-[0.32em] font-[700] mb-1.5"
-              style={{ color: D.accent, fontSize: 9 }}
+              style={{ color: N.amber, fontSize: 9 }}
             >
               · tip ·
             </div>
             <div
               className="font-ui leading-[1.55]"
-              style={{ color: DT.soft, fontSize: 13 }}
+              style={{ color: NT.primary, fontSize: 13 }}
             >
               {currentTip}
             </div>
@@ -677,8 +721,8 @@ export default function MissionPhaseV8({
           onClick={handleSkip}
           className="self-center font-mono uppercase tracking-[0.34em] font-[600] px-5 py-2.5 rounded-full transition-opacity active:opacity-70"
           style={{
-            color: DT.muted,
-            border: `1px solid ${hexToRgba(D.accent, 0.16)}`,
+            color: NT.muted,
+            border: `1px solid ${hexToRgba(N.amber, 0.18)}`,
             background: 'transparent',
             fontSize: 9.5,
           }}
@@ -692,24 +736,24 @@ export default function MissionPhaseV8({
 
 // ─── small presentational bits ───────────────────────────────
 
-interface PaletteCtx {
-  D: ReturnType<typeof useAppTheme>['day'];
-  DT: ReturnType<typeof useAppTheme>['dayText'];
+interface NightCtx {
+  N: NightPalette;
+  NT: NightPaletteText;
 }
 
 function ControlButton({
   children,
   onClick,
   label,
-  D,
-  DT,
+  N,
+  NT,
   variant = 'ghost',
 }: {
   children: React.ReactNode;
   onClick: () => void;
   label: string;
   variant?: 'ghost' | 'primary';
-} & PaletteCtx) {
+} & NightCtx) {
   const isPrimary = variant === 'primary';
   return (
     <button
@@ -722,19 +766,19 @@ function ControlButton({
         style={{
           width: isPrimary ? 56 : 48,
           height: isPrimary ? 56 : 48,
-          background: isPrimary ? D.accent : hexToRgba(D.tint, 0.7),
-          border: `1px solid ${isPrimary ? D.accent : hexToRgba(D.accent, 0.32)}`,
-          color: isPrimary ? D.paper : DT.primary,
+          background: isPrimary ? N.amber : hexToRgba(N.ember_deep, 0.55),
+          border: `1px solid ${isPrimary ? N.amber : hexToRgba(N.amber, 0.32)}`,
+          color: isPrimary ? N.void : NT.primary,
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
-          boxShadow: isPrimary ? `0 8px 22px -8px ${hexToRgba(D.accent, 0.5)}` : 'none',
+          boxShadow: isPrimary ? `0 8px 22px -8px ${hexToRgba(N.amber, 0.5)}` : 'none',
         }}
       >
         {children}
       </span>
       <span
         className="font-mono uppercase tracking-[0.28em] font-[700]"
-        style={{ color: DT.muted, fontSize: 9 }}
+        style={{ color: NT.muted, fontSize: 9 }}
       >
         {label}
       </span>
@@ -766,13 +810,13 @@ const COACH_RELEVANT_PHASES: Record<string, { kicker: string; lead: string }> = 
 
 function MissionCoachCard({
   phaseId,
-  D,
-  DT,
+  N,
+  NT,
   onOpen,
 }: {
   phaseId: string;
   onOpen: () => void;
-} & PaletteCtx) {
+} & NightCtx) {
   const meta = COACH_RELEVANT_PHASES[phaseId];
   if (!meta) return null;
   return (
@@ -783,8 +827,8 @@ function MissionCoachCard({
       style={{
         animationDelay: '320ms',
         borderRadius: 22,
-        background: hexToRgba(D.tint, 0.7),
-        border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+        background: hexToRgba(N.ember_deep, 0.55),
+        border: `1px solid ${hexToRgba(N.amber, 0.22)}`,
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
       }}
@@ -793,9 +837,9 @@ function MissionCoachCard({
         <span
           className="shrink-0 w-10 h-10 flex items-center justify-center"
           style={{
-            background: hexToRgba(D.accent, 0.14),
-            border: `1px solid ${hexToRgba(D.accent, 0.4)}`,
-            color: D.accent,
+            background: hexToRgba(N.amber, 0.16),
+            border: `1px solid ${hexToRgba(N.amber, 0.4)}`,
+            color: N.amber,
             borderRadius: 12,
           }}
         >
@@ -804,20 +848,20 @@ function MissionCoachCard({
         <div className="flex-1 min-w-0">
           <div
             className="font-mono uppercase tracking-[0.32em] font-[700]"
-            style={{ color: hexToRgba(D.accent, 0.95), fontSize: 9 }}
+            style={{ color: hexToRgba(N.amber, 0.95), fontSize: 9 }}
           >
             {meta.kicker}
           </div>
           <div
             className="font-headline font-[700] lowercase tracking-[-0.025em] mt-1"
-            style={{ color: DT.primary, fontSize: 18, lineHeight: 1 }}
+            style={{ color: NT.primary, fontSize: 18, lineHeight: 1 }}
           >
             abrir coach
-            <span style={{ color: D.accent }}>.</span>
+            <span style={{ color: N.amber }}>.</span>
           </div>
           <p
             className="font-mono leading-snug mt-1.5 truncate"
-            style={{ color: DT.muted, fontSize: 10.5 }}
+            style={{ color: NT.soft, fontSize: 10.5 }}
           >
             {meta.lead}
           </p>
@@ -825,9 +869,9 @@ function MissionCoachCard({
       </div>
       <div
         className="shrink-0 flex items-center justify-center px-4"
-        style={{ background: D.accent }}
+        style={{ background: N.amber }}
       >
-        <ArrowUpRight size={18} strokeWidth={2.4} style={{ color: D.paper }} />
+        <ArrowUpRight size={18} strokeWidth={2.4} style={{ color: N.void }} />
       </div>
     </button>
   );

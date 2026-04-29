@@ -17,7 +17,8 @@
 
 import { Sparkles, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Sun, Moon, Droplet, Brain, Smile, Pill, Flame, Activity } from 'lucide-react';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 import { useCoach } from '@/hooks/useCoach';
 import type { CoachAction } from '@/lib/coach/coachEngine';
@@ -41,6 +42,7 @@ const ACTION_ICON: Record<CoachAction['kind'], LucideIcon> = {
 };
 
 export default function CoachWidget({ onOpen, autoHide = true }: CoachWidgetProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const { briefing, hydrated } = useCoach();
   if (!hydrated || !briefing) return null;
 

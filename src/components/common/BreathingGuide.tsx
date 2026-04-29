@@ -32,6 +32,9 @@ interface WimHofState {
 interface BreathingGuideProps {
   /** Optional close handler · si se omite, no muestra botón cerrar. */
   onClose?: () => void;
+  /** Si true, omite header/título/footer y se integra dentro de otra pantalla
+   *  (ej. MissionPhaseV8 fase Pneuma). Solo renderiza orb + label + dots. */
+  embedded?: boolean;
 }
 
 const TOTAL_ROUNDS = 3;
@@ -39,7 +42,7 @@ const BREATHS_PER_ROUND = 30;
 const HOLD_DURATION = 30;
 const RECOVERY_HOLD = 15;
 
-export default function BreathingGuide({ onClose }: BreathingGuideProps = {}) {
+export default function BreathingGuide({ onClose, embedded = false }: BreathingGuideProps = {}) {
   const { palette: N, paletteText: NT } = useNightPalette();
 
   const [state, setState] = useState<WimHofState>({
@@ -167,6 +170,42 @@ export default function BreathingGuide({ onClose }: BreathingGuideProps = {}) {
 
   // ─── Pre-start screen ─────────────────────────────────────
   if (!active) {
+    if (embedded) {
+      // Versión compacta para incrustar dentro de MissionPhaseV8.
+      // Solo el CTA + descripción corta · sin header/footer/title duplicados.
+      return (
+        <div className="w-full flex flex-col items-center gap-5 py-2">
+          <p
+            className="font-ui text-[13px] leading-[1.55] text-center max-w-[32ch]"
+            style={{ color: NT.soft }}
+          >
+            30 respiraciones rápidas y profundas → retención al exhalar →
+            inhalación de recuperación. Tres rondas.
+          </p>
+          <div className="flex items-center gap-6">
+            <Stat label="rondas" value="3" N={N} NT={NT} />
+            <Divider N={N} />
+            <Stat label="resp/ronda" value="30" N={N} NT={NT} />
+            <Divider N={N} />
+            <Stat label="duración" value="~10m" N={N} NT={NT} />
+          </div>
+          <button
+            onClick={handleStart}
+            className="font-mono font-[700] tracking-[0.32em] uppercase transition-transform active:scale-[0.985] flex items-center gap-2.5 mt-2"
+            style={{
+              padding: '14px 28px',
+              background: N.amber,
+              color: N.void,
+              fontSize: 10.5,
+              boxShadow: `0 8px 24px -6px ${hexToRgba(N.amber, 0.5)}`,
+            }}
+          >
+            <Play size={13} strokeWidth={2.4} fill="currentColor" />
+            iniciar respiración
+          </button>
+        </div>
+      );
+    }
     return (
       <div
         className="relative w-full h-full flex flex-col overflow-hidden"
@@ -275,6 +314,98 @@ export default function BreathingGuide({ onClose }: BreathingGuideProps = {}) {
   // ─── Active session screen ────────────────────────────────
   const orbCount = state.phase === 'POWER' ? state.breathCount : state.phase === 'HOLD' || state.phase === 'RECOVERY' ? state.holdTimer : 0;
   const orbCountSuffix = state.phase === 'POWER' ? '' : 's';
+
+  if (embedded) {
+    // Versión compacta activa: solo R# · phase · orb + label + dots.
+    // La progress bar global la maneja MissionPhaseV8.
+    return (
+      <div className="w-full flex flex-col items-center gap-6 py-2">
+        <div className="w-full flex items-baseline justify-between">
+          <span
+            className="font-mono tabular-nums font-[600]"
+            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
+          >
+            R{state.round}
+            <span style={{ color: N.amber }}>.</span>
+          </span>
+          <span
+            className="font-mono uppercase tracking-[0.32em] font-[700]"
+            style={{ color: NT.muted, fontSize: 9 }}
+          >
+            · {state.phase.toLowerCase()} ·
+          </span>
+        </div>
+
+        <h2
+          className="font-headline font-[700] lowercase tracking-[-0.04em] text-center"
+          style={{
+            color: NT.primary,
+            fontSize: 'clamp(2rem, 7vw, 2.6rem)',
+            lineHeight: 0.95,
+            textShadow: `0 0 60px ${hexToRgba(N.amber, 0.22)}`,
+          }}
+        >
+          {phaseLabel()}
+          <span style={{ color: N.amber }}>.</span>
+        </h2>
+
+        <div className="relative" style={{ width: 160, height: 160 }}>
+          <div
+            aria-hidden
+            className="absolute pointer-events-none rounded-full"
+            style={{
+              inset: -28,
+              background: `radial-gradient(circle, ${hexToRgba(N.amber, 0.4)} 0%, transparent 70%)`,
+              filter: 'blur(20px)',
+              opacity: isFinished ? 0.5 : 0.95,
+            }}
+          />
+          <div
+            ref={orbRef}
+            className="absolute inset-0 rounded-full flex items-center justify-center"
+            style={{
+              background: `radial-gradient(circle at 38% 35%, #fff4e2 0%, ${N.amber_glow} 35%, ${N.amber} 70%, ${N.candle} 100%)`,
+              boxShadow: `inset -10px -10px 28px ${hexToRgba(N.candle, 0.5)}, inset 5px 5px 12px ${hexToRgba('#ffffff', 0.18)}, 0 0 44px ${hexToRgba(N.amber, 0.5)}`,
+            }}
+          >
+            <span
+              className="font-headline font-[700] tabular-nums"
+              style={{
+                color: N.void,
+                fontSize: 30,
+                letterSpacing: '-0.02em',
+                textShadow: `0 1px 2px ${hexToRgba('#ffffff', 0.5)}`,
+              }}
+            >
+              {isFinished ? '✓' : orbCount + orbCountSuffix}
+            </span>
+          </div>
+        </div>
+
+        <p
+          className="font-ui text-[12.5px] leading-[1.55] text-center max-w-[28ch]"
+          style={{ color: NT.soft }}
+        >
+          {phaseHint()}
+        </p>
+
+        <div className="flex justify-center gap-2">
+          {[1, 2, 3].map(r => (
+            <span
+              key={r}
+              className="rounded-full transition-all"
+              style={{
+                width: r === state.round && !isFinished ? 8 : 5,
+                height: r === state.round && !isFinished ? 8 : 5,
+                background: r <= state.round ? N.amber : hexToRgba(N.amber, 0.18),
+                boxShadow: r === state.round && !isFinished ? `0 0 10px ${hexToRgba(N.amber, 0.7)}` : 'none',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

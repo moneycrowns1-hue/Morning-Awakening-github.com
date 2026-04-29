@@ -13,7 +13,8 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
-import { Bell, ChevronLeft, Download, RotateCcw, Sun } from 'lucide-react';
+import { Bell, ChevronLeft, Download, Moon, RotateCcw, Sun } from 'lucide-react';
+import { useAppMode } from '@/lib/common/appMode';
 import { hexToRgba } from '@/lib/common/theme';
 import { useAppTheme } from '@/lib/common/appTheme';
 import NightPalettePicker from '../common/NightPalettePicker';
@@ -334,6 +335,8 @@ export default function SettingsScreen({
           {/* Apariencia · paleta */}
           <SectionHeader N={D} NT={DT}>· apariencia ·</SectionHeader>
           <SettingsCard>
+            <ModeRow />
+            <Hairline />
             <div className="px-4 py-4">
               <p
                 className="font-ui leading-[1.55] mb-3"
@@ -447,6 +450,84 @@ function Hairline({ tight }: { tight?: boolean }) {
         background: hexToRgba(D.accent, 0.12),
       }}
     />
+  );
+}
+
+function ModeRow() {
+  const { day: D, dayText: DT } = useAppTheme();
+  const { mode, setMode } = useAppMode();
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-4">
+      <div className="min-w-0">
+        <div
+          className="font-headline font-[600] lowercase tracking-[-0.015em]"
+          style={{ color: DT.primary, fontSize: 15 }}
+        >
+          modo
+        </div>
+        <div
+          className="mt-1 font-mono uppercase tracking-[0.22em] font-[600] leading-tight"
+          style={{ color: DT.muted, fontSize: 9.5 }}
+        >
+          claro · oscuro · global
+        </div>
+      </div>
+      <div
+        className="shrink-0 inline-flex rounded-full p-[3px]"
+        style={{
+          background: hexToRgba(D.ink, 0.08),
+          border: `1px solid ${DT.divider}`,
+        }}
+      >
+        <ModeChip
+          active={mode === 'day'}
+          icon={<Sun size={13} strokeWidth={2.1} />}
+          label="día"
+          onClick={() => { haptics.tap(); setMode('day'); }}
+        />
+        <ModeChip
+          active={mode === 'night'}
+          icon={<Moon size={13} strokeWidth={2.1} />}
+          label="noche"
+          onClick={() => { haptics.tap(); setMode('night'); }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ModeChip({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  const { day: D, dayText: DT } = useAppTheme();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-transform active:scale-[0.96]"
+      style={{
+        background: active ? D.accent : 'transparent',
+        color: active ? D.paper : DT.soft,
+        boxShadow: active ? `0 4px 12px -4px ${hexToRgba(D.accent, 0.45)}` : 'none',
+      }}
+    >
+      {icon}
+      <span
+        className="font-ui font-[600] lowercase tracking-[0.02em]"
+        style={{ fontSize: 12 }}
+      >
+        {label}
+      </span>
+    </button>
   );
 }
 

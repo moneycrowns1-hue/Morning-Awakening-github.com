@@ -20,7 +20,8 @@ import {
   reminderRelativeLabel,
 } from '@/lib/coach/reminders';
 import type { NotifPermission } from '@/lib/common/notifications';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 
 interface RemindersPanelProps {
@@ -49,6 +50,7 @@ export default function RemindersPanel({
   onSnooze,
   onDismiss,
 }: RemindersPanelProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const hasReminders = reminders.length > 0;
 
   // No renderizar si no hay nada que decir.
@@ -271,6 +273,7 @@ function ChipButton({
   onClick: () => void;
   variant?: 'default' | 'danger';
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const isDanger = variant === 'danger';
   return (
     <button

@@ -24,7 +24,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 import { useCoach } from '@/hooks/useCoach';
 import { CONDITIONS, type ConditionId } from '@/lib/coach/conditions';
@@ -46,6 +47,7 @@ interface CoachScreenProps {
 }
 
 export default function CoachScreen({ onClose }: CoachScreenProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const coach = useCoach();
   const { briefing, state, hydrated } = coach;
   const {
@@ -313,8 +315,9 @@ function HeroActionCard({
   onSelectProduct,
 }: {
   action: CoachAction;
-  onSelectProduct: (id: string) => void;
+  onSelectProduct?: (productId: string) => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const Icon = ACTION_ICON[action.kind] ?? Activity;
   const isOverdue = action.urgency === 'overdue';
   const accent = isOverdue ? '#ff6b6b' : SUNRISE.rise2;
@@ -324,7 +327,7 @@ function HeroActionCard({
     <button
       type="button"
       disabled={!tappable}
-      onClick={tappable ? () => onSelectProduct(firstProductId!) : undefined}
+      onClick={tappable && onSelectProduct ? () => onSelectProduct(firstProductId!) : undefined}
       className="mt-4 w-full text-left transition-transform active:scale-[0.99] disabled:cursor-default"
       style={{
         background: accent,
@@ -429,6 +432,7 @@ function kindLabel(kind: CoachAction['kind']): string {
 }
 
 function SectionLabel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  const { SUNRISE_TEXT } = useLegacyTheme();
   return (
     <h2
       className={`font-ui text-[10px] tracking-[0.34em] uppercase ${className}`}
@@ -440,6 +444,7 @@ function SectionLabel({ children, className = '' }: { children: React.ReactNode;
 }
 
 function LoadingState() {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div
       className="mt-10 rounded-2xl px-5 py-6 text-center"
@@ -457,6 +462,7 @@ function LoadingState() {
 // 4ta tile del grid "Estado de hoy" · dorada filled · ocupa el slot que
 // antes ocupaba la card de motivo+modo separada arriba.
 function ModeStatusCard({ briefing }: { briefing: Briefing }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const isFlare = briefing.mode.startsWith('flare');
   const accent = isFlare ? '#ff6b6b' : SUNRISE.rise2;
   return (
@@ -507,6 +513,7 @@ function ModeStatusCard({ briefing }: { briefing: Briefing }) {
 }
 
 function WarningCard({ severity, message }: { severity: 'info' | 'caution' | 'danger'; message: string }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const color = severity === 'danger' ? '#ff6b6b' : severity === 'caution' ? '#ffb44d' : SUNRISE.cool;
   return (
     <div
@@ -525,6 +532,7 @@ function WarningCard({ severity, message }: { severity: 'info' | 'caution' | 'da
 }
 
 function StatusCardView({ card }: { card: StatusCard }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const Icon = STATUS_ICON[card.id] ?? Activity;
   const pct = card.progress !== undefined ? Math.round(card.progress * 100) : null;
   return (
@@ -589,8 +597,9 @@ function ActionRow({
   onSelectProduct,
 }: {
   action: CoachAction;
-  onSelectProduct: (id: string) => void;
+  onSelectProduct?: (productId: string) => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const Icon = ACTION_ICON[action.kind] ?? Activity;
   const isCritical = action.priority === 'critical';
   const isOverdue = action.urgency === 'overdue';
@@ -603,7 +612,7 @@ function ActionRow({
   return (
     <Tag
       type={tappable ? 'button' : undefined}
-      onClick={tappable ? () => onSelectProduct(firstProductId!) : undefined}
+      onClick={tappable && onSelectProduct ? () => onSelectProduct(firstProductId!) : undefined}
       className={`rounded-2xl px-4 py-3.5 flex items-start gap-3 text-left w-full ${tappable ? 'transition-transform active:scale-[0.99]' : ''}`}
       style={{
         background: filled ? fillBg : hexToRgba(SUNRISE.night, 0.55),
@@ -687,6 +696,7 @@ function RoutineSection({
   onToggle: () => void;
   onSelectProduct: (id: string) => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const Icon = slot === 'am' ? Sun : Moon;
   const label = slot === 'am' ? 'Mañana' : 'Noche';
   const stepCount = routine.steps.length;
@@ -856,6 +866,7 @@ function CollapsibleSection({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div className="mt-4">
       <button

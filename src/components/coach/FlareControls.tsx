@@ -9,7 +9,8 @@
 // ═══════════════════════════════════════════════════════════
 
 import { Flame, Pill, RotateCcw, Check } from 'lucide-react';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 import type { UseCoachReturn } from '@/hooks/useCoach';
 import type { FlareState, FlareSeverity, FlarePhase } from '@/lib/coach/flareProtocol';
@@ -19,6 +20,7 @@ interface FlareControlsProps {
 }
 
 export default function FlareControls({ coach }: FlareControlsProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const { state, setFlare, setDerivaC } = coach;
   const flare = state.flare;
   const derivaC = state.derivaC;
@@ -270,6 +272,7 @@ function DerivaCProgress({
   startedAt: string;
   plannedEndAt: string | null;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const start = new Date(startedAt);
   const now = new Date();
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -372,6 +375,7 @@ function ToggleButton({
   icon?: typeof Flame;
   color: string;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <button
       type="button"

@@ -41,6 +41,26 @@
   --sunrise-text-muted: rgba(255,250,240,0.42);
   --sunrise-divider:    rgba(255,250,240,0.10);
 
+  /* ═══ MA SEMANTIC TOKENS (v9 · día/noche global) ═══
+     Estos son los que consumen los componentes vía SUNRISE / D / N
+     (todos exportan strings `var(--ma-...)`). PaletteBridge los
+     reescribe en runtime según (familia, modo). Aquí dejamos
+     defaults para SSR / primer paint sin flash: día EMBER (calm). */
+  --ma-bg:            #fdf6ed;
+  --ma-bg-deep:       #f5e8d4;
+  --ma-bg-card:       #fbf0e0;
+  --ma-bg-elevated:   #f0d8b8;
+  --ma-accent:        #e8753a;
+  --ma-accent-soft:   #f0986a;
+  --ma-accent-deep:   #a84a18;
+  --ma-accent-warm:   #d4451a;
+  --ma-ink:           #3a1f10;
+  --ma-text-primary:  rgba(58,31,16,0.92);
+  --ma-text-soft:     rgba(58,31,16,0.68);
+  --ma-text-muted:    rgba(58,31,16,0.46);
+  --ma-text-divider:  rgba(58,31,16,0.10);
+  --ma-mode:          day;
+
   /* ═══ FONT FAMILIES ═══ */
   --font-display: var(--font-display), "Fraunces", Georgia, serif;
   --font-ui:      var(--font-ui),      "Inter",   system-ui, sans-serif;

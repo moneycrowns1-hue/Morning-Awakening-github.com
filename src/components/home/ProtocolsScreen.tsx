@@ -16,7 +16,8 @@
 import { useMemo } from 'react';
 import { Sun, Moon, Layers, Check, Sparkles, ArrowUpRight, AlertTriangle, Bell as BellIcon } from 'lucide-react';
 import GradientBackground from '../common/GradientBackground';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 import { isHabitDone } from '@/lib/common/habits';
 import { isNucleusWindow, getCurrentBlock } from '@/lib/nucleus/nucleusConstants';
@@ -48,6 +49,7 @@ export default function ProtocolsScreen({
   onLaunchNight,
   onLaunchCoach,
 }: ProtocolsScreenProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const dayCtx = useMemo(() => getDayContext(), []);
   const dayLabel = getDayProfileLabel(dayCtx);
   const { briefing } = useCoach();
@@ -200,6 +202,7 @@ function ProtocolCard({
   status,
   onLaunch,
 }: ProtocolCardData) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const isNow = status === 'now';
   const isDone = status === 'done';
   const isClosed = status === 'window-closed';
@@ -267,6 +270,7 @@ function ProtocolCard({
 }
 
 function StatusBlock({ status }: { status: Status }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   if (status === 'now') {
     return (
       <div
@@ -359,6 +363,7 @@ function CoachProtocolCard({
   warningsCount: number;
   onLaunch: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const isFlare = mode.startsWith('flare');
   const danger = '#ff6b6b';
   const warn = '#ffb44d';

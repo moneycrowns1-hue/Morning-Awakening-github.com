@@ -36,6 +36,53 @@ import {
   type DayPaletteText,
 } from './dayPalette';
 
+// ─── Shapes basadas en CSS vars ───────────────────────────────
+// Todos los componentes que consumen useAppTheme() (o D / N / DT /
+// NT) reciben siempre estos objetos: las CLAVES son las mismas que
+// las paletas literales, pero los VALORES son `'var(--ma-...)'`.
+// El valor real lo resuelve el navegador en pintado, alimentado por
+// `<PaletteBridge />` que escribe el hex correcto según
+// (paletaFamilia activa, modo día/noche).
+//
+// Sí: `D` y `N` apuntan a las MISMAS vars. La diferencia día↔noche
+// no la decide el componente, la decide el modo global. Eso es
+// exactamente lo que pide el toggle: aplastar día → todo claro,
+// aplastar noche → todo oscuro.
+const DAY_VARS: DayPalette = {
+  paper:        'var(--ma-bg)',
+  tint_deep:    'var(--ma-bg-deep)',
+  tint:         'var(--ma-bg-card)',
+  tint_strong:  'var(--ma-bg-elevated)',
+  accent:       'var(--ma-accent)',
+  accent_soft:  'var(--ma-accent-soft)',
+  accent_deep:  'var(--ma-accent-deep)',
+  accent_warm:  'var(--ma-accent-warm)',
+  ink:          'var(--ma-ink)',
+};
+const DAY_TEXT_VARS: DayPaletteText = {
+  primary: 'var(--ma-text-primary)',
+  soft:    'var(--ma-text-soft)',
+  muted:   'var(--ma-text-muted)',
+  divider: 'var(--ma-text-divider)',
+};
+const NIGHT_VARS: NightPalette = {
+  void:        'var(--ma-bg)',
+  ember_deep:  'var(--ma-bg-deep)',
+  ember_1:     'var(--ma-bg-card)',
+  ember_2:     'var(--ma-bg-elevated)',
+  amber:       'var(--ma-accent)',
+  amber_glow:  'var(--ma-accent-soft)',
+  amber_deep:  'var(--ma-accent-deep)',
+  candle:      'var(--ma-accent-warm)',
+  cream:       'var(--ma-ink)',
+};
+const NIGHT_TEXT_VARS: NightPaletteText = {
+  primary: 'var(--ma-text-primary)',
+  soft:    'var(--ma-text-soft)',
+  muted:   'var(--ma-text-muted)',
+  divider: 'var(--ma-text-divider)',
+};
+
 export interface AppThemePair {
   id: NightPaletteId;
   label: string;
@@ -50,7 +97,12 @@ export interface AppThemePair {
   nightText: NightPaletteText;
 }
 
-const DAY_BY_ID: Record<NightPaletteId, { palette: DayPalette; text: DayPaletteText }> = {
+/**
+ * Mapeo (familia de paleta → hex literales día). Lo consume
+ * `<PaletteBridge />` y `getDayPalette` para escribir CSS vars,
+ * NO los componentes (que ya reciben formas con `var(...)`).
+ */
+export const DAY_BY_ID: Record<NightPaletteId, { palette: DayPalette; text: DayPaletteText }> = {
   calm:    { palette: DAY_EMBER,   text: DAY_EMBER_TEXT },
   cocoa:   { palette: DAY_COCOA,   text: DAY_COCOA_TEXT },
   oxblood: { palette: DAY_OXBLOOD, text: DAY_OXBLOOD_TEXT },
@@ -78,27 +130,26 @@ export function useAppTheme(): {
   options: NightPaletteOption[];
   pair: AppThemePair;
 } {
-  const { id, setId, palette: night, paletteText: nightText, options } = useNightPalette();
-  const dayBundle = DAY_BY_ID[id];
+  const { id, setId, options } = useNightPalette();
   const opt = options.find((o) => o.id === id) ?? options[0];
 
   const pair: AppThemePair = {
     id,
     label: opt.label,
     hint: opt.hint,
-    day: dayBundle.palette,
-    dayText: dayBundle.text,
-    night,
-    nightText,
+    day: DAY_VARS,
+    dayText: DAY_TEXT_VARS,
+    night: NIGHT_VARS,
+    nightText: NIGHT_TEXT_VARS,
   };
 
   return {
     id,
     setId,
-    day: dayBundle.palette,
-    dayText: dayBundle.text,
-    night,
-    nightText,
+    day: DAY_VARS,
+    dayText: DAY_TEXT_VARS,
+    night: NIGHT_VARS,
+    nightText: NIGHT_TEXT_VARS,
     options,
     pair,
   };

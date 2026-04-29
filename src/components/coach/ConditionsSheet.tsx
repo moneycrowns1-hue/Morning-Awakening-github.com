@@ -17,7 +17,8 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { X, Check, AlertCircle } from 'lucide-react';
 import { CONDITIONS, type ConditionId } from '@/lib/coach/conditions';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 
 interface ConditionsSheetProps {
@@ -39,6 +40,7 @@ export default function ConditionsSheet({
   onToggle,
   onClose,
 }: ConditionsSheetProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const isAnimatingOut = useRef(false);

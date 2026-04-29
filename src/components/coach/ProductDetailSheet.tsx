@@ -24,7 +24,8 @@ import {
   CheckCircle2, ChevronDown,
 } from 'lucide-react';
 import { findTopical, findOral, type Product, type OralProduct } from '@/lib/coach/catalog';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useLegacyTheme } from '@/lib/common/legacyTheme';
 import { haptics } from '@/lib/common/haptics';
 
 interface ProductDetailSheetProps {
@@ -75,6 +76,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 export default function ProductDetailSheet({ productId, onClose }: ProductDetailSheetProps) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const isAnimatingOut = useRef(false);
@@ -197,6 +199,7 @@ function TopicalView({
   showInci: boolean;
   onToggleInci: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <>
       <Header
@@ -385,6 +388,7 @@ function TopicalView({
 }
 
 function OralView({ product, onClose }: { product: OralProduct; onClose: () => void }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <>
       <Header
@@ -465,6 +469,7 @@ function OralView({ product, onClose }: { product: OralProduct; onClose: () => v
 }
 
 function NotFoundView({ productId, onClose }: { productId: string | null; onClose: () => void }) {
+  const { SUNRISE_TEXT } = useLegacyTheme();
   return (
     <>
       <Header kicker="Producto" title="No encontrado" onClose={onClose} />
@@ -492,6 +497,7 @@ function Header({
   url?: string;
   onClose: () => void;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div className="px-5 pt-2 pb-3 flex items-start justify-between gap-3">
       <div className="flex-1 min-w-0">
@@ -546,6 +552,7 @@ function Subsection({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div className="mt-4">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -563,6 +570,7 @@ function Subsection({
 }
 
 function CautionsBox({ cautions }: { cautions: string[] }) {
+  const { SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div
       className="mt-4 rounded-lg p-3"
@@ -601,6 +609,7 @@ function CautionsBox({ cautions }: { cautions: string[] }) {
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <span
       className="font-mono text-[10px] tracking-wider lowercase px-2 py-0.5 rounded-full"
@@ -616,6 +625,7 @@ function Tag({ children }: { children: React.ReactNode }) {
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {
+  const { SUNRISE, SUNRISE_TEXT } = useLegacyTheme();
   return (
     <div
       className="rounded-xl px-3 py-2.5"
