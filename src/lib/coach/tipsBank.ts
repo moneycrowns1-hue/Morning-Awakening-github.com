@@ -248,6 +248,92 @@ export const TIPS: Tip[] = [
     tags: { subRoutines: ['post_gym'], conditions: ['atopic_dermatitis'] },
   },
 
+  // ── Drenaje linfático facial · AURORA post-CRYO ───────────
+  {
+    id: 'tip_lymph_johnson_oil',
+    text: 'Aceite Johnson en drenaje linfático: 3-4 gotas bastan para todo rostro — exceso bloquea el deslizamiento y agita la piel post-frío.',
+    domain: 'skin', source: 'técnica · drenaje',
+    tags: { context: ['cold'], skinFeel: ['tight'] },
+  },
+  {
+    id: 'tip_lymph_direction',
+    text: 'Drenaje siempre va de centro hacia periferia y de arriba hacia abajo, terminando en clavícula. Al revés acumulas líquido.',
+    domain: 'skin', source: 'técnica · drenaje',
+    tags: {},
+  },
+  {
+    id: 'tip_lymph_post_cryo_window',
+    text: 'Post-ducha fría la microcirculación está abierta — 90 s de drenaje ahí valen por 5 min en otro momento del día.',
+    domain: 'skin', source: 'fisiología · drenaje',
+    tags: { skinFeel: ['tight', 'red'] },
+  },
+  {
+    id: 'tip_lymph_pressure_light',
+    text: 'Drenaje linfático = presión de pluma, no masaje. Si dejas marca o roja la piel, estás drenando músculo, no linfa.',
+    domain: 'skin', source: 'técnica · drenaje',
+    tags: { skinFeel: ['red', 'stinging'] },
+  },
+
+  // ── Gotero ocular · HELIO ─────────────────────────────────
+  {
+    id: 'tip_eye_drops_first_thing',
+    text: 'Gotero ocular en los primeros minutos del día rehidrata córnea tras 7-9 h sin parpadeo activo. Evita ojo seco a media mañana.',
+    domain: 'general', source: 'hábito · ojos',
+    tags: { context: ['dry'] },
+  },
+  {
+    id: 'tip_eye_drops_technique',
+    text: 'Gotero: mira al techo, baja párpado inferior, gota en el saco — no sobre el iris. Cierra ojo 30 s sin apretar.',
+    domain: 'general', source: 'técnica · gotero',
+    tags: {},
+  },
+  {
+    id: 'tip_eye_strain_2020',
+    text: 'Si ya hay sequedad ocular antes del mediodía, baja el umbral de la 20-20-20 a 15 min hasta que se compense.',
+    domain: 'general', source: 'técnica · ojos',
+    tags: { context: ['dry'] },
+  },
+
+  // ── Ventilación matutina · HELIO ──────────────────────────
+  {
+    id: 'tip_ventilation_morning',
+    text: 'Abrir ventana 5-10 min al despertar baja CO₂ del cuarto a la mitad. Cerebro despeja antes que el café.',
+    domain: 'general', source: 'hábito · aire',
+    tags: { sleep: ['poor'] },
+  },
+  {
+    id: 'tip_ventilation_humidity',
+    text: 'Ventilar en mañana fría seca aún más el aire interior. Si la piel se siente tirante, compensa con humectante en piel húmeda.',
+    domain: 'skin', source: 'clima · ventilación',
+    tags: { context: ['dry', 'cold'], skinFeel: ['tight', 'flaky'] },
+  },
+
+  // ── Check-in matutino · sleep-debt ────────────────────────
+  {
+    id: 'tip_checkin_anchor',
+    text: 'Check-in mañanero (sueño · estrés · piel) toma 10 s y le da al coach el contexto que cambia toda la rutina del día.',
+    domain: 'general', source: 'hábito · check-in',
+    tags: {},
+  },
+  {
+    id: 'tip_sleep_debt_no_cardio',
+    text: 'Con > 60 min de deuda de sueño, cardio AM aplaza la recuperación. Mejor caminata + luz solar 10 min.',
+    domain: 'sleep', source: 'fisiología · deuda',
+    tags: { sleep: ['poor'], subRoutines: ['poor_sleep'] },
+  },
+  {
+    id: 'tip_sleep_debt_caffeine_delay',
+    text: 'Tras mala noche: retrasa la cafeína 60-90 min después de despertar. Cortisol ya está alto — apilar cafeína te deja en pico-valle.',
+    domain: 'sleep', source: 'fisiología · cafeína',
+    tags: { sleep: ['poor'], subRoutines: ['poor_sleep'] },
+  },
+  {
+    id: 'tip_morning_light_first',
+    text: '10 min de luz exterior en la primera hora ancla el ritmo circadiano. Más potente que cualquier suplemento para dormir.',
+    domain: 'sleep', source: 'fisiología · circadiano',
+    tags: { sleep: ['poor', 'avg'] },
+  },
+
   // ── Generales / motivacionales (siempre elegibles) ────────
   {
     id: 'tip_routine_consistency',

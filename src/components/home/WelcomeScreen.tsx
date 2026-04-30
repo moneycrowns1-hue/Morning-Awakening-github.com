@@ -46,6 +46,15 @@ interface WelcomeScreenProps {
   /** Modo planeado por el adapter (full / express / recovery).
    *  Se muestra como kicker del chip. */
   adaptiveMode?: 'full' | 'express' | 'recovery';
+  /** Override manual del modo Génesis para hoy. Cuando el usuario
+   *  toca uno de los chips, se llama este callback que el padre usa
+   *  para persistir en `ma-genesis-mode-day-${today}` y forzar un
+   *  re-cálculo del previewPlan. Si se pasa null, se borra el
+   *  override y vuelve al modo automatico decidido por el adapter. */
+  onSetGenesisMode?: (mode: 'full' | 'express' | 'recovery' | null) => void;
+  /** Override actual leído de localStorage al iniciar la pantalla.
+   *  null = sin override (usa lo que el adapter decida). */
+  genesisOverride?: 'full' | 'express' | 'recovery' | null;
 }
 
 export default function WelcomeScreen({
@@ -55,6 +64,8 @@ export default function WelcomeScreen({
   onOpenCalendar,
   adaptiveHint,
   adaptiveMode,
+  onSetGenesisMode,
+  genesisOverride,
 }: WelcomeScreenProps) {
   const { day: D, dayText: DT } = useAppTheme();
   const quote = useDailyQuote();
@@ -243,6 +254,61 @@ export default function WelcomeScreen({
               >
                 {adaptiveHint}
               </span>
+            </div>
+          )}
+
+          {/* ── Override manual del modo Génesis ─────────────
+              Tres chips minimalistas para forzar el modo del día.
+              Persiste por día vía `ma-genesis-mode-day-${today}` que
+              el adapter ya consume. Útil cuando el adapter recorta
+              fases por sleep debt / late start, pero el usuario se
+              siente bien y quiere correr el protocolo completo. */}
+          {onSetGenesisMode && (
+            <div className="mt-3 flex items-center gap-1.5 flex-wrap sunrise-fade-up" style={{ animationDelay: '160ms' }}>
+              <span
+                className="font-mono uppercase tracking-[0.34em] font-[600] mr-1"
+                style={{ color: DT.muted, fontSize: 9 }}
+              >
+                modo
+              </span>
+              {(['full', 'express', 'recovery'] as const).map((m) => {
+                const active = genesisOverride === m;
+                const auto = !genesisOverride && adaptiveMode === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      haptics.tap();
+                      onSetGenesisMode(active ? null : m);
+                    }}
+                    className="font-mono uppercase tracking-[0.32em] font-[700] transition-opacity active:opacity-70"
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 99,
+                      fontSize: 9,
+                      background: active
+                        ? D.accent
+                        : auto
+                        ? hexToRgba(D.accent, 0.10)
+                        : 'transparent',
+                      border: `1px solid ${active ? D.accent : hexToRgba(D.accent, 0.22)}`,
+                      color: active ? D.paper : auto ? D.accent : DT.soft,
+                    }}
+                    title={active ? 'Override activo (toca de nuevo para volver a auto)' : `Forzar modo ${m}`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+              {genesisOverride && (
+                <span
+                  className="font-mono lowercase tracking-[0.05em] ml-1"
+                  style={{ color: DT.muted, fontSize: 10 }}
+                >
+                  · override manual
+                </span>
+              )}
             </div>
           )}
         </div>

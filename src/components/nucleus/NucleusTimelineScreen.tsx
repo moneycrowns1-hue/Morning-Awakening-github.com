@@ -36,6 +36,7 @@ import {
   cancelNucleusPings,
   requestNucleusPermission,
   permissionStatus,
+  buildTodayPlan,
 } from '@/lib/nucleus/nucleusPings';
 import NucleusBlockCard from './NucleusBlockCard';
 import { haptics } from '@/lib/common/haptics';
@@ -59,6 +60,11 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
   }, []);
 
   const current = useMemo(() => getCurrentBlock(now), [now]);
+  // Plan resuelto por el adapter (incluye micro-hábitos contextuales
+  // y supresiones por hábitos ya hechos). Se recomputa cada `now`
+  // tick (30 s) para que las inyecciones queden vivas si cambias el
+  // check-in del coach o marcas un hábito como hecho.
+  const plan = useMemo(() => buildTodayPlan(now), [now]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
@@ -274,9 +280,45 @@ export default function NucleusTimelineScreen({ onClose, onLaunchNight, onLaunch
             )}
           </div>
 
+          {/* Adaptive hint del nucleusAdapter · chip hairline.
+              Aparece sólo cuando el adapter inyectó micro-hábitos
+              o ajustó cadencias por contexto (stress, sleep debt). */}
+          {plan.rationale && (
+            <div
+              className="mt-4 inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full"
+              style={{
+                background: hexToRgba(D.accent, 0.08),
+                border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 99,
+                  background: D.accent,
+                  boxShadow: `0 0 6px ${hexToRgba(D.accent, 0.7)}`,
+                }}
+              />
+              <span
+                className="font-mono uppercase tracking-[0.32em] font-[700]"
+                style={{ color: D.accent, fontSize: 9 }}
+              >
+                adaptado
+              </span>
+              <span
+                className="font-mono lowercase tracking-[0.05em]"
+                style={{ color: DT.soft, fontSize: 10.5 }}
+              >
+                {plan.rationale}
+              </span>
+            </div>
+          )}
+
           {/* ── Block grid ──────────────────────────────────── */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
-            {NUCLEUS_BLOCKS.map((block, idx) => {
+            {plan.blocks.map((block, idx) => {
               const active = isBlockActiveOnProfile(block, profile);
               return (
                 <NucleusBlockCard

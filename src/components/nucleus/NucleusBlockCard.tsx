@@ -343,6 +343,8 @@ export default function NucleusBlockCard({
                     D={D}
                     DT={DT}
                     hairlineColor={hairlineColor}
+                    contextual={mh.contextual}
+                    contextualReason={mh.contextualReason}
                   />
                 ))}
               </div>
@@ -412,6 +414,8 @@ function MicroHabitRow({
   D,
   DT,
   hairlineColor,
+  contextual,
+  contextualReason,
 }: {
   habitId: HabitId;
   label: string;
@@ -421,6 +425,8 @@ function MicroHabitRow({
   D: ReturnType<typeof useAppTheme>['day'];
   DT: ReturnType<typeof useAppTheme>['dayText'];
   hairlineColor: string;
+  contextual?: boolean;
+  contextualReason?: string;
 }) {
   const [done, setDone] = useState<boolean>(() => isHabitDone(habitId));
   const tickRef = useRef<SVGPathElement | null>(null);
@@ -493,12 +499,36 @@ function MicroHabitRow({
           }}
         >
           {label.toLowerCase()}
+          {contextual && (
+            <span
+              className="ml-2 font-mono uppercase tracking-[0.32em] font-[700] align-middle"
+              style={{
+                fontSize: 8,
+                color: isActiveCard ? hexToRgba(D.paper, 0.85) : D.accent,
+                padding: '2px 6px',
+                borderRadius: 99,
+                border: `1px solid ${isActiveCard ? hexToRgba(D.paper, 0.4) : hexToRgba(D.accent, 0.32)}`,
+                letterSpacing: '0.28em',
+              }}
+              title={contextualReason ? `Inyectado: ${contextualReason}` : undefined}
+            >
+              ctx
+            </span>
+          )}
         </span>
         <span
           className="block mt-0.5 font-ui leading-[1.45]"
           style={{ color: captionColor, fontSize: 10.5 }}
         >
           {description}
+          {contextual && contextualReason && (
+            <span
+              className="font-mono lowercase"
+              style={{ color: isActiveCard ? hexToRgba(D.paper, 0.6) : DT.muted, fontSize: 10 }}
+            >
+              {' · '}{contextualReason}
+            </span>
+          )}
         </span>
       </span>
 

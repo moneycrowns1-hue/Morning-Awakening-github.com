@@ -49,6 +49,13 @@ export interface NucleusMicroHabit {
    *  inherits the parent block's activeOn (or all profiles if the
    *  block doesn't restrict either). */
   activeOn?: DayProfile[];
+  /** True cuando el adapter inyectó este micro-hábito por contexto
+   *  (stress, sleep debt, etc). El UI muestra un badge sutil
+   *  "· contextual ·" para diferenciarlo de los del catálogo base. */
+  contextual?: boolean;
+  /** Razón legible (cuando `contextual === true`) para el badge.
+   *  Ej: "estrés alto", "sleep debt 145 min". */
+  contextualReason?: string;
 }
 
 export interface NucleusBlock {

@@ -30,12 +30,12 @@ import {
 import MissionPhaseV8 from './genesis/MissionPhaseV8';
 import SummaryScreenV8 from './genesis/SummaryScreenV8';
 import XpGainToast from './common/XpGainToast';
-import LevelUpOverlay from './common/LevelUpOverlay';
 import ProfileModal from './profile/ProfileModal';
 import SettingsScreen from './profile/SettingsScreen';
 import HistoryScreen from './profile/HistoryScreen';
 import OnboardingModal from './profile/OnboardingModal';
 import WelcomeScreen from './home/WelcomeScreen';
+import MorningCheckInPrompt, { shouldShowMorningCheckIn } from './home/MorningCheckInPrompt';
 import { appendSession, computeQualityScore, loadSessions } from '@/lib/genesis/sessionHistory';
 import { startSilentKeepalive, stopSilentKeepalive } from '@/lib/common/silentAudioKeepalive';
 import { clearMediaSession } from '@/lib/common/mediaSession';
@@ -100,7 +100,6 @@ export default function MorningAwakening() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [startTime, setStartTime] = useState<number>(0);
   const [xpToasts, setXpToasts] = useState<XpToastData[]>([]);
-  const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -121,10 +120,24 @@ export default function MorningAwakening() {
   const [showLymphatic, setShowLymphatic] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
   const [showFitnessModal, setShowFitnessModal] = useState(false);
+  // Auto-prompt matutino del coach: aparece la primera vez que el
+  // usuario abre la app cada mañana (04:00–11:00) si todavía no
+  // marcó check-in. Sustituye al saludo automático inexistente
+  // hasta que el puente con Apple Health/Fitness esté listo.
+  const [showMorningCheckIn, setShowMorningCheckIn] = useState(false);
   // Active tab in the AppMenu. Always starts on 'home' (no persistence).
   const [activeTab, setActiveTab] = useState<DockTab>('home');
   // Whether the fullscreen overlay menu is open.
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Disparar el check-in matutino al montar (sólo en cliente, sólo
+  // si pasamos los gates de hora + flag + check-in ausente).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (shouldShowMorningCheckIn()) {
+      setShowMorningCheckIn(true);
+    }
+  }, []);
 
   // Morning ritual controller — NO timer, NO wake lock, NO keepalive.
   // Only fires when the user explicitly opens it. Persistence is
@@ -277,8 +290,41 @@ export default function MorningAwakening() {
     });
   }, []);
 
+  // Tick que se incrementa cuando el usuario cambia el override
+  // manual de modo Génesis desde la Welcome. Sirve para forzar el
+  // re-cálculo de `previewPlan` ya que `buildGenesisPlan` lee la
+  // localStorage y no es reactivo por sí mismo.
+  const [genesisOverrideTick, setGenesisOverrideTick] = useState(0);
+
+  // Override actual guardado en localStorage (re-leído cada render
+  // mientras estamos en IDLE). Pasa al WelcomeScreen para que el
+  // chip activo se pinte correctamente.
+  const genesisOverride = (() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(`ma-genesis-mode-day-${getToday()}`);
+      if (raw === 'full' || raw === 'express' || raw === 'recovery') return raw;
+    } catch { /* ignore */ }
+    return null;
+  })();
+
+  // Persistencia + tick para que el preview se recompute al instante.
+  const handleSetGenesisMode = useCallback((mode: 'full' | 'express' | 'recovery' | null) => {
+    try {
+      const key = `ma-genesis-mode-day-${getToday()}`;
+      if (mode === null) {
+        window.localStorage.removeItem(key);
+      } else {
+        window.localStorage.setItem(key, mode);
+      }
+    } catch { /* ignore */ }
+    setGenesisOverrideTick((t) => t + 1);
+  }, []);
+
   // Plan visible para la WelcomeScreen (preview del adapter sin
-  // arrancar todavía). Recomputa cuando el usuario vuelve a IDLE.
+  // arrancar todavía). Recomputa cuando el usuario vuelve a IDLE
+  // o cuando cambia el override manual (vía tick).
+  void genesisOverrideTick; // referenciado en deps implícitas del render
   const previewPlan = appState === 'IDLE' ? buildGenesisPlan() : null;
 
   // Sesión actual: missions a usar y conteo total. Si no hay plan
@@ -336,10 +382,17 @@ export default function MorningAwakening() {
     // by /public/audio/voices/premium/opening.mp3 (the "slow" voice the
     // user records manually). Personalization (rank, name, streak) stays
     // visible in the HUD, not spoken.
-    operatorRef.current.speak(
-      'Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy es tu día. Doce fases. Una hora y cuarenta y cinco minutos que van a decidir las próximas dieciocho. Vamos a por ellas. Bienvenido.',
-      { rate: 0.94 }
-    );
+    // Mensaje de apertura adaptado al modo elegido por el adapter:
+    // 'full' menciona la duración aproximada, mientras que express y
+    // recovery la omiten (sus duraciones varían y no aporta a la
+    // narrativa). El número de fases lo calcula el plan en vivo.
+    const totalPhasesNow = plan.missions.length;
+    const totalSecondsNow = plan.totalSec;
+    const totalMinutes = Math.round(totalSecondsNow / 60);
+    const openerLine = plan.mode === 'full'
+      ? `Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy es tu día. ${totalPhasesNow} fases. Aproximadamente ${totalMinutes} minutos que van a decidir las próximas dieciocho horas. Vamos a por ellas. Bienvenido.`
+      : `Sistema en línea. Sincronización completa. Te detecto, Jugador. Hoy vamos en modo ${plan.mode === 'express' ? 'express' : 'recovery'}: ${totalPhasesNow} fases esenciales en aproximadamente ${totalMinutes} minutos. Lo importante es presentarte. Bienvenido.`;
+    operatorRef.current.speak(openerLine, { rate: 0.94 });
 
     if (containerRef.current) {
       gsap.to(containerRef.current, {
@@ -380,8 +433,10 @@ export default function MorningAwakening() {
       statDelta: award.statsDelta[award.statName],
     }]);
 
+    // El "Modo Ascenso" (LevelUpOverlay) se retiró: estaba bugueado y
+    // con el diseño viejo. El gong de subida de nivel se mantiene
+    // como feedback auditivo mínimo hasta que se rediseñe el flujo.
     if (updated.level > prevLevel) {
-      setLevelUp({ from: prevLevel, to: updated.level });
       audioRef.current?.playGong();
     }
   }, [profile, streakData.streak, sessionMissions]);
@@ -669,6 +724,8 @@ export default function MorningAwakening() {
                     onOpenCalendar={() => setShowCalendar(true)}
                     adaptiveHint={previewPlan?.rationale || undefined}
                     adaptiveMode={previewPlan?.mode}
+                    onSetGenesisMode={handleSetGenesisMode}
+                    genesisOverride={genesisOverride}
                   />
                 </div>
               </div>
@@ -722,6 +779,13 @@ export default function MorningAwakening() {
               }
             />
           </>
+        )}
+
+        {/* Auto check-in matutino · primer open del día en ventana 04–11h.
+            Sustituye al saludo automático hasta que el puente Health
+            quede operativo. Persiste vía updateCheckIn(). */}
+        {showMorningCheckIn && appState === 'IDLE' && !ritual.isRunning && !showOnboarding && (
+          <MorningCheckInPrompt onDone={() => setShowMorningCheckIn(false)} />
         )}
 
         {/* Apple Fitness modal (opened from Tools tab) */}
@@ -808,15 +872,6 @@ export default function MorningAwakening() {
           onDone={() => removeToast(t.id)}
         />
       ))}
-
-      {/* Level up overlay */}
-      {levelUp && (
-        <LevelUpOverlay
-          previousLevel={levelUp.from}
-          newLevel={levelUp.to}
-          onDone={() => setLevelUp(null)}
-        />
-      )}
 
       {/* Profile modal remains accessible during MISSION for a quick
           glance at rank / stats without leaving focus mode. Settings

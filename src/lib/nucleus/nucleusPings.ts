@@ -21,8 +21,11 @@ import {
   type NucleusBlock,
   type NucleusMicroHabit,
 } from './nucleusConstants';
+import { adaptNucleusPlan, type NucleusAdaptedPlan } from './nucleusAdapter';
 import { getDayProfile } from '../common/dayProfile';
-import { markHabit, type HabitId } from '../common/habits';
+import { isHabitDone, markHabit, type HabitId } from '../common/habits';
+import { loadHealthSnapshot } from '../common/healthkitBridge';
+import { loadCheckIn } from '../coach/state';
 
 const NUCLEUS_ENABLED_KEY = 'ma-nucleus-enabled';
 const NUCLEUS_SKIP_PREFIX = 'ma-nucleus-skip-';
@@ -195,12 +198,40 @@ function expandMicroHabit(
   return pings;
 }
 
+/** Set de HabitIds del catálogo NUCLEUS ya marcados como hechos hoy.
+ *  El adapter usa esto para suprimir pings one-shot redundantes. */
+function nucleusHabitsDoneToday(base: Date): Set<HabitId> {
+  const dateISO = todayKey(base);
+  const done = new Set<HabitId>();
+  for (const block of NUCLEUS_BLOCKS) {
+    for (const mh of block.microHabits) {
+      if (isHabitDone(mh.habitId, dateISO)) done.add(mh.habitId);
+    }
+  }
+  return done;
+}
+
+/** Resuelve el plan NUCLEUS para hoy (con inyecciones contextuales).
+ *  Expuesto para que la UI también pueda renderizar los bloques con
+ *  los micro-hábitos ya adaptados, sin duplicar la lógica del
+ *  adapter. */
+export function buildTodayPlan(base: Date = new Date()): NucleusAdaptedPlan {
+  return adaptNucleusPlan({
+    now: base,
+    health: loadHealthSnapshot(),
+    checkIn: loadCheckIn(base),
+    dayProfile: getDayProfile(base),
+    habitsDoneToday: nucleusHabitsDoneToday(base),
+  });
+}
+
 /** Build today's full ping list (post-now and within 24 h). */
 export function buildTodayPings(base: Date = new Date()): NucleusPingPayload[] {
   if (isSkippedToday(base)) return [];
   const profile = getDayProfile(base);
+  const plan = buildTodayPlan(base);
   const out: NucleusPingPayload[] = [];
-  for (const block of NUCLEUS_BLOCKS) {
+  for (const block of plan.blocks) {
     if (!isBlockActiveOnProfile(block, profile)) continue;
     for (const mh of block.microHabits) {
       out.push(...expandMicroHabit(block, mh, base));

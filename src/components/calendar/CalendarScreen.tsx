@@ -1,26 +1,27 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════
-// CalendarScreen · vista mensual con feriados de Ecuador,
-// perfil del día y dots de completitud de hábitos.
+// CalendarScreen · editorial redesign (D.paper).
+//
+// Conectado a la paleta global vía useAppTheme():
+//   - bg = D.paper + radial accent sutil (sin GradientBackground).
+//   - accents = D.accent (cambia con la paleta elegida en Settings).
+//   - texto = DT.primary / DT.soft / DT.muted.
 //
 // Layout:
-//   1. Header: mes/año + flechas ‹ › + cerrar.
-//   2. Grid 7×6 (semana inicia en Lunes — convención local).
-//      Cada celda muestra el día, halo dorado si es hoy,
-//      tinte rojo tenue si es domingo/feriado, tinte azul
-//      tenue si es sábado, y un mini-dot debajo si hay
-//      hábitos completados ese día.
-//   3. Sección "Próximos feriados" (próximos 6 de Ecuador).
-//   4. Sección "Resumen del mes" (días completados, racha,
-//      próximo descanso programado).
+//   1. Masthead editorial (eyebrow mono uppercase + título lowercase
+//      tight kerning + acento dot). Botón Hoy hairline.
+//   2. Pill de perfil del día (chip translúcido sobre paper).
+//   3. Grid 7×6 (semana inicia Lunes), celdas hairline minimal.
+//   4. "Próximos feriados" · cards split (paper / accent solid).
+//   5. "Resumen del mes" · split bento (paper / accent solid).
 // ═══════════════════════════════════════════════════════════
 
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { SUNRISE, SUNRISE_TEXT, hexToRgba } from '@/lib/common/theme';
+import { hexToRgba } from '@/lib/common/theme';
+import { useAppTheme } from '@/lib/common/appTheme';
 import { haptics } from '@/lib/common/haptics';
-import GradientBackground from '../common/GradientBackground';
 import {
   getHolidaysInYear,
   getNextHolidays,
@@ -81,6 +82,7 @@ function countDayHabits(dateISO: string): number {
 }
 
 export default function CalendarScreen({ onClose }: CalendarScreenProps) {
+  const { day: D, dayText: DT } = useAppTheme();
   const today = useMemo(() => new Date(), []);
   const [view, setView] = useState<{ year: number; month: number }>(() => ({
     year: today.getFullYear(),
@@ -158,12 +160,26 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] w-full h-full flex flex-col"
-      style={{ background: SUNRISE.night, color: SUNRISE_TEXT.primary }}
+      className="fixed inset-0 z-[60] w-full h-full flex flex-col overflow-hidden"
+      style={{ background: D.paper, color: DT.primary }}
     >
-      <GradientBackground stage="welcome" particleCount={40} />
+      {/* ─── Background · paleta global ─────────────────── */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(D.accent, 0.14)} 0%, transparent 55%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, ${hexToRgba(D.tint_strong, 0.30)} 0%, transparent 45%, ${hexToRgba(D.accent_soft, 0.08)} 100%)`,
+        }}
+      />
 
-      {/* ─── Header ────────────────────────────────────── */}
+      {/* ─── Header · masthead editorial ────────────────── */}
       <div
         className="relative z-10 flex items-start gap-3 px-5 pt-5 max-w-3xl w-full mx-auto shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
@@ -173,34 +189,35 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
           aria-label="Cerrar"
           className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 shrink-0"
           style={{
-            background: SUNRISE.rise2,
-            color: SUNRISE.night,
-            boxShadow: `0 6px 18px -4px ${hexToRgba(SUNRISE.rise2, 0.5)}`,
+            background: 'transparent',
+            border: `1px solid ${hexToRgba(D.accent, 0.28)}`,
+            color: DT.primary,
           }}
         >
-          <X size={18} strokeWidth={2.2} style={{ color: SUNRISE.night }} />
+          <X size={16} strokeWidth={2} style={{ color: DT.primary }} />
         </button>
         <div className="flex-1 min-w-0 pt-0.5">
           <span
-            className="font-ui text-[10px] uppercase tracking-[0.42em]"
-            style={{ color: SUNRISE_TEXT.muted }}
+            className="font-mono uppercase tracking-[0.42em] font-[600] block"
+            style={{ color: DT.primary, fontSize: 10 }}
           >
             Calendario
           </span>
           <div
-            className="font-headline font-[600] text-[26px] md:text-[30px] leading-[0.95] tracking-[-0.025em] lowercase mt-1"
-            style={{ color: SUNRISE_TEXT.primary }}
+            className="font-[700] leading-[0.92] tracking-[-0.035em] lowercase mt-1.5"
+            style={{ color: DT.primary, fontSize: 'clamp(2rem, 8vw, 2.6rem)' }}
           >
             {monthLabel.toLowerCase()}
+            <span style={{ color: D.accent }}>.</span>
           </div>
         </div>
         <button
           onClick={goToday}
-          className="font-ui text-[10px] tracking-[0.3em] uppercase rounded-full px-3.5 py-2 transition-transform active:scale-[0.96] font-[700] shrink-0"
+          className="font-mono text-[10px] tracking-[0.3em] uppercase rounded-full px-3.5 py-2 transition-transform active:scale-[0.96] font-[700] shrink-0"
           style={{
-            background: hexToRgba(SUNRISE.rise2, 0.16),
-            border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.5)}`,
-            color: SUNRISE.rise2,
+            background: hexToRgba(D.accent, 0.10),
+            border: `1px solid ${hexToRgba(D.accent, 0.32)}`,
+            color: D.accent,
           }}
         >
           Hoy
@@ -216,63 +233,59 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
           {/* Today's profile pill */}
           <div className="mt-4 mb-4 flex items-center justify-center">
             <span
-              className="inline-flex items-center gap-2 font-ui text-[10px] tracking-[0.3em] uppercase rounded-full px-3 py-1.5 font-[600]"
+              className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] uppercase rounded-full px-3 py-1.5 font-[600]"
               style={{
                 background: todayCtx.profile === 'rest'
-                  ? hexToRgba(SUNRISE.rise2, 0.16)
+                  ? hexToRgba(D.accent, 0.10)
                   : todayCtx.profile === 'saturday'
-                  ? hexToRgba(SUNRISE.cool, 0.16)
-                  : hexToRgba(SUNRISE.night, 0.55),
+                  ? hexToRgba(D.accent_soft, 0.14)
+                  : hexToRgba(D.accent, 0.06),
                 border: `1px solid ${todayCtx.profile === 'rest'
-                  ? hexToRgba(SUNRISE.rise2, 0.5)
+                  ? hexToRgba(D.accent, 0.32)
                   : todayCtx.profile === 'saturday'
-                  ? hexToRgba(SUNRISE.cool, 0.5)
-                  : hexToRgba(SUNRISE.rise2, 0.18)}`,
+                  ? hexToRgba(D.accent_soft, 0.40)
+                  : hexToRgba(D.accent, 0.18)}`,
                 color: todayCtx.profile === 'rest'
-                  ? SUNRISE.rise2
+                  ? D.accent
                   : todayCtx.profile === 'saturday'
-                  ? SUNRISE.cool
-                  : SUNRISE_TEXT.soft,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
+                  ? D.accent_soft
+                  : DT.soft,
               }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full"
                 style={{
                   background: todayCtx.profile === 'rest'
-                    ? SUNRISE.rise2
+                    ? D.accent
                     : todayCtx.profile === 'saturday'
-                    ? SUNRISE.cool
-                    : SUNRISE_TEXT.muted,
+                    ? D.accent_soft
+                    : DT.muted,
                 }}
               />
               hoy · {getDayProfileLabel(todayCtx).toLowerCase()}
             </span>
           </div>
 
-          {/* Month nav · split bento style */}
+          {/* Month nav · hairline pill */}
           <div
             className="flex items-stretch overflow-hidden mb-3"
             style={{
               borderRadius: 18,
-              background: hexToRgba(SUNRISE.night, 0.55),
-              border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              background: hexToRgba(D.accent, 0.04),
+              border: `1px solid ${hexToRgba(D.accent, 0.18)}`,
             }}
           >
             <button
               onClick={prev}
               aria-label="Mes anterior"
               className="shrink-0 flex items-center justify-center transition-transform active:scale-[0.95]"
-              style={{ width: 44, color: SUNRISE.rise2 }}
+              style={{ width: 44, color: D.accent }}
             >
-              <ChevronLeft size={18} strokeWidth={2.2} />
+              <ChevronLeft size={18} strokeWidth={2} />
             </button>
             <div
-              className="flex-1 flex items-center justify-center font-headline font-[600] text-[15px] lowercase tracking-[-0.01em]"
-              style={{ color: SUNRISE_TEXT.primary }}
+              className="flex-1 flex items-center justify-center font-[700] text-[15px] lowercase tracking-[-0.02em]"
+              style={{ color: DT.primary }}
             >
               {monthLabel.toLowerCase()}
             </div>
@@ -280,9 +293,9 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
               onClick={next}
               aria-label="Mes siguiente"
               className="shrink-0 flex items-center justify-center transition-transform active:scale-[0.95]"
-              style={{ width: 44, color: SUNRISE.rise2 }}
+              style={{ width: 44, color: D.accent }}
             >
-              <ChevronRight size={18} strokeWidth={2.2} />
+              <ChevronRight size={18} strokeWidth={2} />
             </button>
           </div>
 
@@ -291,8 +304,8 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
             {WEEKDAY_HEADERS.map((w) => (
               <div
                 key={w}
-                className="font-ui text-[9.5px] tracking-[0.25em] uppercase text-center py-1"
-                style={{ color: SUNRISE_TEXT.muted }}
+                className="font-mono text-[9.5px] tracking-[0.25em] uppercase text-center py-1 font-[600]"
+                style={{ color: DT.muted }}
               >
                 {w}
               </div>
@@ -309,9 +322,9 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
               const dotCount = countDayHabits(dayKey);
 
               const tint = profile === 'rest'
-                ? hexToRgba(SUNRISE.rise2, inMonth ? 0.12 : 0.05)
+                ? hexToRgba(D.accent, inMonth ? 0.09 : 0.04)
                 : profile === 'saturday'
-                ? hexToRgba(SUNRISE.cool, inMonth ? 0.1 : 0.04)
+                ? hexToRgba(D.accent_soft, inMonth ? 0.12 : 0.05)
                 : 'transparent';
 
               return (
@@ -323,6 +336,8 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
                   tint={tint}
                   holiday={holiday}
                   dotCount={dotCount}
+                  D={D}
+                  DT={DT}
                 />
               );
             })}
@@ -331,8 +346,8 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
           {/* ─── Próximos feriados · split bento cards ───────────── */}
           <div className="mt-7">
             <h2
-              className="font-ui text-[10px] tracking-[0.34em] uppercase mb-3"
-              style={{ color: SUNRISE_TEXT.muted }}
+              className="font-mono text-[10px] tracking-[0.34em] uppercase mb-3 font-[600]"
+              style={{ color: DT.muted }}
             >
               Próximos feriados · Ecuador
             </h2>
@@ -345,22 +360,20 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
                     className="flex items-stretch overflow-hidden"
                     style={{
                       borderRadius: 18,
-                      background: hexToRgba(SUNRISE.night, 0.55),
-                      border: `1px solid ${hexToRgba(SUNRISE.rise2, isToday ? 0.45 : 0.16)}`,
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
+                      background: hexToRgba(D.accent, 0.05),
+                      border: `1px solid ${hexToRgba(D.accent, isToday ? 0.36 : 0.16)}`,
                     }}
                   >
                     <div className="flex-1 min-w-0 flex flex-col justify-center px-4 py-3">
                       <div
-                        className="font-headline font-[600] text-[15px] leading-tight lowercase tracking-[-0.015em] truncate"
-                        style={{ color: SUNRISE_TEXT.primary }}
+                        className="font-[700] text-[15px] leading-tight lowercase tracking-[-0.025em] truncate"
+                        style={{ color: DT.primary }}
                       >
                         {h.name.toLowerCase()}
                       </div>
                       <div
                         className="mt-1 font-mono text-[10.5px] tracking-wider lowercase"
-                        style={{ color: SUNRISE_TEXT.muted }}
+                        style={{ color: DT.muted }}
                       >
                         {formatLongDateLocal(h.date).toLowerCase()}
                       </div>
@@ -370,35 +383,35 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
                       style={{
                         minWidth: 78,
                         background: isToday
-                          ? SUNRISE.rise2
-                          : hexToRgba(SUNRISE.rise2, 0.14),
+                          ? D.accent
+                          : hexToRgba(D.accent, 0.10),
                       }}
                     >
                       {isToday ? (
                         <span
-                          className="font-headline font-[700] text-[16px] lowercase tracking-[-0.01em]"
-                          style={{ color: SUNRISE.night }}
+                          className="font-[700] text-[16px] lowercase tracking-[-0.02em]"
+                          style={{ color: D.paper }}
                         >
                           hoy
                         </span>
                       ) : h.daysUntil === 1 ? (
                         <span
-                          className="font-headline font-[700] text-[14px] lowercase tracking-[-0.01em]"
-                          style={{ color: SUNRISE.rise2 }}
+                          className="font-[700] text-[14px] lowercase tracking-[-0.02em]"
+                          style={{ color: D.accent }}
                         >
                           mañana
                         </span>
                       ) : (
                         <>
                           <span
-                            className="font-headline font-[700] text-[22px] leading-none tabular-nums tracking-[-0.02em]"
-                            style={{ color: SUNRISE.rise2 }}
+                            className="font-[700] text-[22px] leading-none tabular-nums tracking-[-0.03em]"
+                            style={{ color: D.accent }}
                           >
                             {h.daysUntil}
                           </span>
                           <span
-                            className="font-ui text-[8.5px] tracking-[0.3em] uppercase mt-0.5 font-[600]"
-                            style={{ color: SUNRISE.rise2, opacity: 0.7 }}
+                            className="font-mono text-[8.5px] tracking-[0.3em] uppercase mt-0.5 font-[600]"
+                            style={{ color: D.accent, opacity: 0.75 }}
                           >
                             días
                           </span>
@@ -414,8 +427,8 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
           {/* ─── Resumen del mes · split bento card ───────────── */}
           <div className="mt-7 mb-4">
             <h2
-              className="font-ui text-[10px] tracking-[0.34em] uppercase mb-3"
-              style={{ color: SUNRISE_TEXT.muted }}
+              className="font-mono text-[10px] tracking-[0.34em] uppercase mb-3 font-[600]"
+              style={{ color: DT.muted }}
             >
               Resumen del mes
             </h2>
@@ -423,52 +436,50 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
               className="flex items-stretch overflow-hidden"
               style={{
                 borderRadius: 22,
-                background: hexToRgba(SUNRISE.night, 0.55),
-                border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.16)}`,
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
+                background: hexToRgba(D.accent, 0.05),
+                border: `1px solid ${hexToRgba(D.accent, 0.18)}`,
               }}
             >
-              {/* LEFT · días completados (dark glass) */}
+              {/* LEFT · días completados (paper card) */}
               <div className="flex-1 min-w-0 flex flex-col justify-between px-4 py-3.5">
                 <span
-                  className="font-ui text-[9.5px] tracking-[0.32em] uppercase"
-                  style={{ color: SUNRISE_TEXT.muted }}
+                  className="font-mono text-[9.5px] tracking-[0.32em] uppercase font-[600]"
+                  style={{ color: DT.muted }}
                 >
                   días ≥ 3 hábitos
                 </span>
                 <div
-                  className="font-headline font-[700] leading-none lowercase tracking-[-0.025em] mt-2"
-                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: SUNRISE_TEXT.primary }}
+                  className="font-[700] leading-none lowercase tracking-[-0.035em] mt-2"
+                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: DT.primary }}
                 >
                   {monthStats.daysCompleted}
                   <span
                     className="font-mono text-[16px] font-[400] ml-1"
-                    style={{ color: SUNRISE_TEXT.muted }}
+                    style={{ color: DT.muted }}
                   >
                     / {monthStats.totalCountedDays || '—'}
                   </span>
                 </div>
               </div>
-              {/* RIGHT · adherencia (dorado sólido) */}
+              {/* RIGHT · adherencia (accent solid) */}
               <div
                 className="shrink-0 flex flex-col justify-between px-4 py-3.5"
                 style={{
                   width: '40%',
                   maxWidth: 168,
-                  background: SUNRISE.rise2,
-                  color: SUNRISE.night,
+                  background: D.accent,
+                  color: D.paper,
                 }}
               >
                 <span
-                  className="font-ui text-[9.5px] tracking-[0.32em] uppercase font-[700]"
-                  style={{ color: SUNRISE.night, opacity: 0.7 }}
+                  className="font-mono text-[9.5px] tracking-[0.32em] uppercase font-[700]"
+                  style={{ color: D.paper, opacity: 0.78 }}
                 >
                   adherencia
                 </span>
                 <div
-                  className="font-headline font-[700] leading-none lowercase tracking-[-0.025em] mt-2"
-                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: SUNRISE.night }}
+                  className="font-[700] leading-none lowercase tracking-[-0.035em] mt-2"
+                  style={{ fontSize: 'clamp(2rem, 8vw, 2.6rem)', color: D.paper }}
                 >
                   {monthStats.totalCountedDays > 0
                     ? Math.round((monthStats.daysCompleted / monthStats.totalCountedDays) * 100)
@@ -476,7 +487,7 @@ export default function CalendarScreen({ onClose }: CalendarScreenProps) {
                   {monthStats.totalCountedDays > 0 && (
                     <span
                       className="font-mono text-[16px] font-[400] ml-1"
-                      style={{ color: SUNRISE.night, opacity: 0.5 }}
+                      style={{ color: D.paper, opacity: 0.55 }}
                     >
                       %
                     </span>
@@ -500,9 +511,11 @@ interface CalendarCellProps {
   tint: string;
   holiday?: Holiday;
   dotCount: number;
+  D: ReturnType<typeof useAppTheme>['day'];
+  DT: ReturnType<typeof useAppTheme>['dayText'];
 }
 
-function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: CalendarCellProps) {
+function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount, D, DT }: CalendarCellProps) {
   const [showTip, setShowTip] = useState(false);
   const day = date.getDate();
   const isHolidayDay = !!holiday;
@@ -520,14 +533,14 @@ function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: Calen
       onBlur={() => setShowTip(false)}
       className="relative aspect-square rounded-xl flex flex-col items-center justify-center transition-transform active:scale-[0.96]"
       style={{
-        background: tint,
+        background: isToday ? D.accent : tint,
         border: isToday
-          ? `1.5px solid ${hexToRgba(SUNRISE.rise2, 0.85)}`
+          ? `1px solid ${D.accent}`
           : isHolidayDay && inMonth
-          ? `1px solid ${hexToRgba(SUNRISE.rise2, 0.45)}`
+          ? `1px solid ${hexToRgba(D.accent, 0.36)}`
           : '1px solid transparent',
         opacity: inMonth ? 1 : 0.32,
-        boxShadow: isToday ? `0 0 0 2px ${hexToRgba(SUNRISE.rise2, 0.25)}` : 'none',
+        boxShadow: isToday ? `0 6px 18px -6px ${hexToRgba(D.accent, 0.55)}` : 'none',
       }}
       aria-label={isHolidayDay ? `${day} · ${holiday!.name}` : `Día ${day}`}
     >
@@ -535,10 +548,10 @@ function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: Calen
         className="font-mono text-[13px] tabular-nums leading-none"
         style={{
           color: isToday
-            ? SUNRISE_TEXT.primary
+            ? D.paper
             : isHolidayDay
-            ? SUNRISE.rise2
-            : SUNRISE_TEXT.soft,
+            ? D.accent
+            : DT.soft,
           fontWeight: isToday ? 700 : 400,
         }}
       >
@@ -551,11 +564,14 @@ function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: Calen
               key={i}
               className="w-1 h-1 rounded-full"
               style={{
-                background: dotCount >= 5
-                  ? SUNRISE.fulllight
+                background: isToday
+                  ? D.paper
+                  : dotCount >= 5
+                  ? D.accent
                   : dotCount >= 3
-                  ? SUNRISE.rise2
-                  : SUNRISE.dawn2,
+                  ? D.accent
+                  : hexToRgba(D.accent, 0.55),
+                opacity: isToday ? 0.85 : 1,
               }}
             />
           ))}
@@ -563,11 +579,11 @@ function CalendarCell({ date, inMonth, isToday, tint, holiday, dotCount }: Calen
       )}
       {isHolidayDay && showTip && (
         <span
-          className="absolute z-20 left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap font-ui text-[9.5px] tracking-[0.2em] uppercase rounded-md px-2 py-1 pointer-events-none font-[600]"
+          className="absolute z-20 left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap font-mono text-[9.5px] tracking-[0.2em] uppercase rounded-md px-2 py-1 pointer-events-none font-[600]"
           style={{
-            background: SUNRISE.rise2,
-            color: SUNRISE.night,
-            boxShadow: `0 4px 12px -2px ${hexToRgba(SUNRISE.rise2, 0.4)}`,
+            background: D.accent,
+            color: D.paper,
+            boxShadow: `0 4px 12px -2px ${hexToRgba(D.accent, 0.4)}`,
           }}
         >
           {holiday!.name}

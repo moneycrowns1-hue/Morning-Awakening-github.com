@@ -27,6 +27,14 @@ export type HabitId =
   | 'optic_flow_walk'
   | 'desk_closure'
   | 'nucleus_complete'
+  // ─── NUCLEUS · contextuales (inyectados por adapter) ────
+  // Sólo aparecen cuando el `nucleusAdapter` detecta señales
+  // específicas (stress alto, sleep debt, etc). Se trackean
+  // como hábitos normales para consolidar streaks.
+  | 'jaw_release_pre_arena'
+  | 'breath_478_recarga'
+  | 'light_exposure_extra'
+  | 'extra_nsdr_monolito'
   // ─── Wellness Hub ──────────────────────────────────────
   | 'bruxism_exercise'
   | 'deep_meditation'
@@ -58,6 +66,11 @@ export const HABIT_META: Record<HabitId, { label: string; icon: string; track: H
   bruxism_exercise:        { label: 'Bruxismo · mandíbula libre',  icon: '◇', track: 'both' },
   deep_meditation:         { label: 'Meditación profunda',         icon: '○', track: 'both' },
   lymphatic_facial:        { label: 'Drenaje linfático facial',    icon: '◐', track: 'morning' },
+  // NUCLEUS contextuales (inyectados por nucleusAdapter)
+  jaw_release_pre_arena:   { label: 'Liberación de mandíbula',     icon: '◌', track: 'day' },
+  breath_478_recarga:      { label: 'Respiración 4-7-8',           icon: '◯', track: 'day' },
+  light_exposure_extra:    { label: 'Luz solar extra',             icon: '☀', track: 'day' },
+  extra_nsdr_monolito:     { label: 'NSDR extra · MONOLITO',       icon: '◐', track: 'day' },
 };
 
 type HabitStore = Partial<Record<HabitId, Record<string, boolean>>>;
