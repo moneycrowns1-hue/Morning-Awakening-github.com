@@ -1,8 +1,19 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════
+// XpGainToast · editorial redesign (D.paper).
+//
+// Ganar XP durante Génesis (modo día) solía pintar un toast
+// de paleta nocturna (sumi negro + cinzel + gold #c9a227) que
+// chocaba contra el nuevo paper cream. Ahora respeta D.accent
+// y la tipografía mono/editorial del resto de la experiencia.
+// ═══════════════════════════════════════════════════════════
+
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import type { OperatorStats } from '@/lib/genesis/progression';
+import { useAppTheme } from '@/lib/common/appTheme';
+import { hexToRgba } from '@/lib/common/theme';
 
 interface XpGainToastProps {
   xp: number;
@@ -12,12 +23,13 @@ interface XpGainToastProps {
 }
 
 const STAT_LABEL: Record<keyof OperatorStats, string> = {
-  disciplina: 'Disciplina',
-  enfoque: 'Enfoque',
-  energia: 'Energía',
+  disciplina: 'disciplina',
+  enfoque: 'enfoque',
+  energia: 'energía',
 };
 
 export default function XpGainToast({ xp, statName, statDelta, onDone }: XpGainToastProps) {
+  const { day: D, dayText: DT } = useAppTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +37,7 @@ export default function XpGainToast({ xp, statName, statDelta, onDone }: XpGainT
     if (!el) { onDone(); return; }
     const tl = gsap.timeline({ onComplete: onDone });
     tl.fromTo(el,
-      { y: 18, opacity: 0, scale: 0.95 },
+      { y: 18, opacity: 0, scale: 0.96 },
       { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.6)' }
     );
     tl.to(el, { y: -12, opacity: 0, duration: 0.5, ease: 'power2.in', delay: 1.8 });
@@ -34,19 +46,39 @@ export default function XpGainToast({ xp, statName, statDelta, onDone }: XpGainT
   return (
     <div
       ref={ref}
-      className="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 z-40 px-5 py-3 rounded border"
+      className="pointer-events-none fixed left-1/2 -translate-x-1/2 z-40 rounded-full overflow-hidden flex items-stretch"
       style={{
-        borderColor: 'rgba(201,162,39,0.4)',
-        background: 'rgba(10,9,8,0.85)',
-        boxShadow: '0 0 22px rgba(201,162,39,0.3), inset 0 0 10px rgba(201,162,39,0.08)',
-        fontFamily: "var(--font-cinzel), Georgia, serif",
+        top: 'calc(env(safe-area-inset-top, 0px) + 5.5rem)',
+        background: D.paper,
+        border: `1px solid ${hexToRgba(D.accent, 0.22)}`,
+        boxShadow: `0 10px 28px -10px ${hexToRgba(D.accent, 0.35)}`,
       }}
     >
-      <div className="flex items-center gap-4 text-[14px] tracking-[0.2em]">
-        <span className="text-washi/90 font-bold">+{xp} XP</span>
-        <span className="text-washi/30">·</span>
-        <span style={{ color: '#c9a227' }}>
-          +{statDelta} {STAT_LABEL[statName]}
+      {/* LEFT · +XP chip (accent solid) */}
+      <div
+        className="flex items-center justify-center px-3.5 py-2"
+        style={{ background: D.accent, color: D.paper }}
+      >
+        <span
+          className="font-mono uppercase tracking-[0.28em] font-[700] tabular-nums"
+          style={{ fontSize: 11 }}
+        >
+          +{xp} xp
+        </span>
+      </div>
+      {/* RIGHT · stat delta (paper) */}
+      <div className="flex items-center gap-1.5 px-3.5 py-2">
+        <span
+          className="font-mono tabular-nums font-[700]"
+          style={{ color: D.accent, fontSize: 11 }}
+        >
+          +{statDelta}
+        </span>
+        <span
+          className="font-mono lowercase tracking-[0.22em] font-[600]"
+          style={{ color: DT.soft, fontSize: 10 }}
+        >
+          {STAT_LABEL[statName]}
         </span>
       </div>
     </div>

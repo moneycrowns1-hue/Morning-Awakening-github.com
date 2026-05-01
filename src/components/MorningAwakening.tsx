@@ -79,6 +79,14 @@ type AppState = 'IDLE' | 'MISSION' | 'COMPLETE';
 const STORAGE_KEY = 'morning-awakening-streak';
 const SETTINGS_KEY = 'morning-awakening-settings';
 
+// ── Feature flag ──────────────────────────────────────────────
+// La ganancia de XP / subida de nivel / stats por completar fases
+// Génesis está desactivada temporalmente. El toast chocaba contra
+// el rediseño editorial y el usuario pidió retirarlo hasta tener
+// un flujo definitivo. Flip a `true` para reactivar sin tocar nada
+// más: grantReward, XpGainToast y todo el pipeline siguen intactos.
+const XP_ENABLED = false;
+
 interface Settings {
   voiceEnabled: boolean;
   masterVolume: number;
@@ -416,6 +424,9 @@ export default function MorningAwakening() {
 
   // =============== Award XP ===============
   const grantReward = useCallback((missionIdx: number) => {
+    // Feature-flagged off: conserva progresión en localStorage pero
+    // no suma XP ni muestra el toast mientras rediseñamos el sistema.
+    if (!XP_ENABLED) return;
     const mission = sessionMissions[missionIdx];
     if (!mission) return;
     const award = computeReward(mission, streakData.streak);
@@ -862,8 +873,8 @@ export default function MorningAwakening() {
         )}
       </div>
 
-      {/* XP toasts */}
-      {xpToasts.map(t => (
+      {/* XP toasts · gated por XP_ENABLED (off temporal) */}
+      {XP_ENABLED && xpToasts.map(t => (
         <XpGainToast
           key={t.id}
           xp={t.xp}
