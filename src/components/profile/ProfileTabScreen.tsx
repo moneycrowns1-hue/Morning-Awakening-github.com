@@ -15,7 +15,7 @@
 //   - SIN kanji · SIN azul · SIN GradientBackground.
 // ═══════════════════════════════════════════════════════════
 
-import { ArrowUpRight, ChartBar, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowUpRight, ChartBar, Settings as SettingsIcon, Package } from 'lucide-react';
 import { hexToRgba } from '@/lib/common/theme';
 import { useAppTheme } from '@/lib/common/appTheme';
 import { haptics } from '@/lib/common/haptics';

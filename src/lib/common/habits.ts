@@ -38,7 +38,39 @@ export type HabitId =
   // ─── Wellness Hub ──────────────────────────────────────
   | 'bruxism_exercise'
   | 'deep_meditation'
-  | 'lymphatic_facial';
+  | 'lymphatic_facial'
+  // ─── Looksmax · free-tier (siempre activos) ─────────────
+  // Hábitos sin coste que el usuario puede ejecutar desde día 1
+  // sin comprar nada. Trackeados directo desde Génesis.
+  | 'mewing_check'
+  | 'jaw_release'
+  | 'chin_tuck'
+  | 'face_yoga'
+  | 'chewing_apples'
+  | 'sleep_supine'
+  | 'hydration_3L'
+  | 'sodium_low'
+  | 'floss'
+  // ─── Looksmax · gated por tool en inventario ────────────
+  // Solo se trackean visualmente cuando la tool asociada está
+  // marcada como adquirida en `inventory.ts`. El tracker bruto
+  // (markHabit/isHabitDone) sigue funcionando en localStorage,
+  // pero la UI los oculta hasta que la tool exista.
+  | 'tongue_scraper'
+  | 'cinnamon_paste'
+  | 'mouth_tape'
+  | 'chewing_advanced'
+  | 'spf_am'
+  | 'vitc_am'
+  | 'retinoid_pm'
+  | 'exfoliation_weekly'
+  | 'eye_drops_am'
+  | 'brow_grooming_week'
+  | 'derma_roller_week'
+  | 'minoxidil_application'
+  | 'finasteride_dose'
+  | 'potassium_intake'
+  | 'electrolyte_intake';
 
 export type HabitTrack = 'morning' | 'day' | 'night' | 'both';
 
@@ -71,6 +103,57 @@ export const HABIT_META: Record<HabitId, { label: string; icon: string; track: H
   breath_478_recarga:      { label: 'Respiración 4-7-8',           icon: '◯', track: 'day' },
   light_exposure_extra:    { label: 'Luz solar extra',             icon: '☀', track: 'day' },
   extra_nsdr_monolito:     { label: 'NSDR extra · MONOLITO',       icon: '◐', track: 'day' },
+  // ─── Looksmax · free-tier ──────────────────────────────
+  mewing_check:            { label: 'Mewing · sonido G',           icon: '◈', track: 'morning' },
+  jaw_release:             { label: 'Jaw release · lengua paladar', icon: '◌', track: 'morning' },
+  chin_tuck:               { label: 'Chin tuck · postura cervical', icon: '⊥', track: 'morning' },
+  face_yoga:               { label: 'Yoga facial · vocaleta/O',    icon: '◔', track: 'morning' },
+  chewing_apples:          { label: 'Chewing · 2 manzanas verdes', icon: '◉', track: 'day' },
+  sleep_supine:            { label: 'Dormí boca arriba',           icon: '☾', track: 'night' },
+  hydration_3L:             { label: 'Hidratación · 3 L+',           icon: '◇', track: 'day' },
+  sodium_low:              { label: 'Sodio bajo · de-bloat',        icon: '⊘', track: 'day' },
+  floss:                   { label: 'Hilo dental nocturno',         icon: '✚', track: 'night' },
+  // ─── Looksmax · gated por tool en inventario ───────────
+  tongue_scraper:          { label: 'Raspado de lengua',            icon: '✦', track: 'both' },
+  cinnamon_paste:          { label: 'Cepillado · canela',            icon: '✚', track: 'both' },
+  mouth_tape:              { label: 'Mouth tape nocturno',           icon: '◉', track: 'night' },
+  chewing_advanced:        { label: 'Chewing · jawliner',            icon: '◈', track: 'day' },
+  spf_am:                  { label: 'SPF 30+ AM',                    icon: '☀', track: 'morning' },
+  vitc_am:                 { label: 'Vitamina C AM',                 icon: '◔', track: 'morning' },
+  retinoid_pm:             { label: 'Retinoide PM',                  icon: '◐', track: 'night' },
+  exfoliation_weekly:      { label: 'Exfoliación BHA semanal',       icon: '◇', track: 'night' },
+  eye_drops_am:            { label: 'Gotero ocular AM',              icon: '◯', track: 'morning' },
+  brow_grooming_week:      { label: 'Cejas · navaja semanal',        icon: '✎', track: 'both' },
+  derma_roller_week:       { label: 'Derma-roller semanal',          icon: '◍', track: 'night' },
+  minoxidil_application:   { label: 'Minoxidil aplicado',            icon: '◐', track: 'both' },
+  finasteride_dose:        { label: 'Finasterida dosis',             icon: '⊕', track: 'both' },
+  potassium_intake:        { label: 'Potasio (suplemento)',          icon: '◇', track: 'day' },
+  electrolyte_intake:      { label: 'Electrolitos',                  icon: '◇', track: 'day' },
+};
+
+// ─── Mapeo HabitId → ToolId requerida (para gating en UI) ───────
+// Si un hábito requiere una tool, solo se muestra en dashboards
+// cuando el usuario marcó esa tool en `inventory.ts`. El tracker
+// bruto (markHabit) sigue funcionando aunque no esté la tool —
+// esto solo controla visibilidad. Importado por consumidores que
+// quieran filtrar (ej. Profile, Coach). Mantenido como string id
+// (no ToolId) para evitar dependencia circular con `inventory.ts`.
+export const HABIT_REQUIRES_TOOL: Partial<Record<HabitId, string>> = {
+  tongue_scraper:        'tongue_scraper',
+  cinnamon_paste:        'cinnamon_paste',
+  mouth_tape:            'mouth_tape',
+  chewing_advanced:      'jawliner',
+  spf_am:                'spf_30',
+  vitc_am:               'vitc_serum',
+  retinoid_pm:           'retinoid_otc',
+  exfoliation_weekly:    'salicylic_acid',
+  eye_drops_am:          'eye_drops',
+  brow_grooming_week:    'eyebrow_razor',
+  derma_roller_week:     'derma_roller_05',
+  minoxidil_application: 'minoxidil_5',
+  finasteride_dose:      'finasteride',
+  potassium_intake:      'liquid_potassium',
+  electrolyte_intake:    'electrolyte_mix',
 };
 
 type HabitStore = Partial<Record<HabitId, Record<string, boolean>>>;

@@ -1,10 +1,17 @@
 // ═══════════════════════════════════════════════════════════════
-// MORNING AWAKENING · GÉNESIS v5.0 — 13 Fases
+// MORNING AWAKENING · GÉNESIS v5.1 — 15 Fases
 // Cronograma: 5:00 AM – 6:50 AM (110 min)
 // Bloque 1 · LA FRAGUA OSCURA     (GENESIS · AQUA · FLEX · SURGE · FORGE · PNEUMA · CRYO)
-// Bloque 2 · VENTANA ANABÓLICA    (REFUEL · higiene de transición)
+// Bloque 2 · VENTANA ANABÓLICA    (AURORA · MAXILLA · REFUEL)
 // Bloque 3 · EL FILO COGNITIVO    (HELIO · SILENTIUM · AXIS · LECTIO)
 // Cierre    · EL ANCLAJE FINAL    (SIGILLUM — higiene dental de élite)
+//
+// Looksmaxxing layer (v5.1): MAXILLA es free-tier (mewing +
+// jaw release + chin tuck, ninguna herramienta requerida).
+// AURORA suma yoga facial. REFUEL suma chewing bilateral con
+// manzanas verdes. SIGILLUM tiene segmentos opt-in para
+// raspador de lengua y pasta de canela cuando estén en
+// el inventario del usuario.
 // ═══════════════════════════════════════════════════════════════
 
 export interface SubStep {
@@ -282,16 +289,53 @@ export const MISSIONS: Mission[] = [
       { label: 'Contorno de ojos con dedo anular', description: 'Toques suaves, zona más delgada y sensible. Antes de la crema general.' },
       { label: 'Hidratante con SPF', description: 'Sella la rutina y bloquea UVA/UVB desde el amanecer. SPF 30+ no negociable.' },
       { label: 'Vaselina · slugging puntual', description: 'Capa fina en labios, alas de la nariz y comisuras. Sella humedad sin comedogenicidad si se aplica al final.' },
+      { label: 'Yoga facial · 60 s · vocaleta + O + cejas', description: 'Tonifica el tejido blando con tres ejercicios cortos. Vocaleta: estira las comisuras hacia los lados sonriendo (10 s). La O: pronuncia una O exagerada para activar orbiculares (10 s). Cejas elevadas: resistencia manual sobre las cejas mientras intentas fruncir el ceño (15 s). Tres rondas si tienes margen. Free-tier, sin herramientas.' },
     ],
     tips: [
       'La ventana óptima de absorción dura ~5 min post-shower — aplica todo en este margen.',
       'Si solo tienes Johnson, úsalo como slip de drenaje y enjuagalo. NO lo dejes como hidratante facial.',
       'SPF dentro de casa también — el UVA pasa a través del vidrio de las ventanas.',
+      'Yoga facial estimula colágeno y previene flacidez. Funciona como mantenimiento si no quieres invertir en gua sha o aceites.',
+    ],
+  },
+  // ── MAXILLA · estructura facial post-AURORA ─────────────
+  // Fase nueva del programa de looksmaxxing facial. Free-tier:
+  // no requiere ninguna herramienta comprada. Se inserta entre
+  // AURORA (cuidado facial post-cryo) y REFUEL (desayuno) para
+  // aprovechar la ventana en la que la piel ya está activa y
+  // antes de comer (postura mandibular limpia, sin masticación
+  // reciente). En 'recovery' se omite (foco en restauración).
+  {
+    id: 'maxilla',
+    phase: 9,
+    codename: 'MAXILLA',
+    title: 'ESTRUCTURA FACIAL',
+    icon: '◇',
+    scheduledTime: '06:03',
+    layer: 'bridge',
+    kanji: '顎',
+    kanjiReading: 'Ago · Mandíbula',
+    voiceLineBriefing: 'Maxilla. Setenta y cinco segundos para anclar la postura facial del día. Primero: mewing. Coloca la lengua entera contra el paladar — y para asegurar que la parte de atrás también suba, pronuncia mentalmente el final de la palabra "king", el sonido N-G. Esa es la posición correcta. Sella los labios, respira por la nariz. Segundo: jaw release. Lengua arriba, dientes separados dos milímetros, mandíbula floja. Es la posición de descanso real, no la que llevas todo el día apretando. Tercero: cinco chin tucks. Lleva la cabeza atrás como si quisieras hacer doble mentón, sostén dos segundos, suelta. Esto corrige la cabeza adelantada, que es lo que más arruina tu perfil sin que te des cuenta. La estructura facial no se construye en un día — se construye en los noventa segundos que repites cada mañana durante años.',
+    directive: 'Anclaje de postura facial · 75 s: mewing (lengua al paladar con sonido N-G), jaw release (lengua arriba + dientes 2 mm separados + mandíbula floja), 5x chin tuck (cabeza atrás, doble mentón, 2 s aguante).',
+    duration: 75,
+    includeIn: ['full', 'express'],
+    systemLog: 'POSTURAL ANCHOR · MAXILLOFACIAL ALIGNMENT.',
+    completionLog: 'TONGUE-PALATE LOCKED. CERVICAL NEUTRAL.',
+    scienceNote: 'La postura sostenida de la lengua contra el paladar (mewing) es la única forma no-quirúrgica con respaldo de evidencia ortodóncica para guiar el desarrollo del maxilar a través de la presión continua sobre la sutura palatina. El sonido N-G ("king") obliga al tercio posterior de la lengua a contactar el paladar blando — sin él, solo la punta sube y el efecto se diluye. La cabeza adelantada (forward head posture) acorta visualmente el cuello y aplana el ángulo cervico-mandibular: 5 chin tucks recuperan el alineamiento neutral en segundos. Jaw release contrarresta el bruxismo subclínico: la posición de descanso real es dientes separados ~2 mm, NO en contacto.',
+    subSteps: [
+      { label: 'Mewing · sonido N-G', description: 'Pronuncia mentalmente "king" y mantén la posición final. Lengua entera contra el paladar, labios sellados, respiración nasal.' },
+      { label: 'Jaw release · 20 s', description: 'Lengua arriba, dientes separados 2 mm, mandíbula floja. Posición de descanso real.' },
+      { label: '5x chin tuck', description: 'Cabeza atrás como si hicieras doble mentón. 2 s de aguante, suelta. Repite 5 veces.' },
+    ],
+    tips: [
+      'Mewing inconsciente > mewing forzado. El objetivo es que la postura se vuelva default, no un esfuerzo.',
+      'Si te tiembla el cuello en chin tuck, vas demasiado lejos. Movimiento corto y limpio.',
+      'Esta fase es 100% gratis. Las herramientas (jawliner, mouth tape) las puedes añadir en tu inventario cuando quieras escalar.',
     ],
   },
   {
     id: 'refuel',
-    phase: 9,
+    phase: 10,
     codename: 'REFUEL',
     title: 'DESAYUNO',
     icon: '◆',
@@ -308,12 +352,14 @@ export const MISSIONS: Mission[] = [
     scienceNote: 'La ventana anabólica post-ejercicio es el momento óptimo para nutrientes. Tras comer, el pH bucal baja por ~30 min: cepillarse inmediatamente erosiona el esmalte. Enjuagar con agua limpia residuos sin abrasión, y el cepillado se pospone al ANCLAJE FINAL, cuando el pH se ha recuperado.',
     subSteps: [
       { label: 'Desayuno · proteína + carbos complejos + grasas', description: 'Reparación muscular + reposición de glucógeno + soporte hormonal.' },
+      { label: '2 manzanas verdes · chewing bilateral', description: 'Carga mecánica natural y constante para los maseteros. Mastica de forma simétrica en ambos lados; evita los incisivos como punto de carga (riesgo articulación temporomandibular).' },
       { label: 'Café · si pasaron 90+ min desde el despertar', description: 'Regla Huberman: la adenosina ya se aclaró de forma natural y el café refuerza vigilia ya existente, sin enmascarar fatiga.' },
       { label: 'Enjuague bucal · solo con agua', description: 'Quita residuos sin abrasión. El cepillado va al cierre del protocolo, cuando el pH del esmalte se haya estabilizado.' },
     ],
     tips: [
       'Si corriste fuerte: más carbohidratos. Si fue Zona 2: más proteína.',
       'Sin pantallas durante la comida — el sistema parasimpático necesita silencio digital para digerir.',
+      'Las manzanas verdes son tu jawliner gratis — la ratio fibra/carga mecánica es ideal para hipertrofia masetera.',
     ],
   },
 
@@ -321,7 +367,7 @@ export const MISSIONS: Mission[] = [
   // HELIO · SILENTIUM · AXIS · LECTIO
   {
     id: 'helio',
-    phase: 10,
+    phase: 11,
     codename: 'HELIO',
     title: 'LUZ SOLAR + ENTORNO',
     icon: '☀',
@@ -353,7 +399,7 @@ export const MISSIONS: Mission[] = [
   },
   {
     id: 'silentium',
-    phase: 11,
+    phase: 12,
     codename: 'SILENTIUM',
     title: 'AISLAMIENTO SENSORIAL',
     icon: '◌',
@@ -382,7 +428,7 @@ export const MISSIONS: Mission[] = [
   },
   {
     id: 'axis',
-    phase: 12,
+    phase: 13,
     codename: 'AXIS',
     title: 'PROYECCIÓN TÁCTICA',
     icon: '✎',
@@ -406,7 +452,7 @@ export const MISSIONS: Mission[] = [
   },
   {
     id: 'lectio',
-    phase: 13,
+    phase: 14,
     codename: 'LECTIO',
     title: 'PRE-ESTUDIO · FILO COGNITIVO',
     icon: '▣',
@@ -437,7 +483,7 @@ export const MISSIONS: Mission[] = [
   // ═══ CIERRE · EL ANCLAJE FINAL (6:45 - 6:50) ═══
   {
     id: 'sigillum',
-    phase: 14,
+    phase: 15,
     codename: 'SIGILLUM',
     title: 'EL ANCLAJE FINAL',
     icon: '✚',
@@ -455,12 +501,14 @@ export const MISSIONS: Mission[] = [
     scienceNote: 'Tras 45 min post-ingesta, el pH bucal vuelve a neutro y el esmalte ya no está desmineralizado: es cuando el cepillado protege sin erosionar. El orden importa: hilo PRIMERO desplaza la placa interproximal hacia donde el cepillo puede alcanzarla, y el enjuague final arrastra todo lo desplazado. Además, el frescor de la menta actúa como "imprinting" sensorial — el cerebro asocia esa señal con la transición de preparación → ejecución.',
     subSteps: [
       { label: 'Hilo dental', description: 'Primer paso obligatorio: remueve residuos y placa interproximal donde el cepillo no llega.' },
-      { label: 'Cepillado · técnica Bass', description: '45° hacia la encía, movimientos cortos vibratorios, 2 minutos completos. Incluye lengua — ahí está el 70 % de la carga bacteriana.' },
-      { label: 'Enjuague bucal', description: 'Colutorio (con o sin alcohol). Arrastra lo que el cepillo desplazó y deja barrera antibacteriana. El frescor marca el fin del protocolo.' },
+      { label: 'Raspado de lengua · si lo tienes', description: 'Raspador de lengua antes del cepillado. Objetivo: lengua rosada como la de un bebé. Mucho más efectivo que el cepillo para la placa lingual donde se concentra el 70 % de la carga bacteriana del aliento. Si aún no lo tienes, márcalo en tu inventario cuando lo compres.', optional: true },
+      { label: 'Cepillado · técnica Bass', description: '45° hacia la encía, movimientos cortos vibratorios, 2 minutos completos. Pasta con flúor — y si tienes pasta de canela, mejor: la canela es un bactericida real, la menta solo enmascara.' },
+      { label: 'Enjuague bucal', description: 'Colutorio (con o sin alcohol, sin alcohol preferible). Arrastra lo que el cepillo desplazó y deja barrera antibacteriana. El frescor marca el fin del protocolo.' },
     ],
     tips: [
       'Cepillarse antes de desayunar erosiona el esmalte — por eso se hace ahora.',
       'Cepillo de cerdas suaves + pasta con flúor. Cambiar cepillo cada 3 meses.',
+      'Si tu objetivo es aliento de élite: raspador de lengua + pasta o enjuague de canela. Marcalos en tu inventario cuando los tengas.',
       'Este es el último paso: ya estás listo para conquistar el día.',
     ],
   },

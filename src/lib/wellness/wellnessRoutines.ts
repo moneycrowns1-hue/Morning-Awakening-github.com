@@ -29,6 +29,8 @@ export interface WellnessStep {
   cue?: WellnessCue;
   /** Optional secondary tip rendered in muted text. */
   tip?: string;
+  /** Full voice script for this step (used for audio generation and subtitles). */
+  voiceScript?: string;
 }
 
 export type WellnessRoutineId = 'bruxism' | 'deep_meditation' | 'lymphatic_facial';
@@ -47,6 +49,8 @@ export interface WellnessRoutine {
   scienceNote: string;
   /** Steps, in order. */
   steps: WellnessStep[];
+  /** Meditation mode, only set for deep_meditation routines. */
+  meditationMode?: DeepMeditationMode;
 }
 
 // ─── A. Bruxismo + estrés (8 min) ───────────────────────────
@@ -105,9 +109,13 @@ export interface DeepMeditationModeContent {
   title: string;
   shortLabel: string;
   description: string;
+  /** Voice script for the opening step (shared, but mode may tweak it). */
+  openingScript: string;
+  /** Voice script for the closing step. */
+  closingScript: string;
   /** Practice milestones for the central phase. Rendered with
    *  proportional durations relative to total time. */
-  milestones: { id: string; label: string; description: string; weight: number }[];
+  milestones: { id: string; label: string; description: string; weight: number; voiceScript: string }[];
 }
 
 export const DEEP_MEDITATION_MODES: Record<DeepMeditationMode, DeepMeditationModeContent> = {
@@ -117,10 +125,35 @@ export const DEEP_MEDITATION_MODES: Record<DeepMeditationMode, DeepMeditationMod
     shortLabel: 'Mindfulness',
     description:
       'Ancla en la respiración nasal. Cuando aparezca un pensamiento, etiquétalo como "pensando" y vuelve al ancla, sin juicio.',
+    openingScript:
+      'Cierra los ojos. Acomoda tu postura. Espalda recta, hombros relajados, manos descansando sobre tus muslos. Toma tres respiraciones profundas... y con cada exhalación, suelta un poco más de tensión.',
+    closingScript:
+      'Comienza a expandir tu conciencia. Nota los sonidos a tu alrededor. Siente el peso de tu cuerpo. Mueve suavemente los dedos de las manos y los pies. Y cuando estés listo, abre los ojos con calma. Lleva esta quietud contigo.',
     milestones: [
-      { id: 'anchor', label: 'Ancla en la respiración', description: 'Siente solo el aire entrando y saliendo por la nariz.', weight: 0.4 },
-      { id: 'label', label: 'Etiquetar pensamientos', description: 'Cuando llegue un pensamiento, di "pensando" en silencio. Vuelve al aire.', weight: 0.4 },
-      { id: 'open',  label: 'Conciencia abierta',      description: 'Sin objeto fijo. Lo que aparece, aparece. Sin perseguirlo.', weight: 0.2 },
+      {
+        id: 'anchor',
+        label: 'Ancla en la respiración',
+        description: 'Siente solo el aire entrando y saliendo por la nariz.',
+        weight: 0.4,
+        voiceScript:
+          'Ahora, lleva toda tu atención al punto donde el aire entra por tu nariz. Siente el frescor al inhalar... y la calidez al exhalar. Solo eso. El aire. Entrando. Saliendo. Sin modificar nada. Solo observa.',
+      },
+      {
+        id: 'label',
+        label: 'Etiquetar pensamientos',
+        description: 'Cuando llegue un pensamiento, di "pensando" en silencio. Vuelve al aire.',
+        weight: 0.4,
+        voiceScript:
+          'Es normal que lleguen pensamientos. Cuando lo hagan, simplemente reconócelos. Di en silencio: pensando. Sin juzgar, sin perseguir. Y vuelve al aire. Cada vez que regresas, fortaleces tu músculo atencional.',
+      },
+      {
+        id: 'open',
+        label: 'Conciencia abierta',
+        description: 'Sin objeto fijo. Lo que aparece, aparece. Sin perseguirlo.',
+        weight: 0.2,
+        voiceScript:
+          'Ahora suelta el ancla de la respiración. No busques ningún objeto en particular. Solo permanece aquí. Abierto. Lo que surja, déjalo pasar como nubes en un cielo vasto.',
+      },
     ],
   },
   body_scan: {
@@ -129,11 +162,43 @@ export const DEEP_MEDITATION_MODES: Record<DeepMeditationMode, DeepMeditationMod
     shortLabel: 'Body scan',
     description:
       'Recorre el cuerpo de cabeza a pies. En cada zona, exhala y suelta la tensión que encuentres ahí.',
+    openingScript:
+      'Cierra los ojos y respira profundamente tres veces. Con cada exhalación, imagina que tu cuerpo se vuelve más pesado, más relajado, hundiéndose en la superficie donde estás.',
+    closingScript:
+      'Respira profundamente una vez más. Imagina que una luz cálida recorre todo tu cuerpo, de arriba a abajo, integrando cada zona que visitaste. Mueve los dedos. Abre los ojos. Despacio.',
     milestones: [
-      { id: 'head_neck', label: 'Cabeza y cuello',     description: 'Cráneo, frente, mandíbula, cuello. Suelta al exhalar.', weight: 0.25 },
-      { id: 'torso',     label: 'Torso',               description: 'Hombros, pecho, espalda, abdomen.', weight: 0.3 },
-      { id: 'arms',      label: 'Brazos y manos',      description: 'Brazos, codos, antebrazos, manos.', weight: 0.2 },
-      { id: 'legs',      label: 'Piernas y pies',      description: 'Caderas, muslos, rodillas, pantorrillas, pies.', weight: 0.25 },
+      {
+        id: 'head_neck',
+        label: 'Cabeza y cuello',
+        description: 'Cráneo, frente, mandíbula, cuello. Suelta al exhalar.',
+        weight: 0.25,
+        voiceScript:
+          'Lleva tu atención a la coronilla de tu cabeza. Siente cualquier sensación allí. Desciende lentamente por la frente, las sienes, los ojos... la mandíbula. Al exhalar, deja que toda la tensión se disuelva hacia abajo, por el cuello.',
+      },
+      {
+        id: 'torso',
+        label: 'Torso',
+        description: 'Hombros, pecho, espalda, abdomen.',
+        weight: 0.3,
+        voiceScript:
+          'Ahora tus hombros. Están cargando algo, siempre lo hacen. Déjalos caer. Siente tu pecho expandirse con cada respiración. Tu abdomen subiendo y bajando. Tu espalda completa, apoyada.',
+      },
+      {
+        id: 'arms',
+        label: 'Brazos y manos',
+        description: 'Brazos, codos, antebrazos, manos.',
+        weight: 0.2,
+        voiceScript:
+          'Desciende por tus brazos. Los codos, los antebrazos, las muñecas. Llega hasta las puntas de tus dedos. ¿Hay calor? ¿Hormigueo? Solo observa lo que hay.',
+      },
+      {
+        id: 'legs',
+        label: 'Piernas y pies',
+        description: 'Caderas, muslos, rodillas, pantorrillas, pies.',
+        weight: 0.25,
+        voiceScript:
+          'Caderas, muslos, rodillas. Sigue bajando. Las pantorrillas, los tobillos, las plantas de los pies. Siente la conexión con la tierra. Desde la coronilla hasta los pies, tu cuerpo es un solo continuo. Completo. Presente.',
+      },
     ],
   },
   metta: {
@@ -142,11 +207,43 @@ export const DEEP_MEDITATION_MODES: Record<DeepMeditationMode, DeepMeditationMod
     shortLabel: 'Metta',
     description:
       'Repite en silencio: "Que esté en paz · Que esté seguro · Que esté sano · Que viva con facilidad". Cuatro destinatarios.',
+    openingScript:
+      'Cierra los ojos. Coloca una mano en tu pecho si lo deseas. Siente los latidos. Cada uno es un recordatorio de que estás aquí, vivo, merecedor de cuidado.',
+    closingScript:
+      'Expande tu intención a todos los seres, en todas las direcciones. Que todos estén en paz. Que todos estén seguros. Que todos estén sanos. Respira profundamente. Abre los ojos cuando estés listo.',
     milestones: [
-      { id: 'self',     label: 'Hacia ti mismo',          description: 'Visualízate. Repite las cuatro frases.', weight: 0.25 },
-      { id: 'loved',    label: 'Ser querido',             description: 'Alguien que amas. Repite las frases dirigidas a esa persona.', weight: 0.25 },
-      { id: 'neutral',  label: 'Persona neutral',         description: 'Alguien que apenas conoces. Mismas frases.', weight: 0.25 },
-      { id: 'difficult', label: 'Persona difícil',        description: 'Alguien con quien tienes fricción. Mismas frases — el ejercicio es para ti.', weight: 0.25 },
+      {
+        id: 'self',
+        label: 'Hacia ti mismo',
+        description: 'Visualízate. Repite las cuatro frases.',
+        weight: 0.25,
+        voiceScript:
+          'Visualízate a ti mismo. Tal como eres ahora. Repite en silencio: Que esté en paz. Que esté seguro. Que esté sano. Que viva con facilidad. Repítelo como si se lo dijeras a alguien que amas profundamente — porque eso eres.',
+      },
+      {
+        id: 'loved',
+        label: 'Ser querido',
+        description: 'Alguien que amas. Repite las frases dirigidas a esa persona.',
+        weight: 0.25,
+        voiceScript:
+          'Ahora piensa en alguien que amas. Visualiza su rostro. Y dirige las mismas palabras hacia esa persona: Que estés en paz. Que estés seguro. Que estés sano. Que vivas con facilidad. Siente cómo la calidez se expande.',
+      },
+      {
+        id: 'neutral',
+        label: 'Persona neutral',
+        description: 'Alguien que apenas conoces. Mismas frases.',
+        weight: 0.25,
+        voiceScript:
+          'Piensa ahora en alguien que apenas conoces. Un vecino, alguien que viste hoy. Esa persona también tiene miedos, sueños, días difíciles. Repite las frases para ella.',
+      },
+      {
+        id: 'difficult',
+        label: 'Persona difícil',
+        description: 'Alguien con quien tienes fricción. Mismas frases — el ejercicio es para ti.',
+        weight: 0.25,
+        voiceScript:
+          'Este paso es para ti, no para la otra persona. Piensa en alguien con quien tienes fricción. Sin forzar nada, intenta repetir: Que estés en paz. Si cuesta, está bien. El esfuerzo es la práctica.',
+      },
     ],
   },
 };
@@ -168,6 +265,7 @@ export function buildDeepMeditationRoutine(
     description: m.description,
     durationSec: Math.round(practiceSec * m.weight),
     cue: 'rest',
+    voiceScript: m.voiceScript,
   }));
 
   return {
@@ -178,6 +276,7 @@ export function buildDeepMeditationRoutine(
     habitId: 'deep_meditation',
     scienceNote:
       '12 minutos diarios de meditación durante 8 semanas reducen la activación de la amígdala ~22 % y aumentan la densidad de materia gris en el hipocampo (Hölzel et al., 2011). Alternar modos previene la habituación y entrena distintos circuitos atencionales.',
+    meditationMode: mode,
     steps: [
       {
         id: 'opening',
@@ -185,6 +284,7 @@ export function buildDeepMeditationRoutine(
         description: 'Postura recta. Ojos cerrados. Tres respiraciones profundas. Define una intención breve para esta práctica.',
         durationSec: openingSec,
         cue: 'inhale',
+        voiceScript: modeContent.openingScript,
       },
       ...milestoneSteps,
       {
@@ -194,6 +294,7 @@ export function buildDeepMeditationRoutine(
         durationSec: closingSec,
         cue: 'rest',
         tip: 'No te apures al levantarte. La transición es parte de la práctica.',
+        voiceScript: modeContent.closingScript,
       },
     ],
   };

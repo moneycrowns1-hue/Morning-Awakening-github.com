@@ -20,9 +20,16 @@
 //
 // Paleta · usa useNightPalette() para vivir en sync con la
 // paleta global elegida en NightWelcome / Settings.
+//
+// v2 — Deep meditation enhancements:
+//   · MeditationScene replaces the generic orb for deep_meditation
+//   · Floating particles behind the scene
+//   · Meditation voice audio plays at each step change
+//   · Optional subtitles overlay (off by default)
+//   · All gated behind isMeditation — bruxism/lymphatic untouched
 // ═══════════════════════════════════════════════════════════
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import gsap from 'gsap';
 import { ChevronLeft, SkipForward, Check } from 'lucide-react';
 import { AudioEngine } from '@/lib/common/audioEngine';
@@ -31,16 +38,30 @@ import { useNightPalette } from '@/lib/night/nightPalette';
 import { hexToRgba } from '@/lib/common/theme';
 import { haptics } from '@/lib/common/haptics';
 import type { WellnessRoutine, WellnessStep, WellnessCue } from '@/lib/wellness/wellnessRoutines';
+import MeditationScene from './MeditationScene';
+import { playStepAudio, stopStepAudio } from '@/lib/wellness/meditationAudio';
 
 interface WellnessSessionRunnerProps {
   routine: WellnessRoutine;
   onComplete: () => void;
   onCancel: () => void;
+  /** Show voice script as subtitles (only for deep_meditation). */
+  subtitlesEnabled?: boolean;
 }
 
-export default function WellnessSessionRunner({ routine, onComplete, onCancel }: WellnessSessionRunnerProps) {
+export default function WellnessSessionRunner({
+  routine,
+  onComplete,
+  onCancel,
+  subtitlesEnabled = false,
+}: WellnessSessionRunnerProps) {
   // Paleta activa global · sigue al picker de NightWelcome / Settings.
   const { palette: N, paletteText: NT } = useNightPalette();
+
+  // Deep meditation flag — gates all meditation-specific rendering.
+  // Bruxism and lymphatic routines are completely unaffected.
+  const isMeditation = routine.id === 'deep_meditation';
+  const meditationMode = routine.meditationMode;
 
   const [stepIdx, setStepIdx] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(() => routine.steps[0]?.durationSec ?? 0);
@@ -48,6 +69,9 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
   const audioRef = useRef<AudioEngine | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const orbRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  /** Previous step index for transition animation direction. */
+  const prevStepRef = useRef(0);
 
   const step: WellnessStep | undefined = routine.steps[stepIdx];
 
@@ -62,6 +86,8 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
     }, 500);
     return () => {
       try { engine.stopAll(); } catch { /* ignore */ }
+      // Clean up meditation audio on unmount.
+      stopStepAudio();
     };
   }, []);
 
@@ -77,12 +103,43 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
 
   // ── Drive the pulse animation based on the current step's cue.
   useEffect(() => {
+    // Skip orb animation for meditation — MeditationScene handles its own.
+    if (isMeditation) return;
     if (!orbRef.current || !step) return;
     const el = orbRef.current;
     gsap.killTweensOf(el);
     const cue = step.cue ?? 'rest';
     runCueAnimation(el, cue);
-  }, [step]);
+  }, [step, isMeditation]);
+
+  // ── Meditation voice audio: play mp3 at each step change.
+  useEffect(() => {
+    if (!isMeditation || !meditationMode || !step) return;
+    void playStepAudio(meditationMode, step.id);
+    return () => { stopStepAudio(); };
+  }, [stepIdx, isMeditation, meditationMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Extract current milestone id for MeditationScene.
+  const currentMilestoneId = step?.id.replace(/^practice_/, '') ?? 'opening';
+
+  // ── Step transition animation (meditation only) ────────────
+  useEffect(() => {
+    if (!isMeditation || !contentRef.current) return;
+    // Only animate if step actually changed (not initial mount).
+    if (prevStepRef.current === stepIdx && stepIdx === 0) {
+      prevStepRef.current = stepIdx;
+      return;
+    }
+    const el = contentRef.current;
+    const dir = stepIdx > prevStepRef.current ? 1 : -1;
+    prevStepRef.current = stepIdx;
+
+    // Fade out → slide up → fade in.
+    gsap.fromTo(el,
+      { opacity: 0.3, y: dir * 18 },
+      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', clearProps: 'y' },
+    );
+  }, [stepIdx, isMeditation]);
 
   // ── Countdown. ────────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +190,239 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
     ((step?.durationSec ?? 0) - secondsLeft);
   const globalProgress = completing ? 1 : Math.max(0, Math.min(1, elapsedSec / totalSec));
 
+  // ─── MEDITATION MODE: Headspace-style full-screen player ──
+  // Ref for center content fade transitions between steps.
+  const centerRef = useRef<HTMLDivElement>(null);
+
+  // Animate center content on step change (fade + gentle slide)
+  useEffect(() => {
+    if (!isMeditation || !centerRef.current) return;
+    if (prevStepRef.current === stepIdx && stepIdx === 0) {
+      prevStepRef.current = stepIdx;
+      return;
+    }
+    const el = centerRef.current;
+    prevStepRef.current = stepIdx;
+    gsap.fromTo(el,
+      { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out', clearProps: 'y' },
+    );
+  }, [stepIdx, isMeditation]);
+
+  if (isMeditation && meditationMode) {
+    return (
+      <div
+        ref={containerRef}
+        className="relative w-full h-full overflow-hidden"
+      >
+        {/* Full-screen wave background */}
+        <MeditationScene
+          mode={meditationMode}
+          milestone={currentMilestoneId}
+          completing={completing}
+        />
+
+        {/* Floating particles over the waves */}
+        <MeditationParticles N={N} />
+
+        {/* Top bar — X close + step counter */}
+        <div
+          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-5"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
+        >
+          <button
+            onClick={handleCancel}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+            aria-label="Cerrar"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 1L13 13M13 1L1 13" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span
+            className="font-mono tabular-nums tracking-[0.2em] font-[500]"
+            style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}
+          >
+            {String(Math.min(stepIdx + 1, routine.steps.length)).padStart(2, '0')}
+            <span style={{ margin: '0 4px', opacity: 0.4 }}>·</span>
+            {String(routine.steps.length).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Center — animated content area */}
+        <div
+          ref={centerRef}
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5"
+        >
+          {completing ? (
+            /* ── Completion · zen ripple + text ── */
+            <div className="flex flex-col items-center gap-6">
+              {/* Expanding ripple rings */}
+              <svg width="100" height="100" viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+                {[0, 0.7, 1.4].map((delay, i) => (
+                  <circle
+                    key={i}
+                    cx="50" cy="50" r="15"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.5)"
+                    strokeWidth={1 - i * 0.2}
+                  >
+                    <animate attributeName="r" from="12" to="45" dur="3s" begin={`${delay}s`} repeatCount="indefinite" />
+                    <animate attributeName="opacity" from="0.5" to="0" dur="3s" begin={`${delay}s`} repeatCount="indefinite" />
+                  </circle>
+                ))}
+                <text
+                  x="50" y="54"
+                  textAnchor="middle"
+                  fill="rgba(255,255,255,0.9)"
+                  fontSize="24"
+                  fontFamily="var(--font-headline)"
+                  fontWeight="700"
+                >
+                  ✓
+                </text>
+              </svg>
+
+              <p
+                className="font-headline font-[600] lowercase tracking-[-0.02em] text-center"
+                style={{ color: 'rgba(255,255,255,0.7)', fontSize: 18 }}
+              >
+                sesión completa
+              </p>
+              <p
+                className="font-ui text-[12px] text-center max-w-[26ch]"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+              >
+                Hábito de hoy registrado. Vuelve cuando lo necesites.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Step label — above timer */}
+              <span
+                className="font-mono uppercase tracking-[0.35em] font-[500]"
+                style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8.5 }}
+              >
+                {step?.label?.toLowerCase() ?? ''}
+              </span>
+
+              {/* Countdown timer */}
+              <span
+                className="font-headline font-[300] tabular-nums"
+                style={{
+                  color: 'rgba(255,255,255,0.85)',
+                  fontSize: 20,
+                  letterSpacing: '0.1em',
+                }}
+              >
+                {formatTimer(secondsLeft)}
+              </span>
+
+              {/* Central button — white circle (Headspace style) */}
+              <button
+                onClick={handleSkipStep}
+                className="relative transition-transform active:scale-95"
+                style={{ width: 72, height: 72 }}
+                aria-label="Saltar paso"
+              >
+                {/* Soft glow ring */}
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    filter: 'blur(14px)',
+                    transform: 'scale(1.4)',
+                  }}
+                />
+                {/* Button body */}
+                <div
+                  className="relative w-full h-full rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'rgba(255,255,255,0.92)',
+                    boxShadow: '0 4px 28px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 4L16 12L6 20V4Z" fill="rgba(0,0,0,0.75)" />
+                    <line x1="19" y1="5" x2="19" y2="19" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Description whisper — optional, only if step has description */}
+              {step?.description && (
+                <p
+                  className="font-ui text-[11px] text-center max-w-[30ch] leading-[1.5]"
+                  style={{ color: 'rgba(255,255,255,0.25)' }}
+                >
+                  {step.description}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Subtitles — floating overlay */}
+          {subtitlesEnabled && step && !completing && step.voiceScript && (
+            <div
+              className="text-center max-w-[32ch] px-4 mt-2"
+              style={{
+                padding: '10px 16px',
+                background: 'rgba(0,0,0,0.3)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderRadius: 14,
+              }}
+            >
+              <p
+                className="font-ui text-[11.5px] leading-[1.6] italic"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+              >
+                &ldquo;{step.voiceScript}&rdquo;
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom progress bar */}
+        <div
+          className="absolute bottom-0 left-0 right-0 z-20 px-6"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.6rem)' }}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className="font-mono tabular-nums"
+              style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}
+            >
+              {formatTimer(elapsedSec)}
+            </span>
+            <div className="flex-1 h-[2px] rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${globalProgress * 100}%`,
+                  background: 'rgba(255,255,255,0.3)',
+                  transition: 'width 1s linear',
+                }}
+              />
+            </div>
+            <span
+              className="font-mono tabular-nums"
+              style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}
+            >
+              {formatTimer(totalSec)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── DEFAULT MODE: Original editorial layout (bruxism, lymphatic, etc.) ───
   return (
     <div
       ref={containerRef}
@@ -144,15 +434,12 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
         className="relative z-10 px-6 shrink-0"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.85rem)' }}
       >
-        {/* Top folio · dot ámbar + brand mono (izq) · numeral tabular (der) */}
         <div className="flex items-center justify-between pb-2.5">
           <span className="flex items-center gap-2">
             <span
               aria-hidden
               style={{
-                width: 5,
-                height: 5,
-                background: N.amber,
+                width: 5, height: 5, background: N.amber,
                 borderRadius: 99,
                 boxShadow: `0 0 8px ${hexToRgba(N.amber, 0.85)}`,
               }}
@@ -176,7 +463,6 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
             {String(routine.steps.length).padStart(2, '0')}
           </span>
         </div>
-        {/* Hairline progress · global · 1px con glow ámbar */}
         <div className="relative h-[1px]" style={{ background: hexToRgba(N.amber, 0.14) }}>
           <div
             className="absolute inset-y-0 left-0"
@@ -190,17 +476,12 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
         </div>
       </div>
 
-      {/* ─── Body unificado ──────────────────────────────────── */}
+      {/* ─── Body ──────────────────────────────────────────── */}
       <div className="scroll-area flex-1 w-full max-w-xl mx-auto flex flex-col relative z-10 min-h-0 px-6 pb-4">
-        {/* Top corners · numeral del paso (izq) · cue label (der) */}
         <div className="mt-3 flex items-baseline justify-between">
           <span
             className="font-mono tabular-nums font-[600]"
-            style={{
-              color: NT.primary,
-              fontSize: 13,
-              letterSpacing: '0.02em',
-            }}
+            style={{ color: NT.primary, fontSize: 13, letterSpacing: '0.02em' }}
           >
             {String(Math.min(stepIdx + 1, routine.steps.length)).padStart(2, '0')}
             <span style={{ color: N.amber }}>.</span>
@@ -213,9 +494,7 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
           </span>
         </div>
 
-        {/* CENTER · título hero + orb central + countdown */}
         <div className="flex-1 flex flex-col items-center justify-center gap-7 my-4">
-          {/* Hero title · paso actual lowercase con punto ámbar */}
           <h1
             className="font-headline font-[700] lowercase tracking-[-0.04em] text-center"
             style={{
@@ -231,9 +510,8 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
             <span style={{ color: N.amber }}>.</span>
           </h1>
 
-          {/* Orb central · halo ámbar + pulso cue + countdown */}
+          {/* Orb */}
           <div className="relative" style={{ width: 160, height: 160 }}>
-            {/* Halo blur exterior */}
             <div
               aria-hidden
               className="absolute pointer-events-none rounded-full"
@@ -245,7 +523,6 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
                 transition: 'opacity 1s ease-in-out',
               }}
             />
-            {/* Orb sólido con gradiente cálido */}
             <div
               ref={orbRef}
               className="absolute inset-0 rounded-full flex items-center justify-center"
@@ -268,13 +545,9 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
             </div>
           </div>
 
-          {/* Description del paso · whisper editorial */}
           {step && !completing && (
             <div className="text-center max-w-[36ch] px-2">
-              <p
-                className="font-ui text-[12.5px] leading-[1.55]"
-                style={{ color: NT.soft }}
-              >
+              <p className="font-ui text-[12.5px] leading-[1.55]" style={{ color: NT.soft }}>
                 {step.description}
               </p>
               {step.tip && (
@@ -298,29 +571,24 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
           )}
         </div>
 
-        {/* Step list · jeton-style con hairline bottom · solo visible si hay espacio */}
         {!completing && routine.steps.length <= 8 && (
           <div className="w-full mt-2">
-            {routine.steps.map((s, i) => {
-              const done = i < stepIdx;
-              const active = i === stepIdx;
-              return (
-                <StepRow
-                  key={s.id}
-                  index={i + 1}
-                  label={s.label}
-                  durationSec={s.durationSec}
-                  state={done ? 'done' : active ? 'active' : 'pending'}
-                  N={N}
-                  NT={NT}
-                />
-              );
-            })}
+            {routine.steps.map((s, i) => (
+              <StepRow
+                key={s.id}
+                index={i + 1}
+                label={s.label}
+                durationSec={s.durationSec}
+                state={i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'pending'}
+                N={N}
+                NT={NT}
+              />
+            ))}
           </div>
         )}
       </div>
 
-      {/* ─── Footer · V5 hairline controls ─────────────────── */}
+      {/* ─── Footer ─────────────────────────────────────────── */}
       {!completing && step && (
         <div
           className="relative z-10 px-6 shrink-0"
@@ -362,6 +630,47 @@ export default function WellnessSessionRunner({ routine, onComplete, onCancel }:
 interface PaletteProps {
   N: ReturnType<typeof useNightPalette>['palette'];
   NT: ReturnType<typeof useNightPalette>['paletteText'];
+}
+
+// Floating particles · subtle ambient effect for meditation sessions
+function MeditationParticles({ N }: { N: PaletteProps['N'] }) {
+  const particles = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      x: 10 + Math.random() * 80,
+      y: 10 + Math.random() * 80,
+      size: 1.5 + Math.random() * 2.5,
+      duration: 6 + Math.random() * 8,
+      delay: Math.random() * 5,
+      opacity: 0.08 + Math.random() * 0.15,
+    }));
+  }, []);
+
+  return (
+    <div
+      aria-hidden
+      className="absolute pointer-events-none"
+      style={{ inset: -40, zIndex: -1 }}
+    >
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full sunrise-float"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            background: N.amber,
+            opacity: p.opacity,
+            filter: `blur(${p.size > 3 ? 1 : 0}px)`,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 // Step row · jeton estilo NightMissionPhase StepCardRow

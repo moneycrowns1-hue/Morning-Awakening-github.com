@@ -58,6 +58,7 @@ import { formatTargetHHMM } from '@/lib/ritual/ritualSchedule';
 import { loadCheckIn } from '@/lib/coach/state';
 import { stopSleepEngine } from '@/lib/night/sleepEngine';
 import { markHabit } from '@/lib/common/habits';
+import { ownedToolIds } from '@/lib/looksmax/inventory';
 import NucleusTimelineScreen from './nucleus/NucleusTimelineScreen';
 import NSDRPhaseScreen from './nucleus/NSDRPhaseScreen';
 import CalendarScreen from './calendar/CalendarScreen';
@@ -456,14 +457,60 @@ export default function MorningAwakening() {
   const handleMissionComplete = useCallback(() => {
     grantReward(missionIndex);
 
+    // Per-phase habit marking (looksmax layer · v5.1).
+    // Free-tier habits siempre se trackean. Habits gated por tool
+    // solo se marcan si el usuario tiene la tool en `inventory.ts`.
+    try {
+      const finishedMission = sessionMissions[missionIndex];
+      if (finishedMission) {
+        const today = getToday();
+        const owned = ownedToolIds();
+
+        switch (finishedMission.id) {
+          case 'aurora':
+            // AURORA cubre cuidado facial post-cryo + drenaje + yoga facial.
+            markHabit('lymphatic_facial', today);
+            markHabit('face_yoga', today);
+            // Gated por inventario:
+            if (owned.has('spf_30')) markHabit('spf_am', today);
+            if (owned.has('vitc_serum')) markHabit('vitc_am', today);
+            break;
+          case 'maxilla':
+            // Free-tier al 100 %: estructura facial.
+            markHabit('mewing_check', today);
+            markHabit('jaw_release', today);
+            markHabit('chin_tuck', today);
+            break;
+          case 'refuel':
+            // Chewing bilateral con manzanas verdes (free).
+            markHabit('chewing_apples', today);
+            break;
+          case 'helio':
+            // Gotero ocular gated por inventario.
+            if (owned.has('eye_drops')) markHabit('eye_drops_am', today);
+            break;
+          case 'sigillum':
+            // Hilo dental siempre (free, asume cualquier hilo). Raspado
+            // y canela gated por inventario respectivo.
+            markHabit('floss', today);
+            if (owned.has('tongue_scraper')) markHabit('tongue_scraper', today);
+            if (owned.has('cinnamon_paste') || owned.has('cinnamon_mouthwash')) {
+              markHabit('cinnamon_paste', today);
+            }
+            break;
+          default:
+            // Otras fases no tienen mapping looksmax.
+            break;
+        }
+      }
+    } catch { /* tracking nunca debe romper el flow */ }
+
     const nextIndex = missionIndex + 1;
 
     if (nextIndex >= sessionTotalPhases) {
       audioRef.current?.playGong();
       // Mensaje de cierre adaptado: cantidad de fases real, no hardcoded.
-      const closingLine = sessionTotalPhases >= MISSIONS.length
-        ? 'Protocolo Génesis completo. Trece fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.'
-        : `Protocolo Génesis completo. ${sessionTotalPhases} fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.`;
+      const closingLine = `Protocolo Génesis completo. ${sessionTotalPhases} fases ejecutadas. Lo has hecho, Jugador. Ahora el día es tuyo; ya ganaste la parte más difícil. Vive las próximas horas con la calma del que ya entrenó. Nos vemos mañana al amanecer.`;
       operatorRef.current?.speak(closingLine, { rate: 0.9 });
 
       const today = getToday();

@@ -422,6 +422,20 @@ html, body {
   animation: sunrise-float 6s ease-in-out infinite;
 }
 
+/* Meditation breathing ring — slow scale pulse for the outer
+   guide ring in MindfulnessScene. 10s = full breath cycle. */
+@keyframes med-ring-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.12; }
+  40%      { transform: scale(1.15); opacity: 0.06; }
+  100%     { transform: scale(1);   opacity: 0.12; }
+}
+
+/* Meditation wave drift — gentle vertical sway for wave preview. */
+@keyframes med-wave-drift {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
 /* Soft pulse for the CTA halo. */
 @keyframes sunrise-cta-pulse {
   0%, 100% {

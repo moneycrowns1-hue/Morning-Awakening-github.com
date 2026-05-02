@@ -334,6 +334,80 @@ export const TIPS: Tip[] = [
     tags: { sleep: ['poor', 'avg'] },
   },
 
+  // ── Looksmax · estructura facial (free-tier) ──────────────
+  {
+    id: 'tip_mewing_ng_sound',
+    text: 'Mewing real: pronuncia mentalmente el final de "king" (sonido N-G) y mantén esa posición. Solo así la parte posterior de la lengua sube al paladar — sin eso, solo la punta sube y el efecto se diluye.',
+    domain: 'general', source: 'técnica · mewing',
+    tags: {},
+  },
+  {
+    id: 'tip_mewing_unconscious',
+    text: 'Mewing inconsciente > mewing forzado. El objetivo es que la postura de descanso lengua-paladar se vuelva default 90 % del día, no un esfuerzo voluntario.',
+    domain: 'general', source: 'principio · mewing',
+    tags: {},
+  },
+  {
+    id: 'tip_jaw_release_2mm',
+    text: 'Posición de descanso correcta: lengua arriba, dientes separados 2 mm, mandíbula floja. Si tus dientes están en contacto durante el día, estás generando bruxismo subclínico que tensa todo el cuello.',
+    domain: 'oral', source: 'fisiología · mandíbula',
+    tags: { conditions: ['bruxism'], stress: ['high', 'mid'] },
+  },
+  {
+    id: 'tip_chin_tuck_forward_head',
+    text: 'La cabeza adelantada (forward head posture) es lo que más arruina tu perfil sin que te des cuenta. 5 chin tucks 2-3x al día recuperan el alineamiento cervical y abren el ángulo mandibular.',
+    domain: 'general', source: 'postura · cervical',
+    tags: {},
+  },
+  {
+    id: 'tip_face_yoga_basics',
+    text: 'Yoga facial básico (3 ejercicios, 60 s): vocaleta para comisuras, "O" exagerada para orbiculares, cejas elevadas con resistencia manual para frontales. Estimula colágeno y previene flacidez sin gastar nada.',
+    domain: 'skin', source: 'técnica · yoga facial',
+    tags: {},
+  },
+  {
+    id: 'tip_chewing_apples_molars',
+    text: 'Manzanas verdes son el jawliner gratis: ratio fibra/carga mecánica ideal para hipertrofia masetera. Mastica bilateral en molares posteriores — en incisivos, la presión disloca la articulación temporomandibular.',
+    domain: 'oral', source: 'técnica · chewing',
+    tags: { conditions: ['bruxism'] },
+  },
+  {
+    id: 'tip_sleep_supine_symmetry',
+    text: 'Dormir boca arriba protege la simetría facial: la presión lateral nocturna durante 7-9 h sobre el mismo lado crea asimetrías acumulativas medibles a los 6-12 meses. Almohada cervical ayuda a sostener la posición.',
+    domain: 'sleep', source: 'fisiología · simetría',
+    tags: { sleep: ['poor', 'avg'] },
+  },
+  {
+    id: 'tip_hydration_facial_bloat',
+    text: 'Paradoja: si retienes líquido en la cara (hinchazón matutina), beber MÁS agua es la solución, no menos. La deshidratación señaliza al cuerpo a retener; con 3-4 L diarios el sistema linfático drena con eficiencia.',
+    domain: 'hydration', source: 'fisiología · de-bloat',
+    tags: { context: ['dry'] },
+  },
+  {
+    id: 'tip_sodium_bloat',
+    text: 'Sodio elevado retiene agua sistémica → cara más hinchada, ángulo mandibular borroso. Reducir azúcares procesados y sodio durante 48 h saca varios milímetros de definición ósea sin tocar la dieta caprica.',
+    domain: 'general', source: 'metabolismo · de-bloat',
+    tags: {},
+  },
+  {
+    id: 'tip_potassium_dietary',
+    text: 'Potasio dietético gratis: aguacate, espinaca, plátano, papa. Equilibra el sodio actuando como diurético natural y desinfla el rostro. Si vas a suplementar, líquido > pastillas (mayor biodisponibilidad).',
+    domain: 'hydration', source: 'nutrición · potasio',
+    tags: {},
+  },
+  {
+    id: 'tip_cinnamon_vs_mint',
+    text: 'Para aliento de élite: la menta es como tapar el sudor con AXE — solo enmascara. La canela es bactericida real, ataca la raíz del problema. Pasta o enjuague de canela cambia la economía del aliento.',
+    domain: 'oral', source: 'técnica · canela',
+    tags: {},
+  },
+  {
+    id: 'tip_tongue_scraper_70pct',
+    text: 'El 70 % de la carga bacteriana del aliento vive en la lengua, no en los dientes. Raspador de lengua remueve esa placa lingual mucho mejor que el cepillo. Objetivo visual: lengua rosada como la de un bebé.',
+    domain: 'oral', source: 'higiene · lengua',
+    tags: {},
+  },
+
   // ── Generales / motivacionales (siempre elegibles) ────────
   {
     id: 'tip_routine_consistency',

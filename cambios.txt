@@ -1,0 +1,396 @@
+========================================
+  MORNING AWAKENING - REGISTRO DE CAMBIOS
+========================================
+Fecha de inicio: 1 de Mayo, 2026
+
+Este archivo documenta todos los cambios, mejoras y modificaciones
+realizados en el proyecto Morning Awakening a partir de esta fecha.
+
+----------------------------------------
+[2026-05-01] - Sesión 1: Meditación Profunda · Fase 1
+----------------------------------------
+
+OBJETIVO: Mejorar la experiencia de meditación profunda con
+visuales inmersivos, soporte de audio guiado, y subtítulos opcionales.
+Solo se modificó meditación profunda — bruxismo y drenaje linfático
+quedan intactos.
+
+ARCHIVOS NUEVOS CREADOS:
+  1. src/components/wellness/MeditationScene.tsx
+     - Componente con 3 escenas SVG animadas con GSAP:
+       · Mindfulness: ondas sinusoidales que respiran (5 olas a distintas velocidades)
+       · Body Scan: silueta humana con haz de luz que recorre zonas corporales
+       · Metta: corazón radiante con anillos de aura que se expanden por destinatario
+     - Cada escena responde al milestone activo de la sesión
+     - Usa la paleta Night para colores consistentes
+
+  2. src/lib/wellness/meditationAudio.ts
+     - Helper para reproducir audios MP3 de voz guiada
+     - Busca archivos en /public/audio/meditation/{modo}/{stepId}.mp3
+     - Usa HEAD probe para no generar errores 404 en consola
+     - Cachea los archivos que no existen (degradación elegante)
+     - Si no hay audio, la sesión funciona normalmente sin voz
+
+  3. public/audio/meditation/ (estructura de carpetas)
+     - mindfulness/ (opening, anchor, label, open, closing)
+     - body_scan/ (opening, head_neck, torso, arms, legs, closing)
+     - metta/ (opening, self, loved, neutral, difficult, closing)
+     - Carpetas vacías con .gitkeep, listas para que el usuario
+       deposite sus archivos MP3 generados
+
+ARCHIVOS MODIFICADOS:
+  4. src/lib/wellness/wellnessRoutines.ts
+     - Agregado campo `voiceScript` a WellnessStep (opcional)
+     - Agregado campo `meditationMode` a WellnessRoutine (opcional)
+     - Agregado `openingScript` y `closingScript` a DeepMeditationModeContent
+     - Cada milestone de los 3 modos ahora tiene su guión de voz completo
+     - buildDeepMeditationRoutine() ahora pasa voiceScript y meditationMode
+     - Los guiones están en español, listos para generador de voces
+
+  5. src/components/wellness/DeepMeditationScreen.tsx
+     - Iconos SVG inline por modo en el picker (ondas/silueta/corazón)
+     - Background ambiental que cambia con el modo seleccionado (gradientes suaves)
+     - Preview animada de la MeditationScene sobre el hero (escala 55%)
+     - Frase científica motivacional aleatoria debajo del título
+     - Toggle de subtítulos (off por defecto, persistido en localStorage)
+     - Status hint de subtítulos en el footer
+
+  6. src/components/wellness/WellnessSessionRunner.tsx
+     - Detecta `routine.id === 'deep_meditation'` con flag `isMeditation`
+     - En meditación: MeditationScene reemplaza el orb genérico
+     - Partículas flotantes sutiles detrás de la escena (12 dots animados)
+     - Countdown independiente debajo de la escena
+     - Reproduce audio MP3 al inicio de cada paso (si el archivo existe)
+     - Overlay de subtítulos opcional (si habilitado)
+     - Para bruxismo y drenaje: TODO QUEDA IGUAL, cero cambios
+
+NO SE TOCÓ:
+  - MorningAwakening.tsx (componente principal)
+  - ToolsScreen.tsx (la tarjeta de meditación en herramientas)
+  - BruxismExerciseScreen.tsx
+  - LymphaticFacialScreen.tsx
+  - globals.css
+  - Ningún otro archivo fuera de wellness
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+----------------------------------------
+[2026-05-01] - Sesión 1: Meditación Profunda · Fase 2
+----------------------------------------
+
+OBJETIVO: Polish visual, transiciones suaves y experiencia inmersiva.
+Mejorar las animaciones SVG, agregar guía de respiración, transiciones
+fade/slide entre pasos, y animación zen de completación.
+
+ARCHIVOS MODIFICADOS:
+
+  1. src/components/wellness/MeditationScene.tsx (v1 → v2)
+     MINDFULNESS:
+     - Agregado círculo guía de respiración sincronizado (4s inhala / 6s exhala)
+     - Label dinámico "inhala" / "exhala" dentro del círculo (GSAP timeline)
+     - Círculo con borde discontinuo y gradiente radial interior
+     - Animación de completación: ondas se disuelven con fade+slide vertical escalonado
+     - Escena ampliada de 200x200 a 220x220
+
+     BODY SCAN:
+     - Beam se mueve con ease power3.inOut (más orgánico, menos lineal)
+     - Glow de zona más grande (+24px padding) y más suave (stdDeviation 8)
+     - Pulso de opacidad del beam: oscila entre 0.35→0.65 en 4s (más notable)
+     - Agregada línea de foco interior (inner focus line) en el centro del beam
+     - Filtro body-inner-glow dedicado para la línea de foco
+     - Silhouette se ilumina a 0.45 opacity cuando hay zona activa
+     - Completación: beam cubre todo el cuerpo + silhouette brilla
+
+     METTA:
+     - Gradiente del corazón más cálido: 4 stops (blanco→mantequilla→amber_glow→amber)
+     - Heart glow: segundo path detrás con blur (efecto de brillo por detrás)
+     - Core radiante ahora pulsa (alterna r=7↔9 con fade 0.4↔0.5)
+     - 6 sparkle dots alrededor del corazón con animación sunrise-float escalonada
+     - Rings con patrón de trazo alternado (sólido / discontinuo 3 5)
+     - Rings se animan con attr.r dinámico (no solo scale) para mejor resolución
+     - Completación: corazón escala 1.2 + core r=12 + opacity 0.7
+
+  2. src/components/wellness/WellnessSessionRunner.tsx
+     - Agregado `contentRef` en el wrapper central para animar transiciones
+     - Agregado `prevStepRef` para trackear dirección del cambio de paso
+     - Nuevo efecto `useEffect` para transición fade+slide entre pasos de meditación:
+       · Al cambiar stepIdx, el contenido central hace fade 0.3→1 + slide 18px
+       · Dirección del slide depende de si avanzamos o retrocedemos
+       · Solo se activa para meditación (isMeditation guard)
+     - Animación de completación zen para meditación:
+       · Reemplazado el checkmark plano por SVG con dos círculos expandentes
+       · Círculos con animación <animate> nativa (r + opacity en loop 3s)
+       · Segundo círculo desfasado 0.8s para efecto de ondas concéntricas
+       · Checkmark centrado en <text> con fuente headline
+       · Efecto tipo "piedra en el agua" / ripple zen
+
+NO SE TOCÓ:
+  - wellnessRoutines.ts (sin cambios en esta fase)
+  - meditationAudio.ts (sin cambios en esta fase)
+  - DeepMeditationScreen.tsx (sin cambios en esta fase)
+  - Bruxismo, drenaje linfático, componente principal: INTACTOS
+  - globals.css: sin cambios
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+----------------------------------------
+[2026-05-01] - Sesión 1: Meditación Profunda · Fase 2b (Ilustraciones)
+----------------------------------------
+
+OBJETIVO: Reemplazar los SVGs técnicos/geométricos por ilustraciones
+de alta calidad estilo Calm/Waking Up. Experiencia visual premium.
+
+ASSETS NUEVOS CREADOS:
+  1. public/images/meditation/mindfulness.png
+     - Figura meditadora en posición lotus contra cielo gradiente
+     - Anillos concéntricos de luz emanando de la cabeza
+     - Colores: midnight blue → amber → gold, lago reflectante abajo
+     - Estilo: editorial minimalista, tipo Waking Up / Calm
+
+  2. public/images/meditation/body_scan.png
+     - Silueta humana luminosa con brazos abiertos
+     - Luz interior con partículas de energía dorada fluyendo
+     - Fondo dark navy/negro, tono cálido amber
+     - Estilo: etéreo, introspectivo
+
+  3. public/images/meditation/metta.png
+     - Manos abiertas liberando esfera de luz dorada
+     - Partículas flotantes y rayos de calidez
+     - Anillos concéntricos de amor expandiéndose
+     - Fondo dark con acentos amber/gold/rose
+
+ARCHIVOS MODIFICADOS:
+  4. src/components/wellness/MeditationScene.tsx (v2 → v3)
+     - REDISEÑO COMPLETO: de SVGs hand-coded a ilustraciones + overlays
+     - Usa Next.js Image component para carga optimizada de las ilustraciones
+     - Cada modo tiene su ilustración como hero visual principal
+     - Vignette gradient overlay para integración con el fondo dark
+     - Overlay animados con GSAP encima de las ilustraciones:
+       · Mindfulness: anillos de respiración que se expanden/contraen (4s/6s)
+         + label "inhala"/"exhala" + gradient radial
+       · Body Scan: banda horizontal luminosa que sigue la zona corporal activa
+         con mix-blend-mode:screen y pulse de opacidad
+       · Metta: anillos de aura expandentes por fase, dashed alternado
+     - Animación de completación: scale 1.08 + fade 0.7 en la ilustración
+     - Eliminados todos los SVGs hardcodeados de v1/v2 (ondas, silueta, corazón)
+
+  5. src/components/wellness/DeepMeditationScreen.tsx
+     - Mini-iconos del picker: de SVGs inline a thumbnails de las ilustraciones
+     - Cada modo muestra un circulo 40x40 con su ilustración recortada
+     - Modo activo: border amber 0.6 + boxShadow glow + opacity 1
+     - Modo inactivo: border tenue 0.15 + opacity 0.6
+     - Agregado import de next/image
+     - Eliminada función ModeIcon() (ya no se usa)
+
+NO SE TOCÓ:
+  - WellnessSessionRunner.tsx (los cambios de Fase 2 ya integrados)
+  - wellnessRoutines.ts, meditationAudio.ts
+  - Bruxismo, drenaje linfático: INTACTOS
+  - globals.css: sin cambios
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+----------------------------------------
+[2026-05-01] - Sesión 1: Meditación Profunda · Fase 2c (Headspace-style)
+----------------------------------------
+
+OBJETIVO: Rediseñar las visuales de meditación con estilo Headspace:
+blobs orgánicos, olas layered, formas gooey generadas con código.
+NO imágenes estáticas. Todo CSS + GSAP.
+
+ARCHIVOS MODIFICADOS:
+
+  1. src/components/wellness/MeditationScene.tsx (v3 → v4)
+     - REDISEÑO COMPLETO por tercera vez, ahora estilo Headspace:
+     - Eliminadas imágenes estáticas, todo es CSS/GSAP generado
+
+     MINDFULNESS (Breathing Blob + Layered Waves):
+     - Gran blob central de 130px con gradiente radial cálido
+     - Border-radius animado que muta entre formas orgánicas
+       (42% 58% 55% 45% ↔ 55% 45% 48% 52%) = efecto "gooey"
+     - Ciclo respiración: 4s scale(1.35) + 6s scale(1) = inhala/exhala
+     - Label "inhala"/"exhala" dentro del blob con color void
+     - Inner highlight: radial-gradient blanco blur(6px)
+     - 4 capas de ondas layered debajo del blob con opacidades
+       progresivas, animadas con yoyo vertical individual
+     - Outer ring pulse con keyframe med-ring-pulse CSS (10s)
+     - Box-shadow triple: glow exterior + inset inferior
+
+     BODY SCAN (Vertical Sweep + Organic Blobs):
+     - 3 background blobs orgánicos con blur(8px) que respiran
+       independientemente (5s-7.4s, border-radius mutantes)
+     - Silueta humana simplificada con stacked ovals CSS:
+       · Cabeza: 32x36 rounded
+       · Torso: 50x80 con border-radius orgánico
+       · Lower body: 56x90 con border-radius diferente
+       · Colores amber translúcidos (0.15 → 0.12 → 0.10)
+     - Sweep band horizontal que sigue la zona corporal activa
+       con linear-gradient transparente→amber→transparente
+     - Label de zona debajo del sweep con transición CSS
+     - Completación: sweep cubre todo el cuerpo al 6% opacity
+
+     METTA (Expanding Warm Pulses):
+     - Core blob de 80px con gradiente radial premium 3-stop
+       (#fff4e2 → amber → candle), box-shadow triple
+     - Border-radius animado gooey en loop
+     - Inner light highlight (blur 4px)
+     - 5 anillos expandentes con border organic alternante
+       (dashed / sólido), tamaños que crecen por fase
+     - Labels por fase: "para ti", "ser querido", etc.
+     - Ambient warm glow: radial-gradient blur(20px) detrás
+     - Completación: core scale(1.5) + opacity 0.3
+
+  2. src/components/wellness/DeepMeditationScreen.tsx
+     - Mini-iconos del picker: de thumbnails a ModeBlobIcon
+     - ModeBlobIcon: componente con 3 mini-blobs CSS:
+       · Mindfulness: circulito sólido + ring exterior
+       · Body Scan: dos óvalos apilados (cabeza + torso)
+       · Metta: punto radiante + ring exterior tenue
+     - Eliminado import de next/image (ya no se usa)
+
+  3. src/app/globals.css
+     - Agregado @keyframes med-ring-pulse para el ring exterior
+       del blob de mindfulness (scale 1→1.15, opacity 0.12→0.06)
+
+NO SE TOCÓ:
+  - WellnessSessionRunner.tsx (sin cambios)
+  - wellnessRoutines.ts, meditationAudio.ts
+  - Bruxismo, drenaje linfático: INTACTOS
+
+NOTA: Las imágenes generadas previamente en /public/images/meditation/
+siguen existiendo pero ya no se usan. Se pueden eliminar en el futuro.
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+----------------------------------------
+[2026-05-01] - Sesión 1: Meditación Profunda · Fase 2d (Full-screen Headspace player)
+----------------------------------------
+
+OBJETIVO: Rediseño radical del player de meditación para emular exactamente
+el player de Headspace iOS: pantalla completa con olas orgánicas de fondo,
+botón de pause centrado, y UI ultra-minimalista. TODOS los modos usan
+el MISMO efecto visual (olas), solo cambia la paleta de colores.
+
+REFERENCIA: Captura de pantalla del iPad del usuario mostrando:
+  - Fondo con ola morada cubriendo toda la pantalla
+  - Solo un botón de pause blanco centrado
+  - Cero texto, cero headers, cero step lists
+  - Barra de progreso ultra-sutil en la parte inferior
+
+ARCHIVOS MODIFICADOS:
+
+  1. src/components/wellness/MeditationScene.tsx (v4 → v5)
+     - REDISEÑO COMPLETO: ahora es un componente FULL-SCREEN (absolute inset-0)
+     - 4 capas de olas SVG layered con paths orgánicos que cubren todo el viewport
+     - Cada ola usa un viewBox de 1440x600 con paths cubic-bezier suaves
+     - Animación GSAP: cada ola oscila verticalmente (y) y horizontalmente (x)
+       a diferentes velocidades (8s-17s) creando un efecto de "respiración oceánica"
+     - 3 paletas de color por modo:
+       · Mindfulness: deep purple (#0c0a14 → #362878) — similar a Headspace
+       · Body Scan: deep navy (#0a0e14 → #1c3a6a)
+       · Metta: warm dark (#140c08 → #503020)
+     - Ambient glow sutil en la zona de las olas (amber 0.06, blur 40px)
+     - Animación de completación: olas suben y fade out
+
+  2. src/components/wellness/WellnessSessionRunner.tsx
+     - CAMBIO ARQUITECTÓNICO MAYOR: nuevo early return para meditación
+     - Si isMeditation && meditationMode → layout Headspace:
+       · MeditationScene como background absolute (z-index 0)
+       · Top bar: solo botón X (glassmorphism) + contador de pasos sutil
+       · Center: timer + botón skip (circulo blanco 72px, icono negro)
+       · Bottom: barra de progreso 2px con timestamps
+       · Subtítulos opcionales con glassmorphism
+       · Completación: ✓ centrado con glassmorphism
+     - Si NO es meditación → layout editorial original INTACTO
+     - LIMPIEZA: removidos todos los isMeditation checks del layout default
+       (zen circles, countdown, subtitles overlay, meditation particles)
+       ya que ahora tienen su propio return path
+
+  3. src/app/globals.css
+     - Keyframe med-ring-pulse (de v4, ya no se usa activamente pero no estorba)
+
+COMPARACIÓN ANTES/DESPUÉS:
+  ANTES: La meditación usaba el mismo layout editorial que bruxismo:
+         header → body con orb/blob → step list → footer
+         La "escena" era un cuadrado de 240px con un blob en el centro
+  AHORA: La meditación es un player COMPLETAMENTE diferente:
+         Pantalla completa con olas → botón centrado → progress bar
+         Cero texto excepto timer y step label sutil
+
+NO SE TOCÓ:
+  - wellnessRoutines.ts, meditationAudio.ts
+  - Bruxismo, drenaje linfático: INTACTOS (usan el layout editorial original)
+  - DeepMeditationScreen.tsx (sin cambios en esta iteración)
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+----------------------------------------
+[2026-05-02] - Sesión 2: Meditación Profunda · Iconos nuevos + Fase 3 (Polish Final)
+----------------------------------------
+
+OBJETIVO: 
+  1. Reemplazar los iconos "blob" genéricos del picker por SVGs reconocibles
+  2. Fase 3: Polish final — transiciones suaves, partículas, preview de olas,
+     completación zen mejorada
+
+ARCHIVOS MODIFICADOS:
+
+  1. src/components/wellness/DeepMeditationScreen.tsx
+     - ICONOS NUEVOS (ModeBlobIcon reescrito):
+       · Mindfulness: 3 líneas ondulantes (brisa/respiración) con opacidad decreciente
+       · Body Scan: silueta persona (cabeza + cuerpo) con línea de escaneo punteada
+       · Metta: corazón con relleno translúcido + rayos de calor radiantes
+     - WAVE PREVIEW nuevo (WavePreview component):
+       · Reemplaza la mini-MeditationScene (ya no funciona al ser full-screen)
+       · Tarjeta de 280x100px con 3 olas SVG animadas (CSS med-wave-drift)
+       · Colores sincronizados con la paleta del modo seleccionado
+       · Transición suave de 700ms al cambiar de modo
+     - Removido import de MeditationScene (ya no se usa en el picker)
+
+  2. src/components/wellness/WellnessSessionRunner.tsx
+     - TRANSICIÓN ENTRE PASOS: centerRef + GSAP fromTo (opacity 0→1, y 14→0)
+       Se activa cada vez que cambia stepIdx, creando un fade+slide suave
+     - PARTÍCULAS FLOTANTES: MeditationParticles ahora se renderiza sobre las olas
+       (era solo para el layout antiguo, ahora también en el Headspace layout)
+     - COMPLETACIÓN ZEN MEJORADA:
+       · SVG con 3 ripple rings que se expanden en secuencia (delays 0, 0.7, 1.4s)
+       · Checkmark centrado (✓) con tipografía headline
+       · Texto "sesión completa" + mensaje de hábito registrado
+     - BOTÓN SKIP REFINADO:
+       · Icono cambiado a play+line (skip next) en vez de doble triángulo
+       · Glow ring más sutil (scale 1.4, blur 14px)
+     - LAYOUT REORDENADO: label arriba → timer → botón → description susurro
+     - Description whisper: texto del paso en 11px rgba(255,255,255,0.25)
+
+  3. src/app/globals.css
+     - Nuevo @keyframes med-wave-drift (translateY 0→-4px) para WavePreview
+
+NO SE TOCÓ:
+  - MeditationScene.tsx (full-screen waves v5, sin cambios)
+  - wellnessRoutines.ts, meditationAudio.ts
+  - Bruxismo, drenaje linfático: INTACTOS
+
+VERIFICACIÓN:
+  - Build exitoso (npm run build): 0 errores TypeScript
+  - Todas las páginas generan estáticas correctamente
+
+========================================
+RESUMEN FINAL DE TODAS LAS FASES
+========================================
+  Fase 1:  Escenas SVG + partículas + audio skeleton
+  Fase 2a: Sistema de audio mp3 + guiones de voz
+  Fase 2b: Imágenes generadas (DESCARTADAS)
+  Fase 2c: Blobs orgánicos CSS/GSAP (Headspace-lite)
+  Fase 2d: Full-screen waves (Headspace real) + player minimalista
+  Fase 3:  Iconos premium + Wave preview + transiciones + completación zen
+  ESTADO:  ✅ COMPLETO — Build limpio, 0 errores
