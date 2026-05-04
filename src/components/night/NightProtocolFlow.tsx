@@ -21,6 +21,7 @@ import type { AlarmConfig } from '@/lib/ritual/ritualSchedule';
 import { AudioEngine } from '@/lib/common/audioEngine';
 import { Operator } from '@/lib/genesis/operator';
 import { markHabit, isHabitDone } from '@/lib/common/habits';
+import { ownedToolIds } from '@/lib/looksmax/inventory';
 
 type FlowState = 'WELCOME' | 'MISSION' | 'SUMMARY' | 'LOCK';
 
@@ -92,6 +93,45 @@ export default function NightProtocolFlow({
   };
 
   const handleMissionComplete = () => {
+    // Per-phase habit marking (looksmax night layer).
+    // Free-tier siempre se trackea; gated por tool solo si está
+    // en el inventario. Nunca debe romper el flow → try/catch.
+    try {
+      const finished = missions[phaseIdx];
+      if (finished) {
+        const today = todayISO();
+        const owned = ownedToolIds();
+        switch (finished.id) {
+          case 'hygiene':
+            // Hilo dental siempre (asume cualquier hilo como free).
+            markHabit('floss', today);
+            // Gated por inventario: retinoide, BHA, derma-roller, minox.
+            if (owned.has('tretinoin') || owned.has('retinoid_otc')) {
+              markHabit('retinoid_pm', today);
+            }
+            if (owned.has('salicylic_acid')) {
+              // Exfoliación semanal: se trackea, pero el usuario sabe
+              // que la ejecuta solo 1-2 noches/semana. El hábito
+              // refleja el acto, no la obligación diaria.
+              markHabit('exfoliation_weekly', today);
+            }
+            if (owned.has('derma_roller_05')) {
+              markHabit('derma_roller_week', today);
+            }
+            if (owned.has('minoxidil_5')) {
+              markHabit('minoxidil_application', today);
+            }
+            break;
+          case 'stasis':
+            markHabit('sleep_supine', today);
+            if (owned.has('mouth_tape')) markHabit('mouth_tape', today);
+            break;
+          default:
+            break;
+        }
+      }
+    } catch { /* ignore */ }
+
     const nextIdx = phaseIdx + 1;
     if (nextIdx >= missions.length) {
       // All phases done → summary. Mark night_protocol habit now

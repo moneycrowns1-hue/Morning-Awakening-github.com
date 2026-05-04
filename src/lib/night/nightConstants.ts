@@ -221,11 +221,19 @@ export const NIGHT_MISSIONS: NightMission[] = [
     scienceNote:
       'Aplicar activos (retinoides, péptidos, ceramidas) sobre piel recién duchada multiplica la absorción 2–3× por poros dilatados y piel hidratada. El cepillado nocturno previene caries porque el flujo salival baja de noche.',
     voiceLineBriefing:
-      'Cepíllate sin apuro. Aplica tus cremas ahora, con los poros abiertos — nunca van a absorber mejor. Ponte el pijama, o lo que uses para dormir. Cada prenda que te pones es una instrucción que le das al cuerpo: "esto ya no es el día, esto es la noche".',
+      'Cepíllate sin apuro. Hilo dental siempre — la placa interproximal que te dejes acumulada fermenta toda la noche. Aplica tus cremas ahora, con los poros abiertos: nunca van a absorber mejor. Si usas retinoide, esta es su ventana — sobre piel seca, tamaño guisante, cubre toda la cara sin sobrecargar. Si hoy toca exfoliación química, antes del retinoide y nunca la misma noche que el retinoide. Cepillado nocturno de cabello con derma-roller si lo tienes, movimientos cruzados sobre el cuero cabelludo. Ponte el pijama, y si tienes funda de seda, ya estás listo para proteger piel y pelo durante siete horas de fricción. Cada prenda que te pones es una instrucción que le das al cuerpo: "esto ya no es el día, esto es la noche".',
     subSteps: [
-      { label: 'Cepillado + hilo', description: 'El flujo salival baja de noche; la placa ataca más.' },
-      { label: 'Cremas sobre poros abiertos', description: 'Absorción multiplicada por la ducha previa.' },
-      { label: 'Pijama', description: 'Ropa ligera, transpirable. Marca la frontera corporal.' },
+      { label: 'Cepillado + hilo dental', description: 'El flujo salival baja de noche; la placa interproximal ataca sin interrupción. Hilo primero, cepillo después.' },
+      { label: 'Retinoide · si lo tienes', description: 'Sobre piel seca, tamaño guisante para toda la cara. Ventana óptima: poros abiertos post-ducha. Irritación esperable en las primeras 2-4 semanas — usa sandwich con humectante si pica. Activa en inventario al iniciar el tratamiento.', optional: true },
+      { label: 'Exfoliación BHA semanal · si aplica', description: 'Solo 1-2 noches por semana (ej. lun/jue). NUNCA la misma noche que el retinoide — irritación garantizada. Deja actuar 10 min antes del humectante.', optional: true },
+      { label: 'Humectante · sella barrera', description: 'Ceramidas o péptidos sobre piel todavía ligeramente húmeda. Multiplica penetración 2-3×.' },
+      { label: 'Derma-roller 0.5 mm · semanal si lo tienes', description: 'Solo 1-2 veces por semana. Movimientos cruzados en cuero cabelludo si trabajas línea capilar; en rostro solo con indicación médica. Esterilizar antes y después.', optional: true },
+      { label: 'Pijama · funda de seda si la tienes', description: 'Ropa ligera, transpirable. La funda de seda reduce fricción nocturna — beneficia piel y cabello simultáneamente durante 7+ h de contacto.' },
+    ],
+    tips: [
+      'Retinoide + BHA la misma noche = irritación severa. Alterna: BHA lunes/jueves, retinoide el resto.',
+      'Si usas retinoide, SPF 30+ diario no es opcional — tu piel queda fotosensible todo el día siguiente.',
+      'Derma-roller + minoxidil al día siguiente puede elevar absorción hasta 300 %. Espera 24 h tras el rolling.',
     ],
   },
 
@@ -316,9 +324,15 @@ export const NIGHT_MISSIONS: NightMission[] = [
     interaction: 'breath',
     subSteps: [
       { label: 'Cama · oscuridad total · 18 °C', description: 'Ningún LED encendido. Si hay, tápalo.' },
-      { label: 'Mouth taping', description: 'Fuerza respiración nasal → óxido nítrico → sueño más profundo.' },
+      { label: 'Postura supina · boca arriba', description: 'Dormir boca arriba preserva simetría facial. La presión lateral nocturna durante 7-9 h sobre el mismo lado crea asimetrías medibles a los 6-12 meses. Almohada cervical ayuda a mantener la posición.' },
+      { label: 'Mouth taping · si lo tienes', description: 'Cinta microporosa pequeña sobre los labios. Fuerza respiración nasal → óxido nítrico → sueño más profundo. Contraindicado en rinitis severa o apnea no diagnosticada.', optional: true },
       { label: 'Gratitud II', description: 'Oración silenciosa y final. Una cosa. Una sola.' },
       { label: 'Respiración 4-7-8 nasal', description: 'Cuatro ciclos. Solo por la nariz. Ahí se acaba el día.' },
+    ],
+    tips: [
+      'Si te cuesta dormir boca arriba, coloca una almohada bajo las rodillas — reduce presión lumbar y facilita la posición.',
+      'Mouth tape: si te lo quitas inconscientemente durante la noche, empieza con solo 2 h antes de dormir despierto para entrenar el reflejo nasal.',
+      'Respiración nasal nocturna previene ronquido en ~60 % de casos leves y preserva el ángulo mandibular a largo plazo.',
     ],
   },
 ];

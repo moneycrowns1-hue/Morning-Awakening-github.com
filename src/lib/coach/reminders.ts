@@ -24,6 +24,7 @@ import {
 import type { CoachState } from './state';
 import { CURRENT_PLAN, type BrushingSlot } from './brushing';
 import { ORAL } from './catalog';
+import { ownedToolIds } from '@/lib/looksmax/inventory';
 
 // ─── PERSISTENCIA DE META (fired / dismissed / snoozed) ──────
 
@@ -251,12 +252,35 @@ export function generateReminders(state: CoachState, now: Date = new Date()): Co
   //      el siguiente generador la reemplaza por uno más específico.
   if (state.flare.phase === 'resolved') {
     const pmDue = atHourToday(SKINCARE_PM_HOUR, 0, now);
+    // Body del reminder adaptado al inventario del usuario: si tiene
+    // retinoide/BHA/derma-roller/funda de seda, los menciona para
+    // que nunca se le olviden. En cold start (inventario vacío) cae
+    // al body genérico original (compat).
+    const owned = ownedToolIds();
+    const hasRetinoid = owned.has('tretinoin') || owned.has('retinoid_otc');
+    const hasBha = owned.has('salicylic_acid');
+    const hasDerma = owned.has('derma_roller_05');
+    const hasSilk = owned.has('silk_pillowcase');
+    let pmBody = 'Limpieza, serum nocturno y oclusivo. Si tomaste Deriva-C, recordá la fina capa después de hidratar.';
+    if (hasRetinoid || hasBha || hasDerma || hasSilk) {
+      const parts: string[] = ['Limpieza + humectante sobre piel húmeda.'];
+      if (hasRetinoid && hasBha) {
+        parts.push('Hoy retinoide O BHA, nunca los dos.');
+      } else if (hasRetinoid) {
+        parts.push('Retinoide tamaño guisante sobre piel seca.');
+      } else if (hasBha) {
+        parts.push('BHA solo 1-2 noches por semana.');
+      }
+      if (hasDerma) parts.push('Derma-roller 1×/semana.');
+      if (hasSilk) parts.push('Funda de seda lista.');
+      pmBody = parts.join(' ');
+    }
     push({
       id: `skincare_pm_${today}`,
       kind: 'skincare_pm',
       dueAt: pmDue.getTime(),
       title: 'Rutina PM',
-      body: 'Limpieza, serum nocturno y oclusivo. Si tomaste Deriva-C, recordá la fina capa después de hidratar.',
+      body: pmBody,
     });
   }
 

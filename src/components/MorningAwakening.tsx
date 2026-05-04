@@ -71,7 +71,9 @@ import AppMenu from './home/AppMenu';
 import ProtocolsScreen from './home/ProtocolsScreen';
 import ToolsScreen from './home/ToolsScreen';
 import ProfileTabScreen from './profile/ProfileTabScreen';
+import InventoryScreen from './looksmax/InventoryScreen';
 import FitnessBridgeScreen from './profile/FitnessBridgeScreen';
+import SystemMapScreen from './system/SystemMapScreen';
 import { isHabitDone } from '@/lib/common/habits';
 import { isNucleusWindow } from '@/lib/nucleus/nucleusConstants';
 import { consumeNucleusUrlParam, subscribeToNucleusActions } from '@/lib/nucleus/nucleusPings';
@@ -112,6 +114,7 @@ export default function MorningAwakening() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sessionXp, setSessionXp] = useState(0);
   const [skippedPhases, setSkippedPhases] = useState<number[]>([]);
@@ -805,6 +808,7 @@ export default function MorningAwakening() {
                 onLaunchCoach={() => setShowCoach(true)}
                 onOpenAlarm={() => setShowRitualSettings(true)}
                 onOpenFitness={() => setShowFitnessModal(true)}
+                onOpenInventory={() => setShowInventory(true)}
                 alarmArmed={ritual.config.enabled}
               />
             )}
@@ -814,8 +818,10 @@ export default function MorningAwakening() {
                 streak={streakData.streak}
                 onOpenHistory={() => setShowHistory(true)}
                 onOpenSettings={() => setShowSettings(true)}
+                onOpenInventory={() => setShowInventory(true)}
               />
             )}
+            {activeTab === 'system' && <SystemMapScreen />}
 
             {/* ── Fullscreen overlay menu (replaces the bottom dock) ── */}
             <AppMenu
@@ -857,6 +863,11 @@ export default function MorningAwakening() {
         {/* Profile modal (stays as overlay since it's quick info) */}
         {showProfile && (
           <ProfileModal profile={profile} streak={streakData.streak} onClose={() => setShowProfile(false)} />
+        )}
+
+        {/* Looksmax inventory (fullscreen, fixed inset-0 self-contained) */}
+        {showInventory && (
+          <InventoryScreen onClose={() => setShowInventory(false)} />
         )}
 
         {/* Onboarding modal (first run) */}

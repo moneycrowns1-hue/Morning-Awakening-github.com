@@ -29,6 +29,7 @@ interface MeditationSceneProps {
 }
 
 // Color schemes per mode (adapted to our Night amber palette)
+// Sincronizado con WAVE_COLORS en DeepMeditationScreen.tsx
 const MODE_COLORS: Record<DeepMeditationMode, {
   bg: string;
   wave1: string;
@@ -37,25 +38,25 @@ const MODE_COLORS: Record<DeepMeditationMode, {
   wave4: string;
 }> = {
   mindfulness: {
-    bg:    '#0c0a14',
-    wave1: '#1e1640',
-    wave2: '#2a1f5c',
-    wave3: '#362878',
-    wave4: '#281e60',
+    bg:    '#09071a',
+    wave1: '#5238bc',  // indigo vivo (frente)
+    wave2: '#402a98',  // violeta rico
+    wave3: '#2b1c72',  // violeta medio
+    wave4: '#18104a',  // indigo profundo
   },
   body_scan: {
-    bg:    '#0a0e14',
-    wave1: '#0f1e3a',
-    wave2: '#162d52',
-    wave3: '#1c3a6a',
-    wave4: '#152c4f',
+    bg:    '#060918',
+    wave1: '#26609e',  // cerúleo vivo (frente)
+    wave2: '#1e4882',  // cerúleo rico
+    wave3: '#163268',  // azul medio
+    wave4: '#0e1e4a',  // azul marino profundo
   },
   metta: {
-    bg:    '#140c08',
-    wave1: '#2a1810',
-    wave2: '#3d2418',
-    wave3: '#503020',
-    wave4: '#3a2215',
+    bg:    '#120800',
+    wave1: '#904224',  // ámbar vivo (frente)
+    wave2: '#6e3218',  // ámbar rico
+    wave3: '#4c2210',  // ámbar medio
+    wave4: '#2e1508',  // ámbar oscuro
   },
 };
 
@@ -90,11 +91,13 @@ export default function MeditationScene({
       return;
     }
 
-    // Each wave undulates at slightly different speeds
+    // Each wave undulates at slightly different speeds.
+    // Large vertical range + slow duration = Headspace iOS feel:
+    // waves visibly rise and fall but with smooth, calming motion.
     waves.forEach((w, i) => {
       if (!w) return;
-      const duration = 8 + i * 3;
-      const yRange = 12 + i * 5;
+      const duration = 14 + i * 4;        // 14s, 18s, 22s, 26s — very slow
+      const yRange = 40 + i * 14;          // 40px, 54px, 68px, 82px — big travel
 
       gsap.to(w, {
         y: -yRange,
@@ -102,17 +105,17 @@ export default function MeditationScene({
         ease: 'sine.inOut',
         repeat: -1,
         yoyo: true,
-        delay: i * 1.5,
+        delay: i * 2,
       });
 
-      // Subtle horizontal sway
+      // Gentle horizontal sway (slightly wider for organic feel)
       gsap.to(w, {
-        x: (i % 2 === 0 ? 6 : -6),
-        duration: duration * 1.3,
+        x: (i % 2 === 0 ? 10 : -10),
+        duration: duration * 1.4,
         ease: 'sine.inOut',
         repeat: -1,
         yoyo: true,
-        delay: i * 0.8,
+        delay: i * 1.2,
       });
     });
 

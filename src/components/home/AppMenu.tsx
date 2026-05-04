@@ -88,6 +88,7 @@ export default function AppMenu({
     { id: 'protocols', label: 'protocolos', count: protocolsBadge ? 1 : undefined, badgeColor: SUNRISE.rise2 },
     { id: 'tools',     label: 'herramientas', count: toolsBadge ? 1 : undefined, badgeColor: SUNRISE.rise2 },
     { id: 'profile',   label: 'perfil' },
+    { id: 'system',    label: 'sistema' },
   ];
 
   return (

@@ -28,6 +28,7 @@ import {
   type WellnessRoutine,
 } from '@/lib/wellness/wellnessRoutines';
 import { isHabitDone, type HabitId } from '@/lib/common/habits';
+import LooksmaxDashboard from '../looksmax/LooksmaxDashboard';
 
 interface ToolsScreenProps {
   onLaunchBruxism: () => void;
@@ -37,6 +38,7 @@ interface ToolsScreenProps {
   onLaunchCoach: () => void;
   onOpenAlarm: () => void;
   onOpenFitness: () => void;
+  onOpenInventory: () => void;
   alarmArmed?: boolean;
 }
 
@@ -56,6 +58,7 @@ export default function ToolsScreen({
   onLaunchCoach,
   onOpenAlarm,
   onOpenFitness,
+  onOpenInventory,
   alarmArmed,
 }: ToolsScreenProps) {
   const { day: D, dayText: DT, pair } = useAppTheme();
@@ -259,7 +262,36 @@ export default function ToolsScreen({
             })}
           </div>
 
-          {/* ── Breathing & NSDR shortcuts ─────────────── */}
+          {/* ── Looksmax · estado hoy + acceso a inventario ── */}
+          <SectionLabel>Looksmax</SectionLabel>
+          <div
+            className="mt-2 mb-4 p-4"
+            style={{
+              borderRadius: 20,
+              border: `1px solid ${hexToRgba(D.accent, 0.14)}`,
+              background: hexToRgba(D.tint, 0.6),
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
+            <LooksmaxDashboard days={7} compact />
+            <button
+              type="button"
+              onClick={() => { haptics.tap(); onOpenInventory(); }}
+              className="mt-3 w-full flex items-center justify-center gap-2 font-mono uppercase tracking-[0.3em] font-[700] transition-opacity active:opacity-70"
+              style={{
+                color: D.accent,
+                fontSize: 9.5,
+                paddingTop: 10,
+                borderTop: `1px solid ${hexToRgba(D.accent, 0.16)}`,
+              }}
+            >
+              <span aria-hidden>&#9702;</span>
+              gestionar inventario
+            </button>
+          </div>
+
+          {/* ── Breathing & NSDR shortcuts ─────────── */}
           <SectionLabel>Respiración &amp; NSDR</SectionLabel>
           <div className="mt-2 mb-6 grid grid-cols-2 gap-2">
             <ToolChip

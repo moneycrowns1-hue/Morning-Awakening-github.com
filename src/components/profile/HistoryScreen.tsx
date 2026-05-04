@@ -34,6 +34,7 @@ import { useAppTheme } from '@/lib/common/appTheme';
 import type { DayPalette, DayPaletteText } from '@/lib/common/dayPalette';
 import { ACHIEVEMENTS, loadUnlocked, type AchievementDef } from '@/lib/genesis/achievements';
 import { haptics } from '@/lib/common/haptics';
+import LooksmaxDashboard from '../looksmax/LooksmaxDashboard';
 
 const ICONS = { Award, Clock, Flame, Sparkles, Sunrise, Target, Trophy, Zap } as const;
 const TONE_HEX: Record<AchievementDef['tone'], string> = {
@@ -316,6 +317,21 @@ export default function HistoryScreen({ onClose }: HistoryScreenProps) {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* ── Looksmax habits ─────────────────────── */}
+              <SectionHeader N={D} NT={DT}>· looksmax · hábitos ·</SectionHeader>
+              <div
+                className="p-4"
+                style={{
+                  borderRadius: 22,
+                  border: `1px solid ${hexToRgba(D.accent, 0.14)}`,
+                  background: hexToRgba(D.tint, 0.55),
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                }}
+              >
+                <LooksmaxDashboard days={7} />
               </div>
 
               {/* ── Last sessions ──────────────────────────── */}

@@ -401,6 +401,55 @@ export const TIPS: Tip[] = [
     domain: 'oral', source: 'técnica · canela',
     tags: {},
   },
+  // ── Looksmax · rutina PM y night (sprint 2) ───────────────
+  {
+    id: 'tip_retinoid_sandwich',
+    text: 'Retinoide irrita? Técnica sandwich: humectante → retinoide (guisante, toda la cara) → humectante de nuevo. Amortigua el pico de concentración sin perder eficacia. Úsalo las primeras 2-4 semanas y luego retira el buffer si toleras.',
+    domain: 'skin', source: 'técnica · retinoide',
+    tags: { conditions: ['acne_active', 'atopic_dermatitis'] },
+  },
+  {
+    id: 'tip_retinoid_bha_alternance',
+    text: 'NUNCA retinoide + BHA la misma noche — irritación severa. Alterna: BHA lunes y jueves (2×/semana), retinoide el resto. Un día solo humectante si la piel necesita descanso.',
+    domain: 'skin', source: 'protocolo · alternancia activos',
+    tags: {},
+  },
+  {
+    id: 'tip_spf_after_retinoid',
+    text: 'Si usas retinoide, SPF 30+ al día siguiente NO es opcional — la piel queda fotosensible durante 24 h y el daño solar cancela el 100 % del beneficio del retinoide.',
+    domain: 'skin', source: 'fotosensibilidad',
+    tags: {},
+  },
+  {
+    id: 'tip_derma_roller_minoxidil',
+    text: 'Derma-roller 0.5 mm + minoxidil en la misma zona puede elevar absorción hasta 300 %. Pero espera 24 h tras el rolling para aplicar el minoxidil — la piel necesita cerrar los microcanales o irritará.',
+    domain: 'general', source: 'protocolo · derma-roller',
+    tags: {},
+  },
+  {
+    id: 'tip_mouth_tape_onboarding',
+    text: 'Mouth tape: si te lo quitas inconscientemente durante la noche, empieza con 2 h despierto cada tarde. Entrenas el reflejo nasal antes de pedirle al cuerpo que lo mantenga 8 h dormido.',
+    domain: 'sleep', source: 'técnica · mouth tape',
+    tags: { sleep: ['poor', 'avg'] },
+  },
+  {
+    id: 'tip_supine_pillow_hack',
+    text: 'Para sostener postura boca arriba: almohada cervical y una segunda almohada bajo las rodillas. Elimina la presión lumbar que te hace girarte a costado en mitad de la noche.',
+    domain: 'sleep', source: 'técnica · postura supina',
+    tags: { sleep: ['poor', 'avg'] },
+  },
+  {
+    id: 'tip_silk_pillowcase_double_duty',
+    text: 'Funda de almohada de seda trabaja gratis 7+ h por noche: reduce fricción capilar (crítico en tipo 3-4), minimiza arrugas por compresión lateral y seca menos la piel que el algodón.',
+    domain: 'skin', source: 'técnica · seda',
+    tags: {},
+  },
+  {
+    id: 'tip_exfoliation_cap',
+    text: 'Exfoliación química máx 2 noches por semana. Más que eso rompe la barrera lipídica — flares, enrojecimiento crónico, dermatitis irritativa. Menos es más en ácidos.',
+    domain: 'skin', source: 'protocolo · BHA',
+    tags: { conditions: ['atopic_dermatitis', 'sensitive_skin'] },
+  },
   {
     id: 'tip_tongue_scraper_70pct',
     text: 'El 70 % de la carga bacteriana del aliento vive en la lengua, no en los dientes. Raspador de lengua remueve esa placa lingual mucho mejor que el cepillo. Objetivo visual: lengua rosada como la de un bebé.',

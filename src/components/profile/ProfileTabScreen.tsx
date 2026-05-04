@@ -27,6 +27,7 @@ interface ProfileTabScreenProps {
   streak: number;
   onOpenHistory: () => void;
   onOpenSettings: () => void;
+  onOpenInventory: () => void;
 }
 
 const STAT_LABELS: Array<{ key: keyof OperatorProfile['stats']; label: string }> = [
@@ -40,6 +41,7 @@ export default function ProfileTabScreen({
   streak,
   onOpenHistory,
   onOpenSettings,
+  onOpenInventory,
 }: ProfileTabScreenProps) {
   const { day: D, dayText: DT } = useAppTheme();
   const rank = getRankByLevel(profile.level);
@@ -298,6 +300,12 @@ export default function ProfileTabScreen({
               title="historial"
               hint="sesiones · hábitos · rachas"
               onClick={() => { haptics.tap(); onOpenHistory(); }}
+            />
+            <LinkRow
+              icon={<Package size={18} strokeWidth={1.85} />}
+              title="inventario"
+              hint="herramientas · activa hábitos al adquirirlas"
+              onClick={() => { haptics.tap(); onOpenInventory(); }}
             />
             <LinkRow
               icon={<SettingsIcon size={18} strokeWidth={1.85} />}

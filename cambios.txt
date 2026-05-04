@@ -393,4 +393,65 @@ RESUMEN FINAL DE TODAS LAS FASES
   Fase 2c: Blobs orgánicos CSS/GSAP (Headspace-lite)
   Fase 2d: Full-screen waves (Headspace real) + player minimalista
   Fase 3:  Iconos premium + Wave preview + transiciones + completación zen
+  Fase 4:  Olas amplificadas + rediseño picker meditación (Headspace-style)
   ESTADO:  ✅ COMPLETO — Build limpio, 0 errores
+
+----------------------------------------
+[2026-05-02] - Sesión 3: Meditación Profunda · Fase 4 (Olas + Rediseño Picker)
+----------------------------------------
+
+OBJETIVO:
+  1. Amplificar movimiento de olas: que suban y bajen MUCHO más,
+     lento y suave, como en Headspace iOS
+  2. Rediseñar DeepMeditationScreen (picker de meditación) para
+     que encaje con el nuevo estilo Headspace del player
+
+ARCHIVOS MODIFICADOS:
+
+  1. src/components/wellness/MeditationScene.tsx
+     OLAS AMPLIFICADAS:
+     - yRange anterior: 12px, 17px, 22px, 27px (apenas se movían)
+     - yRange nuevo: 40px, 54px, 68px, 82px (movimiento dramático visible)
+     - Duración anterior: 8s, 11s, 14s, 17s
+     - Duración nueva: 14s, 18s, 22s, 26s (mucho más lento, más calmo)
+     - Sway horizontal: de ±6px a ±10px (más orgánico)
+     - Delays entre olas aumentados para más desfase natural
+     - Resultado: olas que suben y bajan notablemente pero con
+       movimiento suave y reconfortante, como Headspace iOS
+
+  2. src/components/wellness/DeepMeditationScreen.tsx (REESCRITURA COMPLETA v3)
+     ANTES: Layout editorial con secciones apiladas (técnica, duración,
+     estructura), fondo plano oscuro, wave preview pequeño de 280x100px.
+     AHORA: Diseño Headspace-inspired inmersivo:
+     - FONDO: olas SVG animadas a pantalla completa (mismos paths que
+       MeditationScene) con opacidad al 50-75%, creando continuidad
+       visual con el player de meditación
+     - TOP BAR: glassmorphic back button + subtitle toggle (circular)
+     - HERO: título centrado grande + descripción + label mono sutil
+     - MODE SELECTOR: 3 tarjetas horizontales con emojis (🌊 ✨ 💛),
+       bordes glassmorphic, gradiente accent por modo, tagline debajo
+     - DURATION SELECTOR: 3 círculos (10/15/20 min) con escala
+       dinámica (activo = 56px, inactivo = 48px), glow por modo
+     - SCIENCE QUOTE: tarjeta glassmorphic centrada con comillas
+     - ESTRUCTURA: colapsable (accordion) con chevron animado,
+       muestra los pasos con duración calculada dinámicamente
+     - CTA FLOTANTE: botón pill redondeado con gradiente del accent
+       del modo, sombra luminosa, fondo fadeout gradient
+     - PALETA: cada modo tiene sus propios colores accent:
+       · Mindfulness: purple (#8b7edd)
+       · Body Scan: blue (#5a9ad4)
+       · Metta: warm (#d4956a)
+     - Eliminados: SectionHeader, HitoRow, ModeBlobIcon, WavePreview
+       (subcomponentes del diseño anterior, ya no se usan)
+
+NO SE TOCÓ:
+  - WellnessSessionRunner.tsx (sin cambios)
+  - wellnessRoutines.ts, meditationAudio.ts
+  - Bruxismo, drenaje linfático: INTACTOS
+  - globals.css: sin cambios
+
+VERIFICACIÓN:
+  - TypeScript: 0 errores (npx tsc --noEmit)
+  - UI verificada en browser: olas se mueven dramáticamente,
+    picker se ve premium e inmersivo con olas de fondo
+

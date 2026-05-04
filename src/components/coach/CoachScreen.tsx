@@ -47,6 +47,7 @@ import SubRoutineChipRow from './SubRoutineChipRow';
 import TipCard from './TipCard';
 import ComboCard from './ComboCard';
 import { useCoachReminders } from '@/hooks/useCoachReminders';
+import LooksmaxDashboard from '../looksmax/LooksmaxDashboard';
 
 interface CoachScreenProps {
   onClose: () => void;
@@ -312,6 +313,23 @@ export default function CoachScreen({ onClose }: CoachScreenProps) {
                   onSet={coach.setOralSchedule}
                   onClear={coach.clearOralSchedule}
                 />
+              </div>
+
+              {/* Looksmax · hábitos activos hoy (compacto) */}
+              <div className="mt-5">
+                <SectionLabel>Looksmax · hoy</SectionLabel>
+                <div
+                  className="mt-2 rounded-2xl overflow-hidden"
+                  style={{
+                    border: `1px solid ${hexToRgba(SUNRISE.rise2, 0.14)}`,
+                    background: hexToRgba(SUNRISE.night, 0.45),
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    padding: '14px 14px',
+                  }}
+                >
+                  <LooksmaxDashboard days={7} compact />
+                </div>
               </div>
 
               {/* Controles de modo (brote / Deriva-C) */}
