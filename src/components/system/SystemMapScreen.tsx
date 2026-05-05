@@ -123,8 +123,8 @@ interface CardData {
 }
 interface ConnLink { id:string; label:string; color:string; kicker:string }
 interface ConnectionInfo { sources:ConnLink[]; targets:ConnLink[] }
-interface HighlightState { selectedId:string|null; neighborIds:Set<string>; sourceIds:Set<string>; targetIds:Set<string> }
-const HighlightCtx = createContext<HighlightState>({selectedId:null,neighborIds:new Set(),sourceIds:new Set(),targetIds:new Set()});
+interface HighlightState { selectedId:string|null; neighborIds:Set<string>; sourceIds:Set<string>; targetIds:Set<string>; isMobile:boolean }
+const HighlightCtx = createContext<HighlightState>({selectedId:null,neighborIds:new Set(),sourceIds:new Set(),targetIds:new Set(),isMobile:false});
 
 // Status color palette
 const ST = { ok:'#3ee1a0', warn:'#f4b852', idle:'rgba(255,255,255,0.22)' } as const;
@@ -137,7 +137,7 @@ const hS={style:{width:6,height:6,background:'rgba(8,10,18,0.75)',border:'1.5px 
 const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
   const { id:myId, label, kicker, color, ikey, onSelect, status, stats, tier=1 } = d as unknown as CardData;
   const icon = IMAP[ikey as IKey];
-  const { selectedId, neighborIds, sourceIds, targetIds } = useContext(HighlightCtx);
+  const { selectedId, neighborIds, sourceIds, targetIds, isMobile } = useContext(HighlightCtx);
 
   const isOk = status==='ok', isWarn = status==='warn', isIdle = status==='idle';
   const keyStat = stats?.[0];
@@ -147,7 +147,9 @@ const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
   const isDimmed   = isActive && !isSelected && !isNeighbor;
   const isSource   = isNeighbor && sourceIds.has(myId);
   const isTarget   = isNeighbor && targetIds.has(myId);
-  const tr = 'opacity 0.20s ease, transform 0.20s ease, box-shadow 0.20s ease';
+  const tr = isMobile
+    ? 'opacity 0.15s ease, box-shadow 0.15s ease'
+    : 'opacity 0.20s ease, transform 0.20s ease, box-shadow 0.20s ease';
   const opBase = isDimmed ? 0.13 : isIdle ? 0.62 : 1;
 
   const Handles = <><Handle id="l" type="target" position={Position.Left} {...hT}/><Handle id="r" type="source" position={Position.Right} {...hS}/><Handle id="t" type="target" position={Position.Top} {...hT}/><Handle id="b" type="source" position={Position.Bottom} {...hS}/></>;
@@ -160,7 +162,7 @@ const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
     return (
       <div style={{position:'relative',display:'inline-flex',flexDirection:'column',alignItems:'center',gap:7}} onClick={e=>e.stopPropagation()}>
         {Badge}
-        <div style={{position:'relative',width:110,height:110,display:'flex',alignItems:'center',justifyContent:'center',background:isSelected?`rgba(16,18,30,0.98)`:`rgba(11,13,23,0.93)`,borderRadius:18,border:`1px solid ${isSelected?color+'70':isNeighbor?color+'48':isOk?color+'32':color+'1c'}`,boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isSelected?'scale(1.12) translateY(-6px)':isNeighbor?'scale(1.06)':'scale(1)',transition:tr,willChange:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
+        <div style={{position:'relative',width:110,height:110,display:'flex',alignItems:'center',justifyContent:'center',background:isSelected?`rgba(16,18,30,0.98)`:`rgba(11,13,23,0.93)`,borderRadius:18,border:`1px solid ${isSelected?color+'70':isNeighbor?color+'48':isOk?color+'32':color+'1c'}`,boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isMobile?'none':isSelected?'scale(1.12) translateY(-6px)':isNeighbor?'scale(1.06)':'scale(1)',transition:tr,willChange:isMobile?undefined:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
           {Handles}
           <span style={{position:'absolute',top:9,right:10,width:7,height:7,borderRadius:'50%',background:isOk?ST.ok:isWarn?ST.warn:'rgba(255,255,255,0.14)',boxShadow:(isOk||isWarn)?`0 0 9px ${isOk?ST.ok:ST.warn}`:'none'}}/>
           <HugeiconsIcon icon={icon} size={24} color={isIdle?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.90)'} strokeWidth={1.5}/>
@@ -176,7 +178,7 @@ const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
     return (
       <div style={{position:'relative',display:'inline-block'}} onClick={e=>e.stopPropagation()}>
         {Badge}
-        <div style={{position:'relative',width:164,display:'flex',flexDirection:'row',alignItems:'center',gap:10,padding:'9px 14px 9px 11px',background:'rgba(10,12,22,0.90)',borderRadius:'0 10px 10px 0',borderLeft:`3px solid ${isSelected?color+'b0':isNeighbor?color+'75':color+(isIdle?'32':'58')}`,borderTop:'1px solid rgba(255,255,255,0.07)',borderRight:'1px solid rgba(255,255,255,0.05)',borderBottom:'1px solid rgba(255,255,255,0.04)',boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isSelected?'scale(1.08) translateX(4px)':isNeighbor?'scale(1.03) translateX(1px)':'scale(1)',transition:tr,willChange:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
+        <div style={{position:'relative',width:164,display:'flex',flexDirection:'row',alignItems:'center',gap:10,padding:'9px 14px 9px 11px',background:'rgba(10,12,22,0.90)',borderRadius:'0 10px 10px 0',borderLeft:`3px solid ${isSelected?color+'b0':isNeighbor?color+'75':color+(isIdle?'32':'58')}`,borderTop:'1px solid rgba(255,255,255,0.07)',borderRight:'1px solid rgba(255,255,255,0.05)',borderBottom:'1px solid rgba(255,255,255,0.04)',boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isMobile?'none':isSelected?'scale(1.08) translateX(4px)':isNeighbor?'scale(1.03) translateX(1px)':'scale(1)',transition:tr,willChange:isMobile?undefined:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
           {Handles}{SDot(5,7,9)}
           <div style={{width:34,height:34,borderRadius:9,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <HugeiconsIcon icon={icon} size={22} color={isIdle?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.82)'} strokeWidth={1.5}/>
@@ -204,8 +206,8 @@ const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
       borderRadius:14, border:`1px solid ${accentBorder}`,
       borderTop:`1px solid rgba(255,255,255,${isIdle?0.05:isSelected?0.18:0.10})`,
       boxShadow:isDimmed?'none':sh, opacity:opBase,
-      transform:isSelected?'scale(1.10) translateY(-5px)':isNeighbor?'scale(1.04) translateY(-1px)':'scale(1)',
-      transition:tr, willChange:'transform', cursor:'pointer', userSelect:'none',
+      transform:isMobile?'none':isSelected?'scale(1.10) translateY(-5px)':isNeighbor?'scale(1.04) translateY(-1px)':'scale(1)',
+      transition:tr, willChange:isMobile?undefined:'transform', cursor:'pointer', userSelect:'none',
     }} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
       {Handles}{SDot(6,9,10)}
       <div style={{width:46,height:46,borderRadius:12,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -589,6 +591,8 @@ export default function SystemMapScreen() {
   const inventory = useInventory();
   const [selected,    setSelected]    = useState<CardData|null>(null);
   const [hiddenCats,  setHiddenCats]  = useState(()=>new Set<string>());
+  const [isMobile,    setIsMobile]    = useState(false);
+  useEffect(()=>{ setIsMobile(window.matchMedia('(pointer: coarse)').matches); },[]);
   const onHideToggle = (id:string)=>setHiddenCats(prev=>{
     const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s;
   });
@@ -779,7 +783,7 @@ export default function SystemMapScreen() {
 
       {/* ── Canvas — full remaining width ── */}
       <div style={{flex:1,position:'relative',background:'#07080f',minWidth:0}} onClick={()=>setSelected(null)}>
-        <HighlightCtx.Provider value={{selectedId:selected?.id??null, neighborIds, sourceIds, targetIds}}>
+        <HighlightCtx.Provider value={{selectedId:selected?.id??null, neighborIds, sourceIds, targetIds, isMobile}}>
         <ReactFlow nodes={visibleNodes} edges={displayEdges} nodeTypes={nodeTypes}
           defaultViewport={{x:-115,y:-165,zoom:0.85}}
           minZoom={0.12} maxZoom={2.5}
