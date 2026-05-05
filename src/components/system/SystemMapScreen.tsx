@@ -13,13 +13,17 @@ import {
   Handle, Position, MarkerType, type NodeProps, type Edge, type Node,
 } from '@xyflow/react';
 import {
-  IconPlayerPlay, IconCheckbox, IconGitBranch,
-  IconPackage, IconHeartbeat, IconBrain,
-  IconDatabase, IconLayoutDashboard, IconBolt,
-  IconMoon, IconSparkles, IconMap2,
   IconFolder, IconFolderOpen,
   IconEye, IconEyeOff, IconChevronDown, IconLayoutSidebar,
 } from '@tabler/icons-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Target01Icon, CheckListIcon, ActivitySparkIcon,
+  DashboardSquare01Icon, Moon01Icon, CrownIcon,
+  HeartCheckIcon, Database01Icon, Package01Icon,
+  LockKeyIcon, Robot01Icon, MapsIcon,
+  WavingHand01Icon, CheckmarkBadge01Icon,
+} from '@hugeicons/core-free-icons';
 import { isHabitDone, currentStreak, adherence, type HabitId } from '@/lib/common/habits';
 import { loadSessions, averageScore } from '@/lib/genesis/sessionHistory';
 import { PROFILE_KEY, DEFAULT_PROFILE, type OperatorProfile } from '@/lib/genesis/progression';
@@ -30,18 +34,20 @@ const C = { mission:'#d4956a', habits:'#72c472', looksmax:'#a094f5', wellness:'#
 
 // ─── Icon map (string key → component, keeps node data serialisable) ──
 const IMAP = {
-  mission:   IconPlayerPlay,
-  habits:    IconCheckbox,
-  gate:      IconGitBranch,
-  inventory: IconPackage,
-  wellness:  IconHeartbeat,
-  coach:     IconBrain,
-  store:     IconDatabase,
-  screen:    IconLayoutDashboard,
-  nucleus:   IconBolt,
-  night:     IconMoon,
-  looksmax:  IconSparkles,
-  system:    IconMap2,
+  mission:   Target01Icon,
+  habits:    CheckListIcon,
+  gate:      LockKeyIcon,
+  inventory: Package01Icon,
+  wellness:  HeartCheckIcon,
+  coach:     Robot01Icon,
+  store:     Database01Icon,
+  screen:    DashboardSquare01Icon,
+  nucleus:   ActivitySparkIcon,
+  night:     Moon01Icon,
+  looksmax:  CrownIcon,
+  system:    MapsIcon,
+  welcome:   WavingHand01Icon,
+  summary:   CheckmarkBadge01Icon,
 } as const;
 type IKey = keyof typeof IMAP;
 
@@ -130,7 +136,7 @@ const hS={style:{width:6,height:6,background:'rgba(8,10,18,0.75)',border:'1.5px 
 // ─── Node cards — 3-tier visual hierarchy ────────────────
 const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
   const { id:myId, label, kicker, color, ikey, onSelect, status, stats, tier=1 } = d as unknown as CardData;
-  const Icon = IMAP[ikey as IKey];
+  const icon = IMAP[ikey as IKey];
   const { selectedId, neighborIds, sourceIds, targetIds } = useContext(HighlightCtx);
 
   const isOk = status==='ok', isWarn = status==='warn', isIdle = status==='idle';
@@ -141,74 +147,74 @@ const NodeCard = memo(function NodeCard({ data: d }:NodeProps) {
   const isDimmed   = isActive && !isSelected && !isNeighbor;
   const isSource   = isNeighbor && sourceIds.has(myId);
   const isTarget   = isNeighbor && targetIds.has(myId);
-  const tr = 'opacity 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease';
+  const tr = 'opacity 0.20s ease, transform 0.20s ease, box-shadow 0.20s ease';
   const opBase = isDimmed ? 0.13 : isIdle ? 0.62 : 1;
 
   const Handles = <><Handle id="l" type="target" position={Position.Left} {...hT}/><Handle id="r" type="source" position={Position.Right} {...hS}/><Handle id="t" type="target" position={Position.Top} {...hT}/><Handle id="b" type="source" position={Position.Bottom} {...hS}/></>;
   const SDot = (sz:number,t:number,r:number) => <span style={{position:'absolute',top:t,right:r,width:sz,height:sz,borderRadius:'50%',background:isOk?ST.ok:isWarn?ST.warn:'rgba(255,255,255,0.18)',boxShadow:(isOk||isWarn)?`0 0 ${sz+2}px ${isOk?ST.ok:ST.warn}`:'none'}}/>;
   const Badge = (isSource||isTarget) ? <div style={{position:'absolute',bottom:'calc(100% + 6px)',left:'50%',transform:'translateX(-50%)',background:'rgba(8,10,18,0.95)',border:`1px solid ${color}50`,borderRadius:5,padding:'2px 9px',whiteSpace:'nowrap',fontFamily:'var(--font-mono,monospace)',fontSize:8,fontWeight:700,color,letterSpacing:'0.1em',textTransform:'uppercase',boxShadow:`0 2px 14px rgba(0,0,0,0.85), 0 0 8px ${color}22`,pointerEvents:'none',zIndex:10}}>{isSource?'← origen':'→ siguiente'}</div> : null;
 
-  // ── Tier 3: Chip (66×66 square — leaf nodes) ──────────
+  // ── Tier 3: n8n-style square (110×110, icon-centered, label below) ─
   if (tier===3) {
-    const sh = isSelected?`0 6px 24px rgba(0,0,0,0.85), 0 0 0 1.5px ${color}70, 0 0 20px ${color}28`:isNeighbor?`0 4px 14px rgba(0,0,0,0.65), 0 0 12px ${color}20`:isDimmed?'none':isOk?`0 2px 10px rgba(0,0,0,0.5), 0 0 8px ${color}14`:`0 2px 10px rgba(0,0,0,0.4)`;
+    const sh = isSelected?`0 8px 24px rgba(0,0,0,0.85), 0 0 0 1.5px ${color}75`:isNeighbor?`0 4px 14px rgba(0,0,0,0.65)`:'0 2px 10px rgba(0,0,0,0.50)';
     return (
-      <div style={{position:'relative',display:'inline-block'}} onClick={e=>e.stopPropagation()}>
+      <div style={{position:'relative',display:'inline-flex',flexDirection:'column',alignItems:'center',gap:7}} onClick={e=>e.stopPropagation()}>
         {Badge}
-        <div style={{position:'relative',width:66,height:66,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,background:isSelected?'rgba(14,16,28,0.98)':`${color}10`,borderRadius:13,border:`1px solid ${isSelected?color+'70':isNeighbor?color+'50':color+'28'}`,boxShadow:sh,opacity:opBase,transform:isSelected?'scale(1.1) translateY(-3px)':isNeighbor?'scale(1.04)':'scale(1)',transition:tr,cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
-          {Handles}{SDot(5,6,6)}
-          <Icon size={20} color={color} strokeWidth={1.7} style={{opacity:isIdle?0.45:0.85}}/>
-          <div style={{fontFamily:'var(--font-mono,monospace)',fontSize:7.5,color:`rgba(255,255,255,${isIdle?0.2:0.45})`,maxWidth:58,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>{label}</div>
+        <div style={{position:'relative',width:110,height:110,display:'flex',alignItems:'center',justifyContent:'center',background:isSelected?`rgba(16,18,30,0.98)`:`rgba(11,13,23,0.93)`,borderRadius:18,border:`1px solid ${isSelected?color+'70':isNeighbor?color+'48':isOk?color+'32':color+'1c'}`,boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isSelected?'scale(1.12) translateY(-6px)':isNeighbor?'scale(1.06)':'scale(1)',transition:tr,willChange:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
+          {Handles}
+          <span style={{position:'absolute',top:9,right:10,width:7,height:7,borderRadius:'50%',background:isOk?ST.ok:isWarn?ST.warn:'rgba(255,255,255,0.14)',boxShadow:(isOk||isWarn)?`0 0 9px ${isOk?ST.ok:ST.warn}`:'none'}}/>
+          <HugeiconsIcon icon={icon} size={24} color={isIdle?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.90)'} strokeWidth={1.5}/>
         </div>
+        <div style={{fontFamily:'var(--font-mono,monospace)',fontSize:10,fontWeight:600,color:`rgba(255,255,255,${isIdle?0.28:isDimmed?0.18:0.60})`,letterSpacing:'0.01em',maxWidth:112,textAlign:'center',lineHeight:1.35,pointerEvents:'none'}}>{label}</div>
       </div>
     );
   }
 
-  // ── Tier 2: Compact left-tab (148px — stores, inventory) ─
+  // ── Tier 2: Compact left-tab (164px — stores, inventory) ─
   if (tier===2) {
-    const sh = isSelected?`0 8px 28px rgba(0,0,0,0.85), 0 0 0 1px ${color}55, 0 0 18px ${color}20`:isNeighbor?`0 5px 16px rgba(0,0,0,0.6), 0 0 12px ${color}18`:isDimmed?'none':`0 3px 12px rgba(0,0,0,0.45)`;
+    const sh = isSelected?`0 6px 20px rgba(0,0,0,0.80), 0 0 0 1px ${color}55`:isNeighbor?`0 3px 12px rgba(0,0,0,0.55)`:'0 2px 8px rgba(0,0,0,0.40)';
     return (
       <div style={{position:'relative',display:'inline-block'}} onClick={e=>e.stopPropagation()}>
         {Badge}
-        <div style={{position:'relative',width:148,display:'flex',flexDirection:'row',alignItems:'center',gap:9,padding:'8px 12px 8px 10px',background:'rgba(10,12,22,0.88)',borderRadius:'0 9px 9px 0',borderLeft:`3px solid ${isSelected?color+'aa':isNeighbor?color+'70':color+(isIdle?'30':'55')}`,borderTop:'1px solid rgba(255,255,255,0.06)',borderRight:'1px solid rgba(255,255,255,0.05)',borderBottom:'1px solid rgba(255,255,255,0.04)',boxShadow:sh,opacity:opBase,transform:isSelected?'scale(1.05) translateX(3px)':isNeighbor?'scale(1.02) translateX(1px)':'scale(1)',transition:tr,cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
-          {Handles}{SDot(5,6,8)}
-          <div style={{width:28,height:28,borderRadius:7,flexShrink:0,background:`${color}18`,border:`1px solid ${color}28`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <Icon size={14} color={color} strokeWidth={1.7} style={{opacity:isIdle?0.45:0.85}}/>
+        <div style={{position:'relative',width:164,display:'flex',flexDirection:'row',alignItems:'center',gap:10,padding:'9px 14px 9px 11px',background:'rgba(10,12,22,0.90)',borderRadius:'0 10px 10px 0',borderLeft:`3px solid ${isSelected?color+'b0':isNeighbor?color+'75':color+(isIdle?'32':'58')}`,borderTop:'1px solid rgba(255,255,255,0.07)',borderRight:'1px solid rgba(255,255,255,0.05)',borderBottom:'1px solid rgba(255,255,255,0.04)',boxShadow:isDimmed?'none':sh,opacity:opBase,transform:isSelected?'scale(1.08) translateX(4px)':isNeighbor?'scale(1.03) translateX(1px)':'scale(1)',transition:tr,willChange:'transform',cursor:'pointer',userSelect:'none'}} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
+          {Handles}{SDot(5,7,9)}
+          <div style={{width:34,height:34,borderRadius:9,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <HugeiconsIcon icon={icon} size={22} color={isIdle?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.82)'} strokeWidth={1.5}/>
           </div>
           <div style={{flex:1,minWidth:0,paddingRight:8}}>
-            <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:11,fontWeight:600,lineHeight:1.2,color:`rgba(255,255,255,${isIdle?0.35:0.75})`,letterSpacing:'-0.005em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div>
-            {keyStat&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:8.5,fontWeight:600,marginTop:3,color:keyStat.accent??color,opacity:0.85}}>{keyStat.val}</div>}
+            <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:11.5,fontWeight:600,lineHeight:1.25,color:`rgba(255,255,255,${isIdle?0.36:0.78})`,letterSpacing:'-0.005em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div>
+            {keyStat&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:9,fontWeight:600,marginTop:3.5,color:keyStat.accent??color,opacity:0.85}}>{keyStat.val}</div>}
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Tier 1: Full card (210px — default) ─────────────────
-  const accentBorder = isSelected?`${color}80`:isOk?`${color}55`:isWarn?`${color}38`:`${color}1e`;
-  const iconBg = isIdle?`${color}18`:`${color}28`, iconBdr = isOk?`${color}58`:`${color}30`;
-  const sh = isSelected?`0 10px 36px rgba(0,0,0,0.85), 0 0 0 1.5px ${color}70, 0 0 28px ${color}28`:isNeighbor?`0 6px 20px rgba(0,0,0,0.65), 0 0 16px ${color}22`:isDimmed?'none':isOk?`0 4px 14px rgba(0,0,0,0.55), 0 0 12px ${color}14`:`0 4px 14px rgba(0,0,0,0.45)`;
+  // ── Tier 1: Full card (220px — default) ─────────────────
+  const accentBorder = isSelected?`${color}85`:isOk?`${color}58`:isWarn?`${color}40`:`${color}22`;
+  const sh = isSelected?`0 8px 28px rgba(0,0,0,0.82), 0 0 0 1.5px ${color}70`:isNeighbor?`0 4px 16px rgba(0,0,0,0.60)`:'0 2px 10px rgba(0,0,0,0.45)';
   return (
     <div style={{position:'relative',display:'inline-block'}} onClick={e=>e.stopPropagation()}>
       {Badge}
     <div style={{
-      position:'relative', width:210,
-      display:'flex', flexDirection:'row', alignItems:'center', gap:12,
-      padding:'11px 14px 11px 12px',
+      position:'relative', width:220,
+      display:'flex', flexDirection:'row', alignItems:'center', gap:13,
+      padding:'12px 16px 12px 13px',
       background: isSelected?'rgba(14,16,28,0.97)':'rgba(10,12,22,0.93)',
-      borderRadius:13, border:`1px solid ${accentBorder}`,
+      borderRadius:14, border:`1px solid ${accentBorder}`,
       borderTop:`1px solid rgba(255,255,255,${isIdle?0.05:isSelected?0.18:0.10})`,
-      boxShadow:sh, opacity:opBase,
-      transform:isSelected?'scale(1.07) translateY(-4px)':isNeighbor?'scale(1.025) translateY(-1px)':'scale(1)',
-      transition:tr, cursor:'pointer', userSelect:'none',
+      boxShadow:isDimmed?'none':sh, opacity:opBase,
+      transform:isSelected?'scale(1.10) translateY(-5px)':isNeighbor?'scale(1.04) translateY(-1px)':'scale(1)',
+      transition:tr, willChange:'transform', cursor:'pointer', userSelect:'none',
     }} onClick={e=>{e.stopPropagation();onSelect(d as unknown as CardData);}}>
-      {Handles}{SDot(6,8,9)}
-      <div style={{width:40,height:40,borderRadius:10,flexShrink:0,background:iconBg,border:`1px solid ${iconBdr}`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <Icon size={19} color={color} strokeWidth={1.7} style={{opacity:isIdle?0.45:0.9}}/>
+      {Handles}{SDot(6,9,10)}
+      <div style={{width:46,height:46,borderRadius:12,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <HugeiconsIcon icon={icon} size={30} color={isIdle?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.88)'} strokeWidth={1.45}/>
       </div>
-      <div style={{flex:1,minWidth:0,paddingRight:10}}>
-        <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:12.5,fontWeight:600,lineHeight:1.25,color:`rgba(255,255,255,${isIdle?0.42:0.88})`,letterSpacing:'-0.008em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div>
-        {kicker&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:9,letterSpacing:'0.03em',marginTop:3,color:`rgba(255,255,255,${isIdle?0.14:0.30})`,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{kicker}</div>}
-        {keyStat&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:9.5,fontWeight:600,marginTop:4,color:keyStat.accent??`rgba(255,255,255,${isIdle?0.3:0.58})`}}>{keyStat.val}</div>}
+      <div style={{flex:1,minWidth:0,paddingRight:11}}>
+        <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:13,fontWeight:650,lineHeight:1.25,color:`rgba(255,255,255,${isIdle?0.40:0.90})`,letterSpacing:'-0.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div>
+        {kicker&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:9,letterSpacing:'0.03em',marginTop:3,color:`rgba(255,255,255,${isIdle?0.14:0.32})`,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{kicker}</div>}
+        {keyStat&&<div style={{fontFamily:'var(--font-mono,monospace)',fontSize:10,fontWeight:600,marginTop:4,color:keyStat.accent??`rgba(255,255,255,${isIdle?0.3:0.58})`}}>{keyStat.val}</div>}
       </div>
     </div>
     </div>
@@ -375,19 +381,19 @@ function RightPanel({data,onClose}:{data:CardData|null;onClose:()=>void}) {
   if(!data) return (
     <div style={{width:'20%',minWidth:220,maxWidth:300,height:'100%',background:'rgba(9,10,18,0.98)',borderLeft:'1px solid rgba(255,255,255,0.06)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,flexShrink:0}}>
       <div style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <IconMap2 size={16} color="rgba(255,255,255,0.16)" strokeWidth={1.5}/>
+        <HugeiconsIcon icon={MapsIcon} size={16} color="rgba(255,255,255,0.16)" strokeWidth={1.5}/>
       </div>
       <span style={{fontFamily:'var(--font-mono,monospace)',fontSize:9,color:'rgba(255,255,255,0.18)',letterSpacing:'0.12em',textTransform:'uppercase',textAlign:'center',lineHeight:1.6}}>selecciona<br/>un nodo</span>
     </div>
   );
-  const Icon=IMAP[data.ikey as IKey];
+  const rpIcon=IMAP[data.ikey as IKey];
   return (
     <div style={{width:'20%',minWidth:220,maxWidth:300,height:'100%',background:'rgba(9,10,18,0.98)',borderLeft:'1px solid rgba(255,255,255,0.06)',display:'flex',flexDirection:'column',overflow:'hidden',flexShrink:0}}>
       {/* Header */}
       <div style={{padding:'15px',borderBottom:'1px solid rgba(255,255,255,0.06)',background:`${data.color}07`,flexShrink:0}}>
         <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:10}}>
           <div style={{width:38,height:38,borderRadius:10,background:`${data.color}1e`,border:`1px solid ${data.color}40`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            <Icon size={17} color={data.color} strokeWidth={1.7}/>
+            <HugeiconsIcon icon={rpIcon} size={17} color={data.color} strokeWidth={1.7}/>
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.88)',lineHeight:1.25,wordBreak:'break-word'}}>{data.label}</div>
@@ -473,17 +479,17 @@ function Sp({ series,color }:{series:number[];color:string}) {
 
 // ─── Detail Panel (glassmorphic popup, bottom-right) ──────
 function DetailPanel({ data:d, conn, onClose }:{ data:CardData; conn:ConnectionInfo|null; onClose:()=>void }) {
-  const Icon = IMAP[d.ikey as IKey];
+  const dpIcon = IMAP[d.ikey as IKey];
   const hasConn = conn && (conn.sources.length>0 || conn.targets.length>0);
   return (
     <div
-      style={{position:'absolute',bottom:72,right:16,zIndex:30,width:295,borderRadius:22,background:'rgba(10,11,22,0.97)',border:`1px solid ${d.color}28`,backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',boxShadow:`0 20px 56px rgba(0,0,0,0.72), inset 0 0 0 1px rgba(255,255,255,0.04)`,overflow:'hidden'}}
+      style={{position:'absolute',bottom:72,right:16,zIndex:30,width:295,borderRadius:22,background:'rgba(8,9,20,0.99)',border:`1px solid ${d.color}30`,boxShadow:`0 12px 36px rgba(0,0,0,0.80)`,overflow:'hidden'}}
       onClick={e=>e.stopPropagation()}
     >
       {/* Header */}
       <div style={{padding:'14px 15px 12px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',gap:11,background:`${d.color}0b`}}>
         <div style={{width:40,height:40,borderRadius:'50%',flexShrink:0,background:`${d.color}1c`,border:`1.5px solid ${d.color}40`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <Icon size={16} color={d.color}/>
+          <HugeiconsIcon icon={dpIcon} size={16} color={d.color}/>
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontFamily:'var(--font-headline,sans-serif)',fontSize:13.5,fontWeight:700,color:'rgba(255,255,255,0.9)',lineHeight:1.2}}>{d.label}</div>
@@ -619,11 +625,11 @@ export default function SystemMapScreen() {
     return [
       // ─── Main spine (horizontal) ──────────────────────────
       // Mission flow
-      {...nd('welcome','screen',C.mission,'Welcome','pantalla · inicio',{status:'ok'}), position:POS['welcome']},
+      {...nd('welcome','welcome',C.mission,'Welcome','pantalla · inicio',{status:'ok'}), position:POS['welcome']},
       {...nd('mission','mission',C.mission,'Misión','genesis · protocolo',{status:todaySess?'ok':'idle',
         stats:[{label:'score hoy',val:todaySess?.score!=null?`${todaySess.score}`:'— sin sesión'},{label:'prom. 7d',val:weekAvg!=null?`${weekAvg}`:'—'},{label:'racha',val:`${profile.stats?.disciplina??0}d`,accent:(profile.stats?.disciplina??0)>0?ok:mk}],
         sparkline:sess7}), position:POS['mission']},
-      {...nd('summary','screen',C.mission,'Summary','resultado · sesión',{status:todaySess?'ok':'idle'}), position:POS['summary']},
+      {...nd('summary','summary',C.mission,'Summary','resultado · sesión',{status:todaySess?'ok':'idle'}), position:POS['summary']},
       {...nd('xp_level','mission',C.mission,'XP · Stats','progression · operator',{status:profile.xp>0?'ok':'idle',
         stats:[{label:'nivel',val:`${profile.level}`},{label:'xp',val:`${profile.xp}`},{label:'fases',val:`${profile.phasesCompleted}`}],
         sparkline:sess7}), position:POS['xp_level']},
@@ -647,11 +653,11 @@ export default function SystemMapScreen() {
         stats:[{label:'hoy',val:`${wellness.doneToday}/${wellness.total}`,accent:wellness.doneToday===wellness.total?ok:C.wellness},{label:'adh. 7d',val:`${wellness.avgAdh7}%`}],sparkline:wellness.series7}), position:POS['h_wellness']},
 
       // Lane 2: Looksmax
-      {...nd('h_free','looksmax',C.looksmax,'Looksmax libre','hábitos · free',{status:st(looksFree.doneToday,looksFree.total),
+      {...nd('h_free','looksmax',C.looksmax,'Looksmax libre','hábitos · free',{tier:2,status:st(looksFree.doneToday,looksFree.total),
         stats:[{label:'hoy',val:`${looksFree.doneToday}/${looksFree.total}`,accent:looksFree.doneToday===looksFree.total?ok:C.looksmax},{label:'adh. 7d',val:`${looksFree.avgAdh7}%`}],sparkline:looksFree.series7}), position:POS['h_free']},
       {...nd('gate_inv','gate',C.inventory,'Gate tools','condición · inventario',{status:totalOwned>0?'ok':'idle',
         stats:[{label:'tools activas',val:`${totalOwned}/${TOOLS.length}`,accent:totalOwned>0?ok:mk},{label:'hábitos hab.',val:`${unlockedH.size}`}]}), position:POS['gate_inv']},
-      {...nd('h_gated','looksmax',C.looksmax,'Looksmax gated','hábitos · inventario',{status:totalOwned===0?'idle':st(looksGated.doneToday,looksGated.total),
+      {...nd('h_gated','looksmax',C.looksmax,'Looksmax gated','hábitos · inventario',{tier:2,status:totalOwned===0?'idle':st(looksGated.doneToday,looksGated.total),
         stats:[{label:'hoy',val:`${looksGated.doneToday}/${looksGated.total}`,accent:looksGated.doneToday===looksGated.total?ok:C.looksmax},{label:'adh. 7d',val:`${looksGated.avgAdh7}%`}],sparkline:looksGated.series7}), position:POS['h_gated']},
       {...nd('store_inventory','store',C.store,'Inventario','localStorage',{tier:2,status:'ok',
         stats:[{label:'clave',val:'ma-inventory'},{label:'adquiridas',val:`${totalOwned}/${TOOLS.length}`}]}), position:POS['store_inventory']},
@@ -780,16 +786,15 @@ export default function SystemMapScreen() {
           nodesDraggable nodesConnectable={false} elementsSelectable
           panOnScroll zoomOnScroll proOptions={{hideAttribution:true}}
         >
-          <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.04)" />
+          <Background variant={BackgroundVariant.Dots} gap={32} size={0.8} color="rgba(255,255,255,0.03)" />
           <Controls showInteractive={false} style={{background:'rgba(10,11,20,0.92)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,boxShadow:'0 4px 20px rgba(0,0,0,0.5)',bottom:62}}/>
           <MiniMap
             position="bottom-right"
-            pannable zoomable
-            nodeColor={(n:Node)=>{ const c=(n.data as unknown as CardData|undefined)?.color; return c ?? 'rgba(255,255,255,0.2)'; }}
+            nodeColor="rgba(255,255,255,0.18)"
             nodeStrokeColor="transparent"
-            nodeBorderRadius={4}
-            maskColor="rgba(8,9,18,0.60)"
-            style={{width:148,height:92}}
+            nodeBorderRadius={3}
+            maskColor="rgba(8,9,18,0.65)"
+            style={{width:120,height:76}}
           />
         </ReactFlow>
         </HighlightCtx.Provider>
